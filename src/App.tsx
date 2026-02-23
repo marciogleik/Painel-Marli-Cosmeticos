@@ -2,17 +2,13 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import BookingPage from "./pages/BookingPage";
-import DashboardPage from "./pages/DashboardPage";
-import ClientsPage from "./pages/ClientsPage";
-import ProfessionalsPage from "./pages/ProfessionalsPage";
-import ServicesPage from "./pages/ServicesPage";
-import ReportsPage from "./pages/ReportsPage";
-import FinancialPage from "./pages/FinancialPage";
-import PlaceholderPage from "./pages/PlaceholderPage";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import PainelLayout from "./layouts/PainelLayout";
+import DashboardPage from "./pages/DashboardPage";
+import AgendaPage from "./pages/AgendaPage";
+import ClientsPage from "./pages/ClientsPage";
+import ProntuariosPage from "./pages/ProntuariosPage";
+import PlaceholderPage from "./pages/PlaceholderPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,22 +20,16 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/agendar" element={<BookingPage />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           
-          {/* Painel routes with sidebar layout */}
-          <Route path="/painel" element={<PainelLayout />}>
-            <Route index element={<DashboardPage />} />
-            <Route path="clientes" element={<ClientsPage />} />
-            <Route path="profissionais" element={<ProfessionalsPage />} />
-            <Route path="servicos" element={<ServicesPage />} />
-            <Route path="financeiro/receber" element={<FinancialPage type="receber" />} />
-            <Route path="financeiro/pagar" element={<FinancialPage type="pagar" />} />
-            <Route path="financeiro/caixa" element={<FinancialPage type="caixa" />} />
-            <Route path="dashboard" element={<ReportsPage />} />
-            <Route path="relatorios" element={<PlaceholderPage title="Relatórios" />} />
-            <Route path="anamnese" element={<PlaceholderPage title="Ficha de Anamnese" />} />
-            <Route path="configuracoes" element={<PlaceholderPage title="Configurações" />} />
+          {/* All pages use sidebar layout */}
+          <Route element={<PainelLayout />}>
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/agenda" element={<AgendaPage />} />
+            <Route path="/clientes" element={<ClientsPage />} />
+            <Route path="/prontuarios" element={<ProntuariosPage />} />
+            <Route path="/notificacoes" element={<PlaceholderPage title="Notificações" />} />
+            <Route path="/configuracoes" element={<PlaceholderPage title="Configurações" />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

@@ -6,59 +6,60 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 8%;
+    --background: 0 0% 98%;
+    --foreground: 0 0% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 8%;
+    --card-foreground: 0 0% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 8%;
+    --popover-foreground: 0 0% 15%;
 
-    --primary: 0 0% 8%;
+    --primary: 340 65% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 40 60% 50%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 340 30% 96%;
+    --secondary-foreground: 340 65% 40%;
 
-    --muted: 40 10% 95%;
-    --muted-foreground: 0 0% 40%;
+    --muted: 0 0% 95%;
+    --muted-foreground: 0 0% 45%;
 
-    --accent: 40 60% 50%;
-    --accent-foreground: 0 0% 8%;
+    --accent: 340 40% 94%;
+    --accent-foreground: 340 65% 40%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 40 15% 88%;
-    --input: 40 15% 88%;
-    --ring: 40 60% 50%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 340 65% 55%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
     /* Custom tokens */
-    --gold: 40 60% 50%;
-    --gold-light: 40 50% 70%;
-    --gold-dark: 40 70% 35%;
-    --gold-muted: 40 30% 92%;
-    --surface-warm: 40 20% 97%;
-    --surface-dark: 0 0% 8%;
-    --surface-dark-foreground: 0 0% 95%;
+    --sidebar-bg: 340 30% 96%;
+    --sidebar-active: 340 65% 55%;
+    --sidebar-active-foreground: 0 0% 100%;
+    --sidebar-text: 0 0% 40%;
+    --sidebar-hover: 340 30% 92%;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --status-confirmed: 152 60% 45%;
+    --status-pending: 35 90% 55%;
+    --status-cancelled: 0 0% 70%;
+    --status-inprogress: 210 70% 55%;
 
-    /* Status colors for appointments */
-    --status-confirmed: 142 70% 45%;
-    --status-pending: 40 90% 50%;
-    --status-cancelled: 0 0% 65%;
-    --status-inprogress: 210 80% 55%;
+    --rose: 340 65% 55%;
+    --rose-light: 340 40% 94%;
+    --rose-muted: 340 30% 96%;
+
+    --sidebar-background: 340 30% 96%;
+    --sidebar-foreground: 0 0% 40%;
+    --sidebar-primary: 340 65% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 340 30% 92%;
+    --sidebar-accent-foreground: 340 65% 40%;
+    --sidebar-border: 340 20% 90%;
+    --sidebar-ring: 340 65% 55%;
   }
 
   .dark {
@@ -68,27 +69,27 @@
     --card-foreground: 0 0% 95%;
     --popover: 0 0% 10%;
     --popover-foreground: 0 0% 95%;
-    --primary: 40 60% 50%;
-    --primary-foreground: 0 0% 8%;
+    --primary: 340 65% 55%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 18%;
     --secondary-foreground: 0 0% 95%;
     --muted: 0 0% 15%;
     --muted-foreground: 0 0% 60%;
-    --accent: 40 60% 50%;
-    --accent-foreground: 0 0% 8%;
+    --accent: 340 40% 20%;
+    --accent-foreground: 340 65% 70%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
     --border: 0 0% 18%;
     --input: 0 0% 18%;
-    --ring: 40 60% 50%;
+    --ring: 340 65% 55%;
     --sidebar-background: 0 0% 8%;
     --sidebar-foreground: 0 0% 90%;
-    --sidebar-primary: 40 60% 50%;
-    --sidebar-primary-foreground: 0 0% 8%;
+    --sidebar-primary: 340 65% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 0 0% 15%;
     --sidebar-accent-foreground: 0 0% 90%;
     --sidebar-border: 0 0% 15%;
-    --sidebar-ring: 40 60% 50%;
+    --sidebar-ring: 340 65% 55%;
   }
 }
 
@@ -113,60 +114,5 @@
 
   .font-body {
     font-family: 'Inter', sans-serif;
-  }
-
-  .text-gold {
-    color: hsl(var(--gold));
-  }
-
-  .bg-gold {
-    background-color: hsl(var(--gold));
-  }
-
-  .bg-gold-muted {
-    background-color: hsl(var(--gold-muted));
-  }
-
-  .bg-surface-warm {
-    background-color: hsl(var(--surface-warm));
-  }
-
-  .bg-surface-dark {
-    background-color: hsl(var(--surface-dark));
-  }
-
-  .text-surface-dark-foreground {
-    color: hsl(var(--surface-dark-foreground));
-  }
-
-  .border-gold {
-    border-color: hsl(var(--gold));
-  }
-
-  .gold-gradient {
-    background: linear-gradient(135deg, hsl(40, 60%, 50%), hsl(40, 70%, 60%), hsl(40, 50%, 45%));
-  }
-
-  .gold-text-gradient {
-    background: linear-gradient(135deg, hsl(40, 60%, 50%), hsl(40, 80%, 65%));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-
-  .status-confirmed {
-    background-color: hsl(var(--status-confirmed));
-  }
-
-  .status-pending {
-    background-color: hsl(var(--status-pending));
-  }
-
-  .status-cancelled {
-    background-color: hsl(var(--status-cancelled));
-  }
-
-  .status-inprogress {
-    background-color: hsl(var(--status-inprogress));
   }
 }
