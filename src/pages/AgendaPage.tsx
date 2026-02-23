@@ -1,7 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { professionals, sampleAppointments, Appointment } from "@/data/clinic";
 import { cn } from "@/lib/utils";
-import { format, addDays, startOfWeek, isSameDay, isToday } from "date-fns";
+import { format, addDays, startOfWeek, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Plus, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 const statusColors: Record<Appointment['status'], string> = {
   confirmed: 'bg-emerald-400',
   pending: 'bg-amber-400',
-  cancelled: 'bg-rose-300 opacity-60 line-through',
+  cancelled: 'bg-muted-foreground/30 opacity-60 line-through',
   inprogress: 'bg-sky-400',
   completed: 'bg-violet-400',
 };
@@ -41,7 +41,6 @@ const AgendaPage = () => {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Header */}
       <div className="flex items-center justify-between px-8 pt-8 pb-2 shrink-0">
         <div>
           <h1 className="text-2xl font-display font-bold">Agenda</h1>
@@ -52,7 +51,6 @@ const AgendaPage = () => {
         </Button>
       </div>
 
-      {/* Toolbar */}
       <div className="flex items-center justify-between px-8 py-3 shrink-0">
         <div className="flex items-center gap-2">
           <button onClick={() => setWeekStart(addDays(weekStart, -7))} className="p-1.5 rounded-md hover:bg-muted">
@@ -73,23 +71,23 @@ const AgendaPage = () => {
           </button>
         </div>
 
-        {/* Professional filters */}
-        <div className="flex items-center gap-1.5">
+        {/* Professional filters - showing all 7 */}
+        <div className="flex items-center gap-1.5 overflow-x-auto">
           <button
             onClick={() => setSelectedFilter('all')}
             className={cn(
-              "px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+              "px-3 py-1.5 rounded-full text-xs font-medium transition-colors shrink-0",
               selectedFilter === 'all' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"
             )}
           >
             Todos
           </button>
-          {professionals.slice(0, 4).map(p => (
+          {professionals.map(p => (
             <button
               key={p.id}
               onClick={() => setSelectedFilter(p.id)}
               className={cn(
-                "px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+                "px-3 py-1.5 rounded-full text-xs font-medium transition-colors shrink-0",
                 selectedFilter === p.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"
               )}
             >
@@ -99,12 +97,11 @@ const AgendaPage = () => {
         </div>
       </div>
 
-      {/* Calendar Grid - Weekly view by day */}
+      {/* Calendar Grid */}
       <div className="flex-1 overflow-auto mx-8 mb-4 border border-border rounded-lg">
         <div className="flex min-w-[800px]">
-          {/* Time column */}
           <div className="w-16 shrink-0 border-r border-border">
-            <div className="h-12" /> {/* header spacer */}
+            <div className="h-12" />
             {hours.map(time => (
               <div key={time} className="h-16 flex items-start justify-end pr-2 pt-1 border-t border-border/50">
                 <span className="text-[10px] text-muted-foreground font-medium">{time}</span>
@@ -112,35 +109,24 @@ const AgendaPage = () => {
             ))}
           </div>
 
-          {/* Day columns */}
           {days.map(day => {
             const dayStr = format(day, 'yyyy-MM-dd');
             const dayAppts = getAppts(dayStr);
             const today = isToday(day);
             const dayAbbr = format(day, 'EEE.', { locale: ptBR }).toUpperCase();
-            const dayNum = format(day, 'd');
 
             return (
               <div key={dayStr} className="flex-1 min-w-[100px] border-r border-border last:border-r-0">
-                {/* Day header */}
                 <div className="h-12 flex flex-col items-center justify-center border-b border-border bg-muted/30">
                   <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{dayAbbr}</span>
-                  <span className={cn(
-                    "text-sm font-bold",
-                    today ? "text-primary" : "text-foreground"
-                  )}>{dayNum}</span>
+                  <span className={cn("text-sm font-bold", today ? "text-primary" : "text-foreground")}>{format(day, 'd')}</span>
                 </div>
-
-                {/* Time grid */}
                 <div className="relative">
                   {hours.map(time => (
                     <div key={time} className="h-16 border-t border-border/30 hover:bg-accent/30 transition-colors cursor-pointer" />
                   ))}
-
-                  {/* Appointments */}
                   {dayAppts.map(appt => {
                     const { top, height } = getPosition(appt);
-                    const prof = professionals.find(p => p.id === appt.professionalId);
                     return (
                       <div
                         key={appt.id}
