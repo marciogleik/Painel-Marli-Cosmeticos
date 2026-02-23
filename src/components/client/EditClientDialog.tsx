@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { z } from "zod";
+import { maskPhone, maskCPF } from "@/utils/masks";
 import type { DBClient } from "@/hooks/useClinicData";
 
 const clientSchema = z.object({
@@ -143,7 +144,7 @@ const EditClientDialog = ({ open, onOpenChange, client }: Props) => {
               <Input
                 id="edit_phone"
                 value={form.phone}
-                onChange={(e) => handleChange("phone", e.target.value)}
+                onChange={(e) => handleChange("phone", maskPhone(e.target.value))}
               />
             </div>
             <div>
@@ -151,7 +152,7 @@ const EditClientDialog = ({ open, onOpenChange, client }: Props) => {
               <Input
                 id="edit_phone2"
                 value={form.phone2}
-                onChange={(e) => handleChange("phone2", e.target.value)}
+                onChange={(e) => handleChange("phone2", maskPhone(e.target.value))}
               />
             </div>
           </div>
@@ -172,7 +173,7 @@ const EditClientDialog = ({ open, onOpenChange, client }: Props) => {
               <Input
                 id="edit_cpf"
                 value={form.cpf}
-                onChange={(e) => handleChange("cpf", e.target.value)}
+                onChange={(e) => handleChange("cpf", maskCPF(e.target.value))}
               />
             </div>
           </div>
