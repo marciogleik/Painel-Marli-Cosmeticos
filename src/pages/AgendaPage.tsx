@@ -303,7 +303,7 @@ const AgendaPage = () => {
           </div>
         ) : (
           /* ============ DAY VIEW ============ */
-          <div className="flex" style={{ minWidth: `${Math.max(filteredProfessionals.length * 220 + 64, 800)}px` }}>
+          <div className="flex" style={{ minWidth: `${Math.max(filteredProfessionals.length * 200 + 80, 800)}px`, width: 'max-content' }}>
             <div className="w-16 shrink-0 border-r border-border">
               <div className="h-12" />
               {hours.map((time) => (
