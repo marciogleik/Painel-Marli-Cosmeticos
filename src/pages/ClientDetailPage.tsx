@@ -1,15 +1,16 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Phone, Mail, Calendar, MapPin, FileText, User, Clock } from "lucide-react";
+import { ArrowLeft, Phone, Mail, Calendar, MapPin, FileText, User, Clock, Pencil } from "lucide-react";
 import { format, differenceInYears, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { DBClient } from "@/hooks/useClinicData";
 import AnamneseTab from "@/components/client/AnamneseTab";
-
+import EditClientDialog from "@/components/client/EditClientDialog";
 const useClient = (id: string) =>
   useQuery({
     queryKey: ["client", id],
@@ -66,6 +67,7 @@ const ClientDetailPage = () => {
   const { data: client, isLoading } = useClient(id!);
   const { data: stats } = useClientStats(id!);
   const { data: appointments } = useClientAppointments(id!);
+  const [showEdit, setShowEdit] = useState(false);
 
   const { data: professionals } = useQuery({
     queryKey: ["professionals_map"],
@@ -186,6 +188,11 @@ const ClientDetailPage = () => {
 
           <TabsContent value="resumo">
             <div className="space-y-4 max-w-2xl">
+              <div className="flex justify-end">
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowEdit(true)}>
+                  <Pencil className="w-3.5 h-3.5" /> Editar Dados
+                </Button>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 {client.cpf && (
                   <div>
@@ -195,27 +202,37 @@ const ClientDetailPage = () => {
                 )}
                 {client.phone2 && (
                   <div>
-                    <p className="text-xs text-muted-foreground">
-                      Telefone 2
-                    </p>
+                    <p className="text-xs text-muted-foreground">Telefone 2</p>
                     <p className="text-sm font-medium">{client.phone2}</p>
+                  </div>
+                )}
+                {(client as any).address && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Endereço</p>
+                    <p className="text-sm font-medium">{(client as any).address}</p>
+                  </div>
+                )}
+                {(client as any).city && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Cidade</p>
+                    <p className="text-sm font-medium">{(client as any).city}</p>
                   </div>
                 )}
               </div>
               {client.notes && (
                 <div>
                   <p className="text-xs text-muted-foreground">Observações</p>
-                  <p className="text-sm mt-0.5 whitespace-pre-wrap">
-                    {client.notes}
-                  </p>
+                  <p className="text-sm mt-0.5 whitespace-pre-wrap">{client.notes}</p>
                 </div>
               )}
-              {!client.cpf && !client.phone2 && !client.notes && (
+              {!client.cpf && !client.phone2 && !client.notes && !(client as any).address && !(client as any).city && (
                 <p className="text-sm text-muted-foreground py-4">
                   Nenhuma informação adicional cadastrada.
                 </p>
               )}
             </div>
+
+            <EditClientDialog open={showEdit} onOpenChange={setShowEdit} client={client} />
           </TabsContent>
 
           <TabsContent value="anamnese">
