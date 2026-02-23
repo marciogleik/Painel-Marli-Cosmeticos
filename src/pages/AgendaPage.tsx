@@ -3,9 +3,10 @@ import { useProfessionals, useAppointments, statusConfig, DBAppointment } from "
 import { cn } from "@/lib/utils";
 import { format, addDays, subDays, startOfWeek, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, Calendar, Check, X as XIcon, GripVertical } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Calendar, Check, X as XIcon, GripVertical, Ban, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import NewAppointmentDialog from "@/components/NewAppointmentDialog";
+import BlockedSlotDialog from "@/components/BlockedSlotDialog";
 import AppointmentDetailDialog from "@/components/AppointmentDetailDialog";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,6 +47,8 @@ const AgendaPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<DBAppointment | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [blockDialogOpen, setBlockDialogOpen] = useState(false);
+  const [blockDefaults, setBlockDefaults] = useState<{ profId?: string; date?: Date; time?: string }>({});
 
   // Drag state
   const dragRef = useRef<DragState | null>(null);
@@ -89,6 +92,77 @@ const AgendaPage = () => {
     const services = appointmentServices.filter((s) => s.appointment_id === appointmentId);
     if (services.length === 0) return "";
     return services.map((s) => s.service_name).join(", ");
+  };
+
+  // Blocked slots query
+  const { data: blockedSlots = [] } = useQuery({
+    queryKey: ["blocked_slots", dateFrom, dateTo],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("blocked_slots")
+        .select("*")
+        .gte("date", dateFrom)
+        .lte("date", dateTo);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const deleteBlockedSlot = async (id: string) => {
+    const { error } = await supabase.from("blocked_slots").delete().eq("id", id);
+    if (error) {
+      toast.error("Erro ao remover bloqueio: " + error.message);
+    } else {
+      toast.success("Bloqueio removido!");
+      queryClient.invalidateQueries({ queryKey: ["blocked_slots"] });
+    }
+  };
+
+  const getBlockedForColumn = (dayStr: string, profId?: string) => {
+    return blockedSlots.filter((b) => {
+      const matchDay = b.date === dayStr;
+      if (viewMode === "day" && profId) return matchDay && b.professional_id === profId;
+      const matchProf = selectedFilter === "all" || b.professional_id === selectedFilter;
+      return matchDay && matchProf;
+    });
+  };
+
+  const renderBlockedBlock = (block: typeof blockedSlots[0]) => {
+    const timeParts = block.start_time.split(":").map(Number);
+    const endParts = block.end_time.split(":").map(Number);
+    const startMinutes = timeParts[0] * 60 + timeParts[1];
+    const endMinutes = endParts[0] * 60 + endParts[1];
+    const duration = endMinutes - startMinutes;
+    const top = (timeParts[0] - 7) * 64 + (timeParts[1] / 60) * 64;
+    const height = Math.max((duration / 60) * 64, 32);
+    const timeRange = `${block.start_time.slice(0, 5)} - ${block.end_time.slice(0, 5)}`;
+
+    return (
+      <div
+        key={block.id}
+        className="absolute left-1 right-1 rounded-md overflow-hidden border border-destructive/30 bg-destructive/10 z-10 group cursor-default"
+        style={{ top: `${top}px`, height: `${height}px` }}
+      >
+        <div className="h-full px-2 py-1 flex flex-col justify-start relative">
+          <div className="flex items-center gap-1">
+            <Ban className="w-3 h-3 shrink-0 text-destructive/70" />
+            <span className="text-[10px] font-semibold text-destructive/70">{timeRange}</span>
+          </div>
+          {height >= 40 && (
+            <span className="text-[10px] text-destructive/60 truncate">
+              {block.reason || "Bloqueado"}
+            </span>
+          )}
+          <button
+            onClick={(e) => { e.stopPropagation(); deleteBlockedSlot(block.id); }}
+            className="absolute top-1 right-1 p-0.5 rounded hover:bg-destructive/20 opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Remover bloqueio"
+          >
+            <Trash2 className="w-3 h-3 text-destructive" />
+          </button>
+        </div>
+      </div>
+    );
   };
 
   const getPosition = (appt: DBAppointment) => {
@@ -366,9 +440,14 @@ const AgendaPage = () => {
           <h1 className="text-2xl font-display font-bold">Agenda</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Gerencie seus agendamentos e horários</p>
         </div>
-        <Button className="gap-1.5" onClick={() => setDialogOpen(true)}>
-          <Plus className="w-4 h-4" /> Novo Agendamento
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="gap-1.5" onClick={() => { setBlockDefaults({}); setBlockDialogOpen(true); }}>
+            <Ban className="w-4 h-4" /> Bloquear Horário
+          </Button>
+          <Button className="gap-1.5" onClick={() => setDialogOpen(true)}>
+            <Plus className="w-4 h-4" /> Novo Agendamento
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center justify-between px-8 py-3 shrink-0 flex-wrap gap-2">
@@ -480,7 +559,9 @@ const AgendaPage = () => {
                   isToday={today}
                   hours={hours}
                   appts={dayAppts}
+                  blockedBlocks={getBlockedForColumn(dayStr)}
                   renderBlock={(appt, el) => renderAppointmentBlock(appt, selectedFilter === "all", el)}
+                  renderBlockedBlock={renderBlockedBlock}
                   onDoubleClick={() => {
                     setSelectedDay(day);
                     setViewMode("day");
@@ -511,10 +592,17 @@ const AgendaPage = () => {
               return (
                 <ProfColumn
                   key={prof.id}
+                  profId={prof.id}
                   profName={prof.name}
                   hours={hours}
                   appts={profAppts}
+                  blockedBlocks={getBlockedForColumn(dayStr, prof.id)}
                   renderBlock={(appt, el) => renderAppointmentBlock(appt, false, el)}
+                  renderBlockedBlock={renderBlockedBlock}
+                  onSlotClick={(time) => {
+                    setBlockDefaults({ profId: prof.id, date: selectedDay, time });
+                    setBlockDialogOpen(true);
+                  }}
                 />
               );
             })}
@@ -523,6 +611,13 @@ const AgendaPage = () => {
       </div>
 
       <NewAppointmentDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <BlockedSlotDialog
+        open={blockDialogOpen}
+        onOpenChange={setBlockDialogOpen}
+        defaultProfessionalId={blockDefaults.profId}
+        defaultDate={blockDefaults.date}
+        defaultStartTime={blockDefaults.time}
+      />
       <AppointmentDetailDialog appointment={selectedAppointment} open={detailOpen} onOpenChange={setDetailOpen} />
 
       {/* Reschedule confirmation dialog */}
@@ -561,11 +656,13 @@ const AgendaPage = () => {
 
 // Sub-components to hold column refs
 function DayColumn({
-  dayStr, dayAbbr, dayNum, isToday: today, hours, appts, renderBlock, onDoubleClick,
+  dayStr, dayAbbr, dayNum, isToday: today, hours, appts, blockedBlocks, renderBlock, renderBlockedBlock, onDoubleClick,
 }: {
   dayStr: string; dayAbbr: string; dayNum: string; isToday: boolean;
   hours: string[]; appts: DBAppointment[];
+  blockedBlocks: any[];
   renderBlock: (appt: DBAppointment, el: HTMLDivElement | null) => React.ReactNode;
+  renderBlockedBlock: (block: any) => React.ReactNode;
   onDoubleClick: () => void;
 }) {
   const colRef = useRef<HTMLDivElement>(null);
@@ -582,6 +679,7 @@ function DayColumn({
         {hours.map((time) => (
           <div key={time} className={cn("h-8 border-t hover:bg-accent/30 transition-colors", time.endsWith(":30") ? "border-border/15" : "border-border/30")} />
         ))}
+        {blockedBlocks.map((block) => renderBlockedBlock(block))}
         {appts.map((appt) => renderBlock(appt, colRef.current))}
       </div>
     </div>
@@ -589,10 +687,13 @@ function DayColumn({
 }
 
 function ProfColumn({
-  profName, hours, appts, renderBlock,
+  profId, profName, hours, appts, blockedBlocks, renderBlock, renderBlockedBlock, onSlotClick,
 }: {
-  profName: string; hours: string[]; appts: DBAppointment[];
+  profId: string; profName: string; hours: string[]; appts: DBAppointment[];
+  blockedBlocks: any[];
   renderBlock: (appt: DBAppointment, el: HTMLDivElement | null) => React.ReactNode;
+  renderBlockedBlock: (block: any) => React.ReactNode;
+  onSlotClick: (time: string) => void;
 }) {
   const colRef = useRef<HTMLDivElement>(null);
   return (
@@ -602,8 +703,13 @@ function ProfColumn({
       </div>
       <div className="relative" ref={colRef}>
         {hours.map((time) => (
-          <div key={time} className={cn("h-8 border-t hover:bg-accent/30 transition-colors", time.endsWith(":30") ? "border-border/15" : "border-border/30")} />
+          <div
+            key={time}
+            className={cn("h-8 border-t hover:bg-accent/30 transition-colors cursor-pointer", time.endsWith(":30") ? "border-border/15" : "border-border/30")}
+            onDoubleClick={() => onSlotClick(time)}
+          />
         ))}
+        {blockedBlocks.map((block) => renderBlockedBlock(block))}
         {appts.map((appt) => renderBlock(appt, colRef.current))}
       </div>
     </div>

@@ -2,8 +2,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Checks if a new/edited appointment conflicts with existing ones
- * for the same professional on the same date.
- * Returns the conflicting appointment's client_name if found, or null.
+ * or blocked slots for the same professional on the same date.
+ * Returns the conflicting appointment's client_name or "Horário bloqueado" if found, or null.
  */
 export async function checkAppointmentConflict({
   professionalId,
@@ -18,6 +18,7 @@ export async function checkAppointmentConflict({
   endTime: string;   // HH:MM:SS
   excludeAppointmentId?: string;
 }): Promise<string | null> {
+  // Check appointment conflicts
   let query = supabase
     .from("appointments")
     .select("id, client_name, start_time, end_time")
@@ -34,12 +35,25 @@ export async function checkAppointmentConflict({
   const { data, error } = await query;
   if (error) {
     console.warn("Conflict check failed:", error.message);
-    return null; // fail open — don't block on query errors
+    return null;
   }
 
   if (data && data.length > 0) {
     const conflict = data[0];
     return conflict.client_name || "outro cliente";
+  }
+
+  // Check blocked slot conflicts
+  const { data: blocked, error: blockedError } = await supabase
+    .from("blocked_slots")
+    .select("id, start_time, end_time, reason")
+    .eq("professional_id", professionalId)
+    .eq("date", date)
+    .lt("start_time", endTime)
+    .gt("end_time", startTime);
+
+  if (!blockedError && blocked && blocked.length > 0) {
+    return blocked[0].reason || "Horário bloqueado";
   }
 
   return null;
