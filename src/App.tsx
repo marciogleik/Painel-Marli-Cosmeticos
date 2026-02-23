@@ -14,7 +14,6 @@ import PlaceholderPage from "./pages/PlaceholderPage";
 import ClientDetailPage from "./pages/ClientDetailPage";
 import ConfiguracoesPage from "./pages/ConfiguracoesPage";
 import FinanceiroPage from "./pages/FinanceiroPage";
-import ImportClientsPage from "./pages/ImportClientsPage";
 import LoginPage from "./pages/LoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
@@ -41,7 +40,6 @@ const App = () => (
               <Route path="/prontuarios" element={<ProntuariosPage />} />
               <Route path="/financeiro" element={<FinanceiroPage />} />
               <Route path="/notificacoes" element={<PlaceholderPage title="Notificações" />} />
-              <Route path="/importar-clientes" element={<ImportClientsPage />} />
               <Route path="/configuracoes" element={<ConfiguracoesPage />} />
             </Route>
 
