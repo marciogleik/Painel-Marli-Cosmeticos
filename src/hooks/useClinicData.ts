@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { professionals as localProfessionals, services as localServices, sampleAppointments, statusConfig } from "@/data/clinic";
+import { statusConfig } from "@/data/clinic";
 
 // ========== PROFESSIONALS ==========
 export interface DBProfessional {
@@ -21,17 +21,8 @@ export const useProfessionals = () => {
         .eq("is_active", true)
         .order("name");
 
-      if (error || !data || data.length === 0) {
-        // Fallback to local data
-        return localProfessionals.map(p => ({
-          id: p.id,
-          name: p.name,
-          role_description: p.role,
-          avatar_initials: p.avatar,
-          is_active: true,
-        })) as DBProfessional[];
-      }
-      return data as DBProfessional[];
+      if (error) throw error;
+      return (data ?? []) as DBProfessional[];
     },
   });
 };
@@ -58,19 +49,8 @@ export const useServices = () => {
         .eq("is_active", true)
         .order("name");
 
-      if (error || !data || data.length === 0) {
-        return localServices.map(s => ({
-          id: s.id,
-          name: s.name,
-          duration_minutes: s.duration,
-          base_price: s.price,
-          price_note: s.priceNote || null,
-          category: s.category,
-          requires_evaluation: s.price === null,
-          is_active: true,
-        })) as DBService[];
-      }
-      return data as DBService[];
+      if (error) throw error;
+      return (data ?? []) as DBService[];
     },
   });
 };
@@ -93,23 +73,8 @@ export const useProfessionalServices = () => {
         .select("*")
         .eq("is_active", true);
 
-      if (error || !data || data.length === 0) {
-        // Build from local services professionalIds
-        const links: DBProfessionalService[] = [];
-        localServices.forEach(s => {
-          s.professionalIds.forEach(pid => {
-            links.push({
-              id: `${s.id}-${pid}`,
-              professional_id: pid,
-              service_id: s.id,
-              custom_price: null,
-              is_active: true,
-            });
-          });
-        });
-        return links;
-      }
-      return data as DBProfessionalService[];
+      if (error) throw error;
+      return (data ?? []) as DBProfessionalService[];
     },
   });
 };
@@ -159,39 +124,8 @@ export const useAppointments = (dateFrom?: string, dateTo?: string) => {
 
       const { data, error } = await query;
 
-      if (error || !data || data.length === 0) {
-        // Fallback to local data
-        return sampleAppointments
-          .filter(a => {
-            if (dateFrom && a.date < dateFrom) return false;
-            if (dateTo && a.date > dateTo) return false;
-            return true;
-          })
-          .map(a => {
-            const svc = localServices.find(s => s.name === a.serviceNames[0]);
-            const duration = svc?.duration || 30;
-            const [h, m] = a.time.split(":").map(Number);
-            const endMinutes = h * 60 + m + duration;
-            const endH = Math.floor(endMinutes / 60).toString().padStart(2, "0");
-            const endM = (endMinutes % 60).toString().padStart(2, "0");
-
-            return {
-              id: a.id,
-              client_id: null,
-              professional_id: a.professionalId,
-              date: a.date,
-              start_time: a.time + ":00",
-              end_time: `${endH}:${endM}:00`,
-              status: a.status,
-              notes: a.notes || null,
-              client_name: a.clientName,
-              client_phone: a.clientPhone,
-              executed_by: a.executedBy || null,
-              cancellation_reason: null,
-            } as DBAppointment;
-          });
-      }
-      return data as DBAppointment[];
+      if (error) throw error;
+      return (data ?? []) as DBAppointment[];
     },
   });
 };
@@ -226,10 +160,8 @@ export const useClients = (search?: string) => {
 
       const { data, error } = await query;
 
-      if (error || !data) {
-        return [] as DBClient[];
-      }
-      return data as DBClient[];
+      if (error) throw error;
+      return (data ?? []) as DBClient[];
     },
   });
 };

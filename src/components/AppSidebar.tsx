@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -25,6 +26,7 @@ const navItems = [
 
 const AppSidebar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { signOut } = useAuth();
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-sidebar">
@@ -70,7 +72,7 @@ const AppSidebar = () => {
 
       {/* Footer */}
       <div className="px-3 py-4 border-t border-sidebar-border shrink-0">
-        <button className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent w-full transition-colors">
+        <button onClick={signOut} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent w-full transition-colors">
           <LogOut className="w-[18px] h-[18px]" />
           <span>Sair</span>
         </button>
