@@ -104,11 +104,14 @@ const AgendaPage = () => {
     return null;
   };
 
+  // Ref to prevent detail dialog from opening after drag
+  const justDraggedRef = useRef(false);
+
   // Convert pixel position to time
   const pixelToTime = (px: number): { hours: number; minutes: number } => {
-    // Snap to 15-minute intervals
+    // Snap to 30-minute intervals
     const totalMinutes = Math.round((px / 64) * 60) + 7 * 60;
-    const snapped = Math.round(totalMinutes / 15) * 15;
+    const snapped = Math.round(totalMinutes / 30) * 30;
     const h = Math.floor(snapped / 60);
     const m = snapped % 60;
     return { hours: Math.max(7, Math.min(h, 21)), minutes: m };
@@ -138,8 +141,8 @@ const AgendaPage = () => {
       if (!dragRef.current) return;
       const delta = ev.clientY - dragRef.current.startY;
       const newTop = Math.max(0, dragRef.current.initialTop + delta);
-      // Snap to 15-min grid (16px = 15min)
-      const snappedTop = Math.round(newTop / 16) * 16;
+      // Snap to 30-min grid (32px = 30min)
+      const snappedTop = Math.round(newTop / 32) * 32;
       dragRef.current.currentTop = snappedTop;
       setDragPreviewTop(snappedTop);
     };
@@ -157,6 +160,10 @@ const AgendaPage = () => {
         setDraggingApptId(null);
         return;
       }
+
+      // Mark as dragged to prevent detail dialog from opening
+      justDraggedRef.current = true;
+      setTimeout(() => { justDraggedRef.current = false; }, 300);
 
       // Calculate new times
       const { hours: newStartH, minutes: newStartM } = pixelToTime(drag.currentTop);
@@ -298,7 +305,7 @@ const AgendaPage = () => {
           if (isDraggable) handleDragStart(e, appt, columnEl);
         }}
         onClick={() => {
-          if (!draggingApptId) {
+          if (!draggingApptId && !justDraggedRef.current) {
             setSelectedAppointment(appt);
             setDetailOpen(true);
           }
