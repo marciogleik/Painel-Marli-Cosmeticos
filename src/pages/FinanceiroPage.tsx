@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useFinanceReport } from "@/hooks/useFinanceReport";
 import { useProfessionals } from "@/hooks/useClinicData";
-import { format, subMonths, addMonths, subDays, startOfQuarter, startOfMonth } from "date-fns";
+import { format, subMonths, addMonths, subDays, startOfQuarter, startOfMonth, startOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, DollarSign, TrendingUp, TrendingDown, CalendarCheck, Loader2, FileDown, CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -120,6 +120,7 @@ const FinanceiroPage = () => {
                 { label: "30 dias", fn: () => { const t = new Date(); setCustomFrom(subDays(t, 29)); setCustomTo(t); } },
                 { label: "Este mês", fn: () => { const t = new Date(); setCustomFrom(startOfMonth(t)); setCustomTo(t); } },
                 { label: "Trimestre", fn: () => { const t = new Date(); setCustomFrom(startOfQuarter(t)); setCustomTo(t); } },
+                { label: "Ano atual", fn: () => { const t = new Date(); setCustomFrom(startOfYear(t)); setCustomTo(t); } },
               ].map(s => (
                 <Button key={s.label} variant="outline" size="sm" className="h-7 text-xs" onClick={s.fn}>
                   {s.label}
