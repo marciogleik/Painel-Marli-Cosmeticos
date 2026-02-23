@@ -145,7 +145,7 @@ const AgendaPage = () => {
 
       {/* Calendar Grid */}
       <div className="flex-1 overflow-auto mx-8 mb-4 border border-border rounded-lg">
-        <div className="flex min-w-[900px]">
+        <div className="flex min-w-[1200px]">
           <div className="w-16 shrink-0 border-r border-border">
             <div className="h-12" />
             {hours.map(time => (
@@ -162,7 +162,7 @@ const AgendaPage = () => {
             const dayAbbr = format(day, 'EEE.', { locale: ptBR }).toUpperCase();
 
             return (
-              <div key={dayStr} className="flex-1 min-w-[120px] border-r border-border last:border-r-0">
+              <div key={dayStr} className="flex-1 min-w-[160px] border-r border-border last:border-r-0">
                 <div className="h-12 flex flex-col items-center justify-center border-b border-border bg-muted/30">
                   <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{dayAbbr}</span>
                   <span className={cn("text-sm font-bold", today ? "text-primary" : "text-foreground")}>{format(day, 'd')}</span>
