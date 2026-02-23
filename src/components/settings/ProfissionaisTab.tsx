@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { Plus, Pencil, Loader2, Archive, ArchiveRestore } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -25,6 +26,7 @@ const ProfissionaisTab = () => {
   const { data: professionals = [], isLoading } = useProfessionals(showInactive);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deactivateTarget, setDeactivateTarget] = useState<{ id: string; name: string } | null>(null);
   const [form, setForm] = useState<ProfForm>(emptyForm);
 
   const generateInitials = (name: string) => {
@@ -130,7 +132,7 @@ const ProfissionaisTab = () => {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    onClick={() => toggleActiveMutation.mutate({ id: p.id, is_active: false })}
+                    onClick={() => setDeactivateTarget({ id: p.id, name: p.name })}
                     title="Desativar"
                     disabled={toggleActiveMutation.isPending}
                   >
@@ -192,6 +194,30 @@ const ProfissionaisTab = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deactivateTarget} onOpenChange={v => { if (!v) setDeactivateTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desativar profissional?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{deactivateTarget?.name}</strong> não aparecerá mais na agenda e nos vínculos. Você poderá reativá-lo(a) depois.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deactivateTarget) {
+                  toggleActiveMutation.mutate({ id: deactivateTarget.id, is_active: false });
+                  setDeactivateTarget(null);
+                }
+              }}
+            >
+              Desativar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
