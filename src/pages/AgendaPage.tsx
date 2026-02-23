@@ -5,10 +5,12 @@ import { format, addDays, startOfWeek, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Plus, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import NewAppointmentDialog from "@/components/NewAppointmentDialog";
 
 const AgendaPage = () => {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const hours = Array.from({ length: 12 }, (_, i) => `${(i + 8).toString().padStart(2, '0')}:00`);
@@ -48,7 +50,7 @@ const AgendaPage = () => {
           <h1 className="text-2xl font-display font-bold">Agenda</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Gerencie seus agendamentos e horários</p>
         </div>
-        <Button className="gap-1.5">
+        <Button className="gap-1.5" onClick={() => setDialogOpen(true)}>
           <Plus className="w-4 h-4" /> Novo Agendamento
         </Button>
       </div>
@@ -153,6 +155,8 @@ const AgendaPage = () => {
           })}
         </div>
       </div>
+
+      <NewAppointmentDialog open={dialogOpen} onOpenChange={setDialogOpen} />
     </div>
   );
 };
