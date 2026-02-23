@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useFinanceReport } from "@/hooks/useFinanceReport";
+import { useYearlyComparison } from "@/hooks/useYearlyComparison";
 import { useProfessionals } from "@/hooks/useClinicData";
 import { format, subMonths, addMonths, subDays, startOfQuarter, startOfMonth, startOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -8,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, LineChart, Line, Legend,
 } from "recharts";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -55,6 +56,10 @@ const FinanceiroPage = () => {
     month,
     selectedProfessional === "all" ? undefined : selectedProfessional,
     customRange,
+  );
+
+  const { data: yearlyData } = useYearlyComparison(
+    selectedProfessional === "all" ? undefined : selectedProfessional,
   );
 
   const prev = () => setMonth(m => subMonths(m, 1));
@@ -295,6 +300,46 @@ const FinanceiroPage = () => {
                 )}
               </CardContent>
             </Card>
+
+            {/* Yearly comparison chart */}
+            {yearlyData && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base font-display">
+                    Comparativo Anual — {yearlyData.currentYear} vs {yearlyData.previousYear}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <LineChart data={yearlyData.data}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(0, 0%, 89%)" />
+                      <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                      <YAxis tick={{ fontSize: 11 }} tickFormatter={v => `R$${v}`} width={65} />
+                      <Tooltip formatter={(v: number) => [formatCurrency(v), ""]} />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="currentYear"
+                        name={String(yearlyData.currentYear)}
+                        stroke="hsl(43, 75%, 48%)"
+                        strokeWidth={2.5}
+                        dot={{ r: 4 }}
+                        activeDot={{ r: 6 }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="previousYear"
+                        name={String(yearlyData.previousYear)}
+                        stroke="hsl(200, 60%, 50%)"
+                        strokeWidth={2}
+                        strokeDasharray="5 5"
+                        dot={{ r: 3 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="grid lg:grid-cols-2 gap-6">
               {/* Revenue by professional */}
