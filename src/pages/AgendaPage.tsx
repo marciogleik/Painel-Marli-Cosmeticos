@@ -57,7 +57,11 @@ const AgendaPage = () => {
   const [isRescheduling, setIsRescheduling] = useState(false);
 
   const queryClient = useQueryClient();
-  const hours = Array.from({ length: 15 }, (_, i) => `${(i + 7).toString().padStart(2, "0")}:00`);
+  const hours = Array.from({ length: 30 }, (_, i) => {
+    const h = Math.floor(i / 2) + 7;
+    const m = (i % 2) * 30;
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+  });
 
   // Date range for queries
   const dateFrom = viewMode === "week" ? format(weekStart, "yyyy-MM-dd") : format(selectedDay, "yyyy-MM-dd");
@@ -451,11 +455,14 @@ const AgendaPage = () => {
           <div className="flex min-w-[1200px]">
             <div className="w-16 shrink-0 border-r border-border">
               <div className="h-12" />
-              {hours.map((time) => (
-                <div key={time} className="h-16 flex items-start justify-end pr-2 pt-1 border-t border-border/50">
-                  <span className="text-[10px] text-muted-foreground font-medium">{time}</span>
-                </div>
-              ))}
+              {hours.map((time) => {
+                const isHalf = time.endsWith(":30");
+                return (
+                  <div key={time} className={cn("h-8 flex items-start justify-end pr-2 pt-0.5 border-t", isHalf ? "border-border/20" : "border-border/50")}>
+                    <span className={cn("text-[10px] font-medium", isHalf ? "text-muted-foreground/50" : "text-muted-foreground")}>{time}</span>
+                  </div>
+                );
+              })}
             </div>
 
             {days.map((day) => {
@@ -487,11 +494,14 @@ const AgendaPage = () => {
           <div className="flex" style={{ minWidth: `${Math.max(filteredProfessionals.length * 200 + 80, 800)}px`, width: 'max-content' }}>
             <div className="w-16 shrink-0 border-r border-border">
               <div className="h-12" />
-              {hours.map((time) => (
-                <div key={time} className="h-16 flex items-start justify-end pr-2 pt-1 border-t border-border/50">
-                  <span className="text-[10px] text-muted-foreground font-medium">{time}</span>
-                </div>
-              ))}
+              {hours.map((time) => {
+                const isHalf = time.endsWith(":30");
+                return (
+                  <div key={time} className={cn("h-8 flex items-start justify-end pr-2 pt-0.5 border-t", isHalf ? "border-border/20" : "border-border/50")}>
+                    <span className={cn("text-[10px] font-medium", isHalf ? "text-muted-foreground/50" : "text-muted-foreground")}>{time}</span>
+                  </div>
+                );
+              })}
             </div>
 
             {filteredProfessionals.map((prof) => {
@@ -570,7 +580,7 @@ function DayColumn({
       </div>
       <div className="relative" ref={colRef}>
         {hours.map((time) => (
-          <div key={time} className="h-16 border-t border-border/30 hover:bg-accent/30 transition-colors" />
+          <div key={time} className={cn("h-8 border-t hover:bg-accent/30 transition-colors", time.endsWith(":30") ? "border-border/15" : "border-border/30")} />
         ))}
         {appts.map((appt) => renderBlock(appt, colRef.current))}
       </div>
@@ -592,7 +602,7 @@ function ProfColumn({
       </div>
       <div className="relative" ref={colRef}>
         {hours.map((time) => (
-          <div key={time} className="h-16 border-t border-border/30 hover:bg-accent/30 transition-colors" />
+          <div key={time} className={cn("h-8 border-t hover:bg-accent/30 transition-colors", time.endsWith(":30") ? "border-border/15" : "border-border/30")} />
         ))}
         {appts.map((appt) => renderBlock(appt, colRef.current))}
       </div>
