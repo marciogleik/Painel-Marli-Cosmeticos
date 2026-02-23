@@ -11,16 +11,18 @@ export interface DBProfessional {
   is_active: boolean;
 }
 
-export const useProfessionals = () => {
+export const useProfessionals = (includeInactive = false) => {
   return useQuery({
-    queryKey: ["professionals"],
+    queryKey: ["professionals", includeInactive],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("professionals")
         .select("*")
-        .eq("is_active", true)
         .order("name");
 
+      if (!includeInactive) query = query.eq("is_active", true);
+
+      const { data, error } = await query;
       if (error) throw error;
       return (data ?? []) as DBProfessional[];
     },
@@ -39,16 +41,18 @@ export interface DBService {
   is_active: boolean;
 }
 
-export const useServices = () => {
+export const useServices = (includeInactive = false) => {
   return useQuery({
-    queryKey: ["services"],
+    queryKey: ["services", includeInactive],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("services")
         .select("*")
-        .eq("is_active", true)
         .order("name");
 
+      if (!includeInactive) query = query.eq("is_active", true);
+
+      const { data, error } = await query;
       if (error) throw error;
       return (data ?? []) as DBService[];
     },
