@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { maskPhone } from "@/utils/masks";
 import { checkAppointmentConflict } from "@/utils/appointmentConflict";
+import { useOccupiedSlots } from "@/hooks/useOccupiedSlots";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -63,6 +64,9 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
 
   const availableServices = useServicesForProfessional(professionalId);
   const { data: clients = [] } = useClients(clientSearch);
+
+  const dateStr = date ? format(date, "yyyy-MM-dd") : undefined;
+  const { getConflict } = useOccupiedSlots(professionalId || undefined, dateStr, appointment.id);
 
   // Seed selected services from available services matching initialServices
   useEffect(() => {
@@ -252,9 +256,19 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
           <Select value={startTime} onValueChange={setStartTime}>
             <SelectTrigger className="h-9"><SelectValue placeholder="Horário" /></SelectTrigger>
             <SelectContent>
-              {timeSlots.map(t => (
-                <SelectItem key={t} value={t}>{t}</SelectItem>
-              ))}
+              {timeSlots.map(t => {
+                const conflict = totalDuration > 0 ? getConflict(t, totalDuration) : null;
+                return (
+                  <SelectItem key={t} value={t} disabled={!!conflict}>
+                    <span className="flex items-center gap-2">
+                      {t}
+                      {conflict && (
+                        <span className="text-xs text-destructive font-normal">● {conflict}</span>
+                      )}
+                    </span>
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>
