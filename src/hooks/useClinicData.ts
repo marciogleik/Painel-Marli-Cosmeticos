@@ -144,6 +144,8 @@ export interface DBClient {
   cpf: string | null;
   birth_date: string | null;
   notes: string | null;
+  city: string | null;
+  address: string | null;
   is_active: boolean;
   created_at: string;
 }
