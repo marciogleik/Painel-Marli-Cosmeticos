@@ -3,10 +3,12 @@ import { useProfessionals, useAppointments, statusConfig, DBAppointment } from "
 import { cn } from "@/lib/utils";
 import { format, addDays, startOfWeek, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, Calendar } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Calendar, Check, X as XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import NewAppointmentDialog from "@/components/NewAppointmentDialog";
 import AppointmentDetailDialog from "@/components/AppointmentDetailDialog";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const AgendaPage = () => {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 0 }));
@@ -16,13 +18,35 @@ const AgendaPage = () => {
   const [detailOpen, setDetailOpen] = useState(false);
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-  const hours = Array.from({ length: 12 }, (_, i) => `${(i + 8).toString().padStart(2, '0')}:00`);
+  const hours = Array.from({ length: 15 }, (_, i) => `${(i + 7).toString().padStart(2, '0')}:00`);
 
   const dateFrom = format(weekStart, 'yyyy-MM-dd');
   const dateTo = format(addDays(weekStart, 6), 'yyyy-MM-dd');
 
   const { data: professionals = [] } = useProfessionals();
   const { data: appointments = [] } = useAppointments(dateFrom, dateTo);
+
+  // Fetch appointment services for all visible appointments
+  const appointmentIds = appointments.map(a => a.id);
+  const { data: appointmentServices = [] } = useQuery({
+    queryKey: ["appointment_services", dateFrom, dateTo],
+    queryFn: async () => {
+      if (appointmentIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("appointment_services")
+        .select("appointment_id, service_name")
+        .in("appointment_id", appointmentIds);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: appointmentIds.length > 0,
+  });
+
+  const getServiceNames = (appointmentId: string): string => {
+    const services = appointmentServices.filter(s => s.appointment_id === appointmentId);
+    if (services.length === 0) return "";
+    return services.map(s => s.service_name).join(", ");
+  };
 
   const getAppts = (dayStr: string) => {
     return appointments.filter(a => {
@@ -39,9 +63,15 @@ const AgendaPage = () => {
     const endMinutes = endParts[0] * 60 + endParts[1];
     const duration = endMinutes - startMinutes;
 
-    const top = (timeParts[0] - 8) * 64 + (timeParts[1] / 60) * 64;
-    const height = Math.max((duration / 60) * 64, 32);
+    const top = (timeParts[0] - 7) * 64 + (timeParts[1] / 60) * 64;
+    const height = Math.max((duration / 60) * 64, 40);
     return { top, height };
+  };
+
+  const getStatusIcon = (status: string) => {
+    if (status === 'confirmado') return <Check className="w-3 h-3 shrink-0" />;
+    if (status === 'cancelado') return <XIcon className="w-3 h-3 shrink-0" />;
+    return null;
   };
 
   const weekLabel = `${format(weekStart, "dd", { locale: ptBR })} de ${format(weekStart, "MMM.", { locale: ptBR })} - ${format(addDays(weekStart, 6), "dd", { locale: ptBR })} de ${format(addDays(weekStart, 6), "MMM.", { locale: ptBR })} de ${format(weekStart, "yyyy")}`;
@@ -103,9 +133,19 @@ const AgendaPage = () => {
         </div>
       </div>
 
+      {/* Status legend */}
+      <div className="flex items-center gap-4 px-8 pb-3 shrink-0">
+        {Object.entries(statusConfig).map(([key, cfg]) => (
+          <div key={key} className="flex items-center gap-1.5">
+            <div className={cn("w-3 h-3 rounded-sm", cfg.color)} />
+            <span className="text-[11px] text-muted-foreground">{cfg.label}</span>
+          </div>
+        ))}
+      </div>
+
       {/* Calendar Grid */}
       <div className="flex-1 overflow-auto mx-8 mb-4 border border-border rounded-lg">
-        <div className="flex min-w-[800px]">
+        <div className="flex min-w-[900px]">
           <div className="w-16 shrink-0 border-r border-border">
             <div className="h-12" />
             {hours.map(time => (
@@ -122,7 +162,7 @@ const AgendaPage = () => {
             const dayAbbr = format(day, 'EEE.', { locale: ptBR }).toUpperCase();
 
             return (
-              <div key={dayStr} className="flex-1 min-w-[100px] border-r border-border last:border-r-0">
+              <div key={dayStr} className="flex-1 min-w-[120px] border-r border-border last:border-r-0">
                 <div className="h-12 flex flex-col items-center justify-center border-b border-border bg-muted/30">
                   <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{dayAbbr}</span>
                   <span className={cn("text-sm font-bold", today ? "text-primary" : "text-foreground")}>{format(day, 'd')}</span>
@@ -135,21 +175,66 @@ const AgendaPage = () => {
                     const { top, height } = getPosition(appt);
                     const cfg = statusConfig[appt.status as keyof typeof statusConfig] || statusConfig.agendado;
                     const isCancelled = appt.status === 'cancelado';
+                    const prof = professionals.find(p => p.id === appt.professional_id);
+                    const serviceName = getServiceNames(appt.id);
+                    const timeRange = `${appt.start_time?.slice(0, 5)} - ${appt.end_time?.slice(0, 5)}`;
+                    const isCompact = height < 56;
 
                     return (
                       <div
                         key={appt.id}
                         className={cn(
-                          "absolute left-1 right-1 rounded-md px-2 py-1 cursor-pointer shadow-sm hover:shadow-md transition-shadow overflow-hidden",
-                          cfg.color,
-                          isCancelled ? "opacity-50 line-through" : "text-white"
+                          "absolute left-1 right-1 rounded-md cursor-pointer shadow-sm hover:shadow-md transition-shadow overflow-hidden border-l-[3px]",
+                          cfg.color.replace('bg-', 'border-l-'),
+                          isCancelled ? "opacity-60" : "",
                         )}
-                        style={{ top: `${top}px`, height: `${height}px` }}
-                        title={`${appt.client_name}${appt.notes ? ` (${appt.notes})` : ''}`}
+                        style={{
+                          top: `${top}px`,
+                          height: `${height}px`,
+                          backgroundColor: isCancelled ? 'hsl(var(--muted))' : undefined,
+                        }}
                         onClick={() => { setSelectedAppointment(appt); setDetailOpen(true); }}
                       >
-                        <p className="text-[11px] font-semibold truncate">{appt.client_name}</p>
-                        <p className="text-[10px] opacity-80 truncate">{appt.start_time?.slice(0, 5)}</p>
+                        <div
+                          className={cn(
+                            "h-full px-2 py-1 flex flex-col justify-start",
+                            !isCancelled && cfg.color.replace('bg-', 'bg-') + '/15',
+                          )}
+                          style={!isCancelled ? { backgroundColor: `color-mix(in srgb, ${getStatusBg(appt.status)} 20%, white)` } : undefined}
+                        >
+                          {isCompact ? (
+                            <div className="flex items-center gap-1">
+                              {getStatusIcon(appt.status)}
+                              <span className={cn("text-[10px] font-bold truncate", isCancelled && "line-through")}>
+                                {appt.client_name}
+                              </span>
+                              <span className="text-[9px] opacity-70 shrink-0">{appt.start_time?.slice(0, 5)}</span>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px] font-semibold text-foreground/70">{timeRange}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                {getStatusIcon(appt.status)}
+                                <span className={cn("text-[11px] font-bold truncate text-foreground", isCancelled && "line-through")}>
+                                  {appt.client_name}
+                                </span>
+                              </div>
+                              {serviceName && (
+                                <p className="text-[10px] text-foreground/60 truncate">{serviceName}</p>
+                              )}
+                              {selectedFilter === 'all' && prof && height >= 72 && (
+                                <p className="text-[9px] text-foreground/50 truncate">({prof.name.split(' ')[0]})</p>
+                              )}
+                              {height >= 80 && (
+                                <span className={cn("text-[9px] font-medium mt-auto", isCancelled ? "text-rose-500" : "text-foreground/50")}>
+                                  {cfg.label}
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -169,5 +254,16 @@ const AgendaPage = () => {
     </div>
   );
 };
+
+function getStatusBg(status: string): string {
+  const map: Record<string, string> = {
+    agendado: '#22c55e',
+    confirmado: '#3b82f6',
+    cancelado: '#fb7185',
+    atendido: '#f97316',
+    espera: '#fbbf24',
+  };
+  return map[status] || '#22c55e';
+}
 
 export default AgendaPage;

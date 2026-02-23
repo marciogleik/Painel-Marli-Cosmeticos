@@ -258,9 +258,9 @@ export const sampleAppointments: Appointment[] = [
 ];
 
 export const statusConfig: Record<Appointment['status'], { color: string; label: string; bgClass: string }> = {
-  agendado: { color: 'bg-sky-400', label: 'Agendado', bgClass: 'bg-sky-50 border-sky-200 text-sky-700' },
-  confirmado: { color: 'bg-emerald-400', label: 'Confirmado', bgClass: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
-  cancelado: { color: 'bg-muted-foreground/30', label: 'Cancelado', bgClass: 'bg-muted border-border text-muted-foreground' },
-  atendido: { color: 'bg-violet-400', label: 'Atendido', bgClass: 'bg-violet-50 border-violet-200 text-violet-700' },
+  agendado: { color: 'bg-green-500', label: 'Agendado', bgClass: 'bg-green-50 border-green-200 text-green-700' },
+  confirmado: { color: 'bg-blue-500', label: 'Confirmado', bgClass: 'bg-blue-50 border-blue-200 text-blue-700' },
+  cancelado: { color: 'bg-rose-400', label: 'Cancelado', bgClass: 'bg-rose-50 border-rose-200 text-rose-700' },
+  atendido: { color: 'bg-orange-500', label: 'Atendido', bgClass: 'bg-orange-50 border-orange-200 text-orange-700' },
   espera: { color: 'bg-amber-400', label: 'Espera', bgClass: 'bg-amber-50 border-amber-200 text-amber-700' },
 };
