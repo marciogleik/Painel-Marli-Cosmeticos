@@ -5,6 +5,7 @@ import {
   Calendar,
   Users,
   FileText,
+  DollarSign,
   Bell,
   Settings,
   LogOut,
@@ -20,6 +21,7 @@ const navItems = [
   { label: "Agenda", href: "/agenda", icon: Calendar },
   { label: "Clientes", href: "/clientes", icon: Users },
   { label: "Prontuários", href: "/prontuarios", icon: FileText },
+  { label: "Financeiro", href: "/financeiro", icon: DollarSign },
   { label: "Notificações", href: "/notificacoes", icon: Bell },
   { label: "Configurações", href: "/configuracoes", icon: Settings },
 ];
