@@ -3,7 +3,7 @@ import { useFinanceReport } from "@/hooks/useFinanceReport";
 import { useProfessionals } from "@/hooks/useClinicData";
 import { format, subMonths, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, DollarSign, TrendingUp, CalendarCheck, Loader2, FileDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, DollarSign, TrendingUp, TrendingDown, CalendarCheck, Loader2, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +26,17 @@ const COLORS = [
 
 const formatCurrency = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+const DeltaBadge = ({ value }: { value: number | null | undefined }) => {
+  if (value == null) return null;
+  const isPositive = value >= 0;
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-xs mt-1.5 font-medium ${isPositive ? "text-emerald-600" : "text-red-500"}`}>
+      {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+      {isPositive ? "+" : ""}{value.toFixed(1)}% vs mês anterior
+    </span>
+  );
+};
 
 const FinanceiroPage = () => {
   const [month, setMonth] = useState(new Date());
@@ -127,6 +138,7 @@ const FinanceiroPage = () => {
                     </div>
                   </div>
                   <p className="text-2xl font-bold mt-2">{formatCurrency(data?.totalRevenue ?? 0)}</p>
+                  <DeltaBadge value={data?.comparison?.revenueDelta} />
                 </CardContent>
               </Card>
               <Card>
@@ -138,6 +150,7 @@ const FinanceiroPage = () => {
                     </div>
                   </div>
                   <p className="text-2xl font-bold mt-2">{data?.totalAppointments ?? 0}</p>
+                  <DeltaBadge value={data?.comparison?.appointmentsDelta} />
                 </CardContent>
               </Card>
               <Card>
@@ -153,6 +166,7 @@ const FinanceiroPage = () => {
                       ? formatCurrency((data.totalRevenue ?? 0) / data.totalAppointments)
                       : "R$ 0,00"}
                   </p>
+                  <DeltaBadge value={data?.comparison?.ticketDelta} />
                 </CardContent>
               </Card>
             </div>
