@@ -5,9 +5,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Phone, Mail, ChevronRight, SlidersHorizontal, ChevronDown, ChevronLeft, RotateCcw, CalendarDays, Hash } from "lucide-react";
+import { Search, Plus, Phone, Mail, ChevronRight, SlidersHorizontal, ChevronDown, ChevronLeft, RotateCcw, CalendarDays, Hash, X } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import NewClientDialog from "@/components/client/NewClientDialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -25,11 +29,24 @@ const ClientsPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [sortBy, setSortBy] = useState<'name' | 'last_visit' | 'total_visits'>('name');
+  const [filterIncomplete, setFilterIncomplete] = useState(false);
+  const [filterCity, setFilterCity] = useState<string>('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
   const { data: clients = [], isLoading } = useClients(search);
   const { data: inactiveClients = [] } = useInactiveClients();
   const queryClient = useQueryClient();
   const listRef = useRef<HTMLDivElement>(null);
 
+  const hasActiveFilters = filterIncomplete || filterCity !== '' || filterDateFrom !== '' || filterDateTo !== '';
+
+  const clearFilters = () => {
+    setFilterIncomplete(false);
+    setFilterCity('');
+    setFilterDateFrom('');
+    setFilterDateTo('');
+    setCurrentPage(1);
+  };
   // Fetch appointment stats per client (last visit date + total count)
   const { data: appointmentStats = {} } = useQuery({
     queryKey: ["client_appointment_stats"],
@@ -81,24 +98,48 @@ const ClientsPage = () => {
     },
   });
 
+  // Extract unique cities from clients
+  const availableCities = useMemo(() => {
+    const cities = new Set<string>();
+    for (const c of clients) {
+      if (c.city) cities.add(c.city);
+    }
+    return Array.from(cities).sort();
+  }, [clients]);
+
   const displayClients = useMemo(() => {
-    const list = clients.length > 0 ? [...clients] : [];
+    let list = clients.length > 0 ? [...clients] : [];
+
+    // Apply filters
+    if (filterIncomplete) {
+      list = list.filter(c => isIncomplete(c));
+    }
+    if (filterCity) {
+      list = list.filter(c => c.city === filterCity);
+    }
+    if (filterDateFrom) {
+      list = list.filter(c => c.created_at >= filterDateFrom);
+    }
+    if (filterDateTo) {
+      list = list.filter(c => c.created_at <= filterDateTo + 'T23:59:59');
+    }
+
+    // Apply sorting
     if (sortBy === 'last_visit') {
       list.sort((a, b) => {
         const aDate = appointmentStats[a.id]?.lastVisit ?? '';
         const bDate = appointmentStats[b.id]?.lastVisit ?? '';
-        return bDate.localeCompare(aDate); // most recent first
+        return bDate.localeCompare(aDate);
       });
     } else if (sortBy === 'total_visits') {
       list.sort((a, b) => {
         const aCount = appointmentStats[a.id]?.totalVisits ?? 0;
         const bCount = appointmentStats[b.id]?.totalVisits ?? 0;
-        return bCount - aCount; // most visits first
+        return bCount - aCount;
       });
     }
-    // 'name' is already sorted from the query
     return list;
-  }, [clients, sortBy, appointmentStats]);
+  }, [clients, sortBy, appointmentStats, filterIncomplete, filterCity, filterDateFrom, filterDateTo]);
 
   const totalPages = Math.max(1, Math.ceil(displayClients.length / pageSize));
   const safePage = Math.min(currentPage, totalPages);
@@ -170,9 +211,80 @@ const ClientsPage = () => {
             className="pl-9 bg-card"
           />
         </div>
-        <button className="p-2.5 rounded-lg border border-border hover:bg-muted">
-          <SlidersHorizontal className="w-4 h-4 text-muted-foreground" />
-        </button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <button className={`relative p-2.5 rounded-lg border border-border hover:bg-muted ${hasActiveFilters ? 'bg-primary/10 border-primary' : ''}`}>
+              <SlidersHorizontal className="w-4 h-4 text-muted-foreground" />
+              {hasActiveFilters && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-primary" />
+              )}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-72 bg-popover z-50">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="font-semibold text-sm">Filtros</h4>
+                {hasActiveFilters && (
+                  <button onClick={clearFilters} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+                    <X className="w-3 h-3" /> Limpar
+                  </button>
+                )}
+              </div>
+
+              {/* Cadastro incompleto */}
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="filter-incomplete"
+                  checked={filterIncomplete}
+                  onCheckedChange={(v) => { setFilterIncomplete(!!v); setCurrentPage(1); }}
+                />
+                <Label htmlFor="filter-incomplete" className="text-sm cursor-pointer">
+                  Cadastro incompleto
+                </Label>
+              </div>
+
+              {/* Cidade */}
+              {availableCities.length > 0 && (
+                <div className="space-y-1.5">
+                  <Label className="text-sm">Cidade</Label>
+                  <Select value={filterCity} onValueChange={(v) => { setFilterCity(v === '__all__' ? '' : v); setCurrentPage(1); }}>
+                    <SelectTrigger className="bg-card">
+                      <SelectValue placeholder="Todas as cidades" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover z-50">
+                      <SelectItem value="__all__">Todas as cidades</SelectItem>
+                      {availableCities.map(city => (
+                        <SelectItem key={city} value={city}>{city}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Data de cadastro */}
+              <div className="space-y-1.5">
+                <Label className="text-sm">Data de cadastro</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="date"
+                    value={filterDateFrom}
+                    onChange={e => { setFilterDateFrom(e.target.value); setCurrentPage(1); }}
+                    className="bg-card text-sm"
+                    placeholder="De"
+                  />
+                  <span className="text-muted-foreground text-xs">até</span>
+                  <Input
+                    type="date"
+                    value={filterDateTo}
+                    onChange={e => { setFilterDateTo(e.target.value); setCurrentPage(1); }}
+                    className="bg-card text-sm"
+                    placeholder="Até"
+                  />
+                </div>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
         <select
           className="text-sm border border-border rounded-lg px-3 py-2.5 bg-card text-foreground"
           value={sortBy}
