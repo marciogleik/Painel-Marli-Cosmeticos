@@ -131,56 +131,6 @@ const DashboardPage = () => {
 
           {/* Right sidebar */}
           <div className="space-y-4">
-            <div className="bg-card rounded-xl border border-border p-5">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center">
-                  <span className="text-sm">📋</span>
-                </div>
-                <div>
-                  <p className="font-semibold text-sm">Ações Pendentes</p>
-                  <p className="text-[10px] text-muted-foreground">Requer atenção</p>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between py-2 border-b border-border">
-                  <span className="text-sm text-muted-foreground">Confirmações pendentes</span>
-                  <span className="text-xs font-bold text-primary">3</span>
-                </div>
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-sm text-muted-foreground">Mensagens não lidas</span>
-                  <span className="text-xs font-bold text-primary">5</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-card rounded-xl border border-border p-5">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center">
-                  <span className="text-sm">👩‍⚕️</span>
-                </div>
-                <div>
-                  <p className="font-semibold text-sm">Profissionais</p>
-                  <p className="text-[10px] text-muted-foreground">Equipe completa</p>
-                </div>
-              </div>
-              <div className="space-y-3">
-                {professionals.map(prof => (
-                  <div key={prof.id} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
-                        {prof.avatar_initials}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{prof.name}</p>
-                        <p className="text-[10px] text-muted-foreground">{prof.role_description}</p>
-                      </div>
-                    </div>
-                    <div className="w-2 h-2 rounded-full bg-primary" />
-                  </div>
-                ))}
-              </div>
-            </div>
-
             {/* Aniversariantes de Hoje */}
             <div className="bg-card rounded-xl border border-border p-5">
               <div className="flex items-center gap-3 mb-4">
@@ -219,6 +169,34 @@ const DashboardPage = () => {
               ) : (
                 <p className="text-xs text-muted-foreground text-center py-3">🎈 Nenhum aniversariante hoje</p>
               )}
+            </div>
+
+            <div className="bg-card rounded-xl border border-border p-5">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center">
+                  <span className="text-sm">👩‍⚕️</span>
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">Profissionais</p>
+                  <p className="text-[10px] text-muted-foreground">Equipe completa</p>
+                </div>
+              </div>
+              <div className="space-y-3">
+                {professionals.map(prof => (
+                  <div key={prof.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
+                        {prof.avatar_initials}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{prof.name}</p>
+                        <p className="text-[10px] text-muted-foreground">{prof.role_description}</p>
+                      </div>
+                    </div>
+                    <div className="w-2 h-2 rounded-full bg-primary" />
+                  </div>
+                ))}
+              </div>
             </div>
 
 
