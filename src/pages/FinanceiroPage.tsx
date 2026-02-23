@@ -3,7 +3,7 @@ import { useFinanceReport } from "@/hooks/useFinanceReport";
 import { useProfessionals } from "@/hooks/useClinicData";
 import { format, subMonths, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, DollarSign, TrendingUp, TrendingDown, CalendarCheck, Loader2, FileDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, DollarSign, TrendingUp, TrendingDown, CalendarCheck, Loader2, FileDown, CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,10 +11,13 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area,
 } from "recharts";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 import { exportToExcel, exportToPDF } from "@/utils/financeExport";
 
 const COLORS = [
-  "hsl(43, 75%, 48%)",   // primary gold
+  "hsl(43, 75%, 48%)",
   "hsl(43, 60%, 60%)",
   "hsl(200, 60%, 50%)",
   "hsl(150, 50%, 45%)",
@@ -27,13 +30,13 @@ const COLORS = [
 const formatCurrency = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-const DeltaBadge = ({ value }: { value: number | null | undefined }) => {
+const DeltaBadge = ({ value, label }: { value: number | null | undefined; label?: string }) => {
   if (value == null) return null;
   const isPositive = value >= 0;
   return (
     <span className={`inline-flex items-center gap-0.5 text-xs mt-1.5 font-medium ${isPositive ? "text-emerald-600" : "text-red-500"}`}>
       {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-      {isPositive ? "+" : ""}{value.toFixed(1)}% vs mês anterior
+      {isPositive ? "+" : ""}{value.toFixed(1)}% {label ?? "vs mês anterior"}
     </span>
   );
 };
@@ -41,8 +44,18 @@ const DeltaBadge = ({ value }: { value: number | null | undefined }) => {
 const FinanceiroPage = () => {
   const [month, setMonth] = useState(new Date());
   const [selectedProfessional, setSelectedProfessional] = useState<string>("all");
+  const [mode, setMode] = useState<"month" | "custom">("month");
+  const [customFrom, setCustomFrom] = useState<Date | undefined>(undefined);
+  const [customTo, setCustomTo] = useState<Date | undefined>(undefined);
+
   const { data: professionals = [] } = useProfessionals();
-  const { data, isLoading } = useFinanceReport(month, selectedProfessional === "all" ? undefined : selectedProfessional);
+
+  const customRange = mode === "custom" && customFrom && customTo ? { from: customFrom, to: customTo } : null;
+  const { data, isLoading } = useFinanceReport(
+    month,
+    selectedProfessional === "all" ? undefined : selectedProfessional,
+    customRange,
+  );
 
   const prev = () => setMonth(m => subMonths(m, 1));
   const next = () => setMonth(m => addMonths(m, 1));
@@ -50,7 +63,7 @@ const FinanceiroPage = () => {
 
   const dailyData = (data?.daily ?? []).map(d => ({
     ...d,
-    label: format(new Date(d.date + "T12:00:00"), "dd"),
+    label: format(new Date(d.date + "T12:00:00"), "dd/MM"),
   }));
 
   const profData = (data?.byProfessional ?? []).map(p => ({
@@ -62,28 +75,88 @@ const FinanceiroPage = () => {
 
   const topServices = (data?.byService ?? []).slice(0, 8);
 
+  const comparisonLabel = mode === "custom" ? "vs período anterior" : "vs mês anterior";
+
   return (
     <div className="flex flex-col h-full overflow-auto">
       <div className="px-8 pt-8 pb-4">
         <h1 className="text-2xl font-display font-bold">Relatório Financeiro</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Análise de receita mensal por profissional e serviço
+          Análise de receita por profissional e serviço
         </p>
       </div>
 
       <div className="px-8 pb-8 space-y-6">
+        {/* Filters */}
         <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-3">
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={prev}>
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <span className="text-sm font-semibold min-w-[140px] text-center capitalize">
-              {format(month, "MMMM yyyy", { locale: ptBR })}
-            </span>
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={next} disabled={isCurrentMonth}>
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
+          {/* Mode toggle */}
+          <Select value={mode} onValueChange={(v) => setMode(v as "month" | "custom")}>
+            <SelectTrigger className="h-8 w-[150px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="month">Mensal</SelectItem>
+              <SelectItem value="custom">Período</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {mode === "month" ? (
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={prev}>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-sm font-semibold min-w-[130px] text-center capitalize">
+                {format(month, "MMMM yyyy", { locale: ptBR })}
+              </span>
+              <Button variant="outline" size="icon" className="h-8 w-8" onClick={next} disabled={isCurrentMonth}>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("h-8 gap-1.5 text-xs", !customFrom && "text-muted-foreground")}>
+                    <CalendarIcon className="w-3.5 h-3.5" />
+                    {customFrom ? format(customFrom, "dd/MM/yyyy") : "Data início"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={customFrom}
+                    onSelect={(d) => {
+                      setCustomFrom(d);
+                      if (d && customTo && d > customTo) setCustomTo(undefined);
+                    }}
+                    disabled={(date) => date > new Date()}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+              <span className="text-xs text-muted-foreground">até</span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("h-8 gap-1.5 text-xs", !customTo && "text-muted-foreground")}>
+                    <CalendarIcon className="w-3.5 h-3.5" />
+                    {customTo ? format(customTo, "dd/MM/yyyy") : "Data fim"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={customTo}
+                    onSelect={setCustomTo}
+                    disabled={(date) => date > new Date() || (customFrom ? date < customFrom : false)}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+
           <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
             <SelectTrigger className="h-8 w-[200px]">
               <SelectValue placeholder="Todos profissionais" />
@@ -95,6 +168,7 @@ const FinanceiroPage = () => {
               ))}
             </SelectContent>
           </Select>
+
           {data && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -121,7 +195,11 @@ const FinanceiroPage = () => {
           )}
         </div>
 
-        {isLoading ? (
+        {mode === "custom" && (!customFrom || !customTo) ? (
+          <div className="flex justify-center py-16">
+            <p className="text-sm text-muted-foreground">Selecione as datas de início e fim para visualizar o relatório</p>
+          </div>
+        ) : isLoading ? (
           <div className="flex justify-center py-16">
             <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
@@ -138,7 +216,7 @@ const FinanceiroPage = () => {
                     </div>
                   </div>
                   <p className="text-2xl font-bold mt-2">{formatCurrency(data?.totalRevenue ?? 0)}</p>
-                  <DeltaBadge value={data?.comparison?.revenueDelta} />
+                  <DeltaBadge value={data?.comparison?.revenueDelta} label={comparisonLabel} />
                 </CardContent>
               </Card>
               <Card>
@@ -150,7 +228,7 @@ const FinanceiroPage = () => {
                     </div>
                   </div>
                   <p className="text-2xl font-bold mt-2">{data?.totalAppointments ?? 0}</p>
-                  <DeltaBadge value={data?.comparison?.appointmentsDelta} />
+                  <DeltaBadge value={data?.comparison?.appointmentsDelta} label={comparisonLabel} />
                 </CardContent>
               </Card>
               <Card>
@@ -166,7 +244,7 @@ const FinanceiroPage = () => {
                       ? formatCurrency((data.totalRevenue ?? 0) / data.totalAppointments)
                       : "R$ 0,00"}
                   </p>
-                  <DeltaBadge value={data?.comparison?.ticketDelta} />
+                  <DeltaBadge value={data?.comparison?.ticketDelta} label={comparisonLabel} />
                 </CardContent>
               </Card>
             </div>
