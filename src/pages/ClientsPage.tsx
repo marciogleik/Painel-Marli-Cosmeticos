@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Phone, Mail, ChevronRight, SlidersHorizontal, ChevronDown, ChevronLeft, RotateCcw } from "lucide-react";
+import { Search, Plus, Phone, Mail, ChevronRight, SlidersHorizontal, ChevronDown, ChevronLeft, RotateCcw, CalendarDays, Hash } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import NewClientDialog from "@/components/client/NewClientDialog";
@@ -226,7 +226,21 @@ const ClientsPage = () => {
                     </div>
                   </div>
                 </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="flex items-center gap-3 shrink-0">
+                  {sortBy === 'last_visit' && appointmentStats[client.id]?.lastVisit && (
+                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                      <CalendarDays className="w-3 h-3" />
+                      {new Date(appointmentStats[client.id].lastVisit + 'T00:00:00').toLocaleDateString('pt-BR')}
+                    </span>
+                  )}
+                  {sortBy === 'total_visits' && (appointmentStats[client.id]?.totalVisits ?? 0) > 0 && (
+                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                      <Hash className="w-3 h-3" />
+                      {appointmentStats[client.id].totalVisits} visita{appointmentStats[client.id].totalVisits !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                  <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
               </div>
             ))}
           </div>
