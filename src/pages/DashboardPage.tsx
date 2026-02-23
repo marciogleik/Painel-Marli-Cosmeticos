@@ -81,6 +81,8 @@ const DashboardPage = () => {
         </p>
       </div>
 
+      <div className="mx-8 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+
       <div className="px-8 py-6 space-y-6">
         {/* Quick stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
