@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   Menu,
   X,
+  HelpCircle,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,6 +25,7 @@ const navItems = [
   { label: "Prontuários", href: "/prontuarios", icon: FileText },
   { label: "Financeiro", href: "/financeiro", icon: DollarSign },
   { label: "Notificações", href: "/notificacoes", icon: Bell },
+  { label: "FAQ", href: "/faq", icon: HelpCircle },
   { label: "Configurações", href: "/configuracoes", icon: Settings },
 ];
 
