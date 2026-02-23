@@ -11,8 +11,8 @@ import NewClientDialog from "@/components/client/NewClientDialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
-const isIncomplete = (c: { phone?: string | null; email?: string | null; birth_date?: string | null }) =>
-  !c.phone || !c.email || !c.birth_date;
+const isIncomplete = (c: { email?: string | null; birth_date?: string | null }) =>
+  !c.email || !c.birth_date;
 
 const ClientsPage = () => {
   const navigate = useNavigate();
