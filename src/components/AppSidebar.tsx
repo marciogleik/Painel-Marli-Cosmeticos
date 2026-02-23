@@ -73,18 +73,18 @@ const AppSidebar = () => {
         ))}
       </nav>
 
+      {/* Powered by Place */}
+      <div className="flex items-center justify-center gap-2 py-3 shrink-0 opacity-60">
+        <span className="text-[10px] text-sidebar-foreground/70">powered by</span>
+        <img src={placeLogo} alt="Place" className="h-4" />
+      </div>
+
       {/* Footer */}
       <div className="px-3 py-4 border-t border-sidebar-border shrink-0">
         <button onClick={signOut} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent w-full transition-colors">
           <LogOut className="w-[18px] h-[18px]" />
           <span>Sair</span>
         </button>
-      </div>
-
-      {/* Powered by Place */}
-      <div className="flex items-center justify-center gap-2 py-3 border-t border-sidebar-border shrink-0 opacity-60">
-        <span className="text-[10px] text-sidebar-foreground/70">powered by</span>
-        <img src={placeLogo} alt="Place" className="h-4" />
       </div>
     </div>
   );
