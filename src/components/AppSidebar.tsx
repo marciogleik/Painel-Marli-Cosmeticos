@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import placeLogo from "@/assets/place-logo.png";
 import {
   LayoutDashboard,
   Calendar,
@@ -78,6 +79,12 @@ const AppSidebar = () => {
           <LogOut className="w-[18px] h-[18px]" />
           <span>Sair</span>
         </button>
+      </div>
+
+      {/* Powered by Place */}
+      <div className="flex items-center justify-center gap-2 py-3 border-t border-sidebar-border shrink-0 opacity-60">
+        <span className="text-[10px] text-sidebar-foreground/70">powered by</span>
+        <img src={placeLogo} alt="Place" className="h-4" />
       </div>
     </div>
   );
