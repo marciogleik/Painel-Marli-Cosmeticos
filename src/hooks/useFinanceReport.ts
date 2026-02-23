@@ -33,7 +33,7 @@ export const useFinanceReport = (month: Date, professionalId?: string) => {
         .select("id, date, professional_id, status")
         .gte("date", from)
         .lte("date", to)
-        .in("status", ["concluido", "confirmado", "agendado"]);
+        .in("status", ["concluido", "confirmado", "agendado", "atendido"]);
 
       if (professionalId) query = query.eq("professional_id", professionalId);
 
