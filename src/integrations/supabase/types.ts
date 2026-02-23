@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      anamnesis_templates: {
+        Row: {
+          created_at: string
+          fields: Json
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fields?: Json
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fields?: Json
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       appointment_services: {
         Row: {
           appointment_id: string
