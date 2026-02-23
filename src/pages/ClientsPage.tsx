@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useClients } from "@/hooks/useClinicData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, Phone, Mail, ChevronRight, SlidersHorizontal } from "lucide-react";
 
 const ClientsPage = () => {
+  const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const { data: clients = [], isLoading } = useClients(search);
 
@@ -64,7 +66,7 @@ const ClientsPage = () => {
           </p>
         )}
         {displayClients.map(client => (
-          <div key={client.id} className="flex items-center justify-between p-4 rounded-lg hover:bg-card border border-transparent hover:border-border transition-all cursor-pointer group">
+          <div key={client.id} onClick={() => navigate(`/clientes/${client.id}`)} className="flex items-center justify-between p-4 rounded-lg hover:bg-card border border-transparent hover:border-border transition-all cursor-pointer group">
             <div className="flex items-center gap-4">
               <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
                 {getInitials(client.full_name)}
