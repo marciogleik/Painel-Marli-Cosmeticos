@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfessionals, statusConfig, type DBAppointment } from "@/hooks/useClinicData";
 import {
@@ -26,6 +26,7 @@ import {
   XCircle,
   CalendarCheck,
   AlertCircle,
+  Scissors,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -73,6 +74,20 @@ const AppointmentDetailDialog = ({
   const { data: professionals = [] } = useProfessionals();
   const [cancellationReason, setCancellationReason] = useState("");
   const [showCancelForm, setShowCancelForm] = useState(false);
+
+  const { data: appointmentServices = [] } = useQuery({
+    queryKey: ["appointment_services", appointment?.id],
+    queryFn: async () => {
+      if (!appointment?.id) return [];
+      const { data, error } = await supabase
+        .from("appointment_services")
+        .select("*")
+        .eq("appointment_id", appointment.id);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!appointment?.id && open,
+  });
 
   const professional = professionals.find(
     (p) => p.id === appointment?.professional_id
@@ -210,7 +225,26 @@ const AppointmentDetailDialog = ({
             )}
           </div>
 
-          {/* Notes */}
+          {/* Services */}
+          {appointmentServices.length > 0 && (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2.5">
+                <Scissors className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="text-sm font-medium">Serviços</span>
+              </div>
+              <div className="ml-6.5 space-y-1">
+                {appointmentServices.map((svc) => (
+                  <div key={svc.id} className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">{svc.service_name} <span className="text-xs">({svc.duration_minutes} min)</span></span>
+                    {svc.price != null && (
+                      <span className="text-xs text-muted-foreground">R$ {Number(svc.price).toFixed(2).replace(".", ",")}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {appointment.notes && (
             <div className="flex items-start gap-2.5">
               <FileText className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
