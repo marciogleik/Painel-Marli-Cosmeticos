@@ -1,24 +1,24 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Phone, Mail, MoreHorizontal } from "lucide-react";
+import { Search, Plus, Phone, Mail, ChevronRight, SlidersHorizontal } from "lucide-react";
 
 interface Client {
   id: string;
   name: string;
   phone: string;
   email: string;
-  cpf: string;
   lastVisit: string;
   totalVisits: number;
+  initials: string;
 }
 
 const sampleClients: Client[] = [
-  { id: '1', name: 'Maria Silva', phone: '(66) 99999-0001', email: 'maria@email.com', cpf: '111.111.111-11', lastVisit: '2026-02-20', totalVisits: 12 },
-  { id: '2', name: 'Ana Oliveira', phone: '(66) 99999-0002', email: 'ana@email.com', cpf: '222.222.222-22', lastVisit: '2026-02-18', totalVisits: 8 },
-  { id: '3', name: 'Carla Santos', phone: '(66) 99999-0003', email: 'carla@email.com', cpf: '333.333.333-33', lastVisit: '2026-02-23', totalVisits: 25 },
-  { id: '4', name: 'Julia Costa', phone: '(66) 99999-0004', email: 'julia@email.com', cpf: '444.444.444-44', lastVisit: '2026-02-15', totalVisits: 5 },
-  { id: '5', name: 'Fernanda Lima', phone: '(66) 99999-0005', email: 'fernanda@email.com', cpf: '555.555.555-55', lastVisit: '2026-02-22', totalVisits: 15 },
+  { id: '1', name: 'Ana Paula Oliveira', phone: '(66) 99901-2345', email: 'ana.paula@email.com', lastVisit: '24/01/2024', totalVisits: 24, initials: 'AP' },
+  { id: '2', name: 'Camila Alves Pereira', phone: '(66) 99505-6789', email: 'camila.alves@email.com', lastVisit: '25/01/2024', totalVisits: 18, initials: 'CA' },
+  { id: '3', name: 'Fernanda Ribeiro Lima', phone: '(66) 99604-5678', email: 'fernanda.lima@email.com', lastVisit: '26/01/2024', totalVisits: 8, initials: 'FR' },
+  { id: '4', name: 'Juliana Costa Mendes', phone: '(66) 99703-4567', email: 'juliana.costa@email.com', lastVisit: '19/01/2024', totalVisits: 12, initials: 'JC' },
+  { id: '5', name: 'Maria Helena Santos', phone: '(66) 99802-3456', email: 'maria.helena@email.com', lastVisit: '27/01/2024', totalVisits: 36, initials: 'MH' },
 ];
 
 const ClientsPage = () => {
@@ -26,79 +26,72 @@ const ClientsPage = () => {
 
   const filtered = sampleClients.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.phone.includes(search) ||
-    c.cpf.includes(search)
+    c.phone.includes(search)
   );
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-auto">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
-        <h1 className="text-xl font-display font-bold">Clientes</h1>
-        <Button variant="gold" size="sm" className="gap-1.5">
+      <div className="flex items-center justify-between px-8 pt-8 pb-2 shrink-0">
+        <div>
+          <h1 className="text-2xl font-display font-bold">Clientes</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{sampleClients.length} clientes cadastrados</p>
+        </div>
+        <Button className="gap-1.5">
           <Plus className="w-4 h-4" /> Novo Cliente
         </Button>
       </div>
 
-      {/* Search */}
-      <div className="px-6 py-3 border-b border-border shrink-0">
-        <div className="relative max-w-md">
+      {/* Search & Filter */}
+      <div className="flex items-center gap-3 px-8 py-4 shrink-0">
+        <div className="relative flex-1 max-w-lg">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar por nome, telefone ou CPF..."
-            className="pl-9"
+            placeholder="Buscar por nome ou telefone..."
+            className="pl-9 bg-card"
           />
         </div>
+        <button className="p-2.5 rounded-lg border border-border hover:bg-muted">
+          <SlidersHorizontal className="w-4 h-4 text-muted-foreground" />
+        </button>
+        <select className="text-sm border border-border rounded-lg px-3 py-2.5 bg-card text-foreground">
+          <option>Nome (A-Z)</option>
+          <option>Última visita</option>
+          <option>Total de visitas</option>
+        </select>
       </div>
 
-      {/* Table */}
-      <div className="flex-1 overflow-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/50 sticky top-0">
-            <tr>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Cliente</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Telefone</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">CPF</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Última Visita</th>
-              <th className="text-left px-6 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Atendimentos</th>
-              <th className="w-10" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {filtered.map(client => (
-              <tr key={client.id} className="hover:bg-muted/30 transition-colors cursor-pointer">
-                <td className="px-6 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gold/10 flex items-center justify-center text-xs font-bold text-gold">
-                      {client.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                    </div>
-                    <div>
-                      <p className="font-medium">{client.name}</p>
-                      <p className="text-xs text-muted-foreground">{client.email}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-3">
-                  <a href={`tel:${client.phone}`} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground">
-                    <Phone className="w-3 h-3" /> {client.phone}
-                  </a>
-                </td>
-                <td className="px-6 py-3 text-muted-foreground hidden md:table-cell">{client.cpf}</td>
-                <td className="px-6 py-3 text-muted-foreground hidden lg:table-cell">{client.lastVisit}</td>
-                <td className="px-6 py-3 hidden lg:table-cell">
-                  <span className="text-gold font-semibold">{client.totalVisits}</span>
-                </td>
-                <td className="px-3 py-3">
-                  <button className="p-1 hover:bg-muted rounded-md">
-                    <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {/* Client List */}
+      <div className="px-8 pb-8 space-y-1">
+        {filtered.map(client => (
+          <div key={client.id} className="flex items-center justify-between p-4 rounded-lg hover:bg-card border border-transparent hover:border-border transition-all cursor-pointer group">
+            <div className="flex items-center gap-4">
+              <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
+                {client.initials}
+              </div>
+              <div>
+                <p className="font-semibold text-sm">{client.name}</p>
+                <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{client.phone}</span>
+                  <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{client.email}</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="text-right">
+                <p className="text-sm font-bold text-primary">{client.totalVisits}</p>
+                <p className="text-[10px] text-muted-foreground">visitas</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-foreground">📅 {client.lastVisit}</p>
+                <p className="text-[10px] text-muted-foreground">última visita</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
