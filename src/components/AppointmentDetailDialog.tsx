@@ -1,0 +1,305 @@
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useProfessionals, statusConfig, type DBAppointment } from "@/hooks/useClinicData";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import {
+  Clock,
+  User,
+  Phone,
+  FileText,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  CalendarCheck,
+  AlertCircle,
+} from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+
+interface AppointmentDetailDialogProps {
+  appointment: DBAppointment | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+const statusActions: Record<string, { label: string; icon: React.ReactNode; next: string }[]> = {
+  agendado: [
+    { label: "Confirmar", icon: <CalendarCheck className="w-4 h-4" />, next: "confirmado" },
+    { label: "Atender", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendido" },
+    { label: "Cancelar", icon: <XCircle className="w-4 h-4" />, next: "cancelado" },
+  ],
+  confirmado: [
+    { label: "Atender", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendido" },
+    { label: "Cancelar", icon: <XCircle className="w-4 h-4" />, next: "cancelado" },
+  ],
+  espera: [
+    { label: "Confirmar", icon: <CalendarCheck className="w-4 h-4" />, next: "confirmado" },
+    { label: "Atender", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendido" },
+    { label: "Cancelar", icon: <XCircle className="w-4 h-4" />, next: "cancelado" },
+  ],
+  atendido: [],
+  cancelado: [
+    { label: "Reagendar", icon: <CalendarCheck className="w-4 h-4" />, next: "agendado" },
+  ],
+};
+
+const statusLabel: Record<string, string> = {
+  agendado: "Agendado",
+  confirmado: "Confirmado",
+  atendido: "Atendido",
+  cancelado: "Cancelado",
+  espera: "Em Espera",
+};
+
+const AppointmentDetailDialog = ({
+  appointment,
+  open,
+  onOpenChange,
+}: AppointmentDetailDialogProps) => {
+  const queryClient = useQueryClient();
+  const { data: professionals = [] } = useProfessionals();
+  const [cancellationReason, setCancellationReason] = useState("");
+  const [showCancelForm, setShowCancelForm] = useState(false);
+
+  const professional = professionals.find(
+    (p) => p.id === appointment?.professional_id
+  );
+
+  const statusMutation = useMutation({
+    mutationFn: async ({
+      id,
+      newStatus,
+      reason,
+    }: {
+      id: string;
+      newStatus: string;
+      reason?: string;
+    }) => {
+      const updateData: Record<string, unknown> = { status: newStatus };
+
+      if (newStatus === "cancelado") {
+        updateData.cancellation_reason = reason || null;
+        updateData.cancelled_at = new Date().toISOString();
+      }
+
+      if (newStatus === "agendado") {
+        updateData.cancellation_reason = null;
+        updateData.cancelled_at = null;
+      }
+
+      const { error } = await supabase
+        .from("appointments")
+        .update(updateData)
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      const label = statusLabel[vars.newStatus] || vars.newStatus;
+      toast({ title: `Status alterado para "${label}"` });
+      setShowCancelForm(false);
+      setCancellationReason("");
+      onOpenChange(false);
+    },
+    onError: (err: Error) => {
+      toast({
+        title: "Erro ao atualizar status",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleStatusChange = (newStatus: string) => {
+    if (!appointment) return;
+
+    if (newStatus === "cancelado") {
+      setShowCancelForm(true);
+      return;
+    }
+
+    statusMutation.mutate({ id: appointment.id, newStatus });
+  };
+
+  const handleConfirmCancel = () => {
+    if (!appointment) return;
+    statusMutation.mutate({
+      id: appointment.id,
+      newStatus: "cancelado",
+      reason: cancellationReason.trim() || undefined,
+    });
+  };
+
+  if (!appointment) return null;
+
+  const cfg = statusConfig[appointment.status as keyof typeof statusConfig] || statusConfig.agendado;
+  const actions = statusActions[appointment.status] || [];
+  const dateFormatted = format(parseISO(appointment.date), "EEEE, dd 'de' MMMM", { locale: ptBR });
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) {
+          setShowCancelForm(false);
+          setCancellationReason("");
+        }
+        onOpenChange(v);
+      }}
+    >
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="font-display flex items-center gap-3">
+            Detalhes do Agendamento
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 pt-1">
+          {/* Status Badge */}
+          <div className="flex items-center gap-2">
+            <Badge
+              className={cn(
+                "text-xs font-semibold px-3 py-1",
+                cfg.color,
+                appointment.status !== "cancelado" && "text-white"
+              )}
+            >
+              {statusLabel[appointment.status] || appointment.status}
+            </Badge>
+          </div>
+
+          {/* Client info */}
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-2.5">
+              <User className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-sm font-medium">{appointment.client_name || "Sem nome"}</span>
+            </div>
+            {appointment.client_phone && (
+              <div className="flex items-center gap-2.5">
+                <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="text-sm text-muted-foreground">{appointment.client_phone}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2.5">
+              <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-sm text-muted-foreground capitalize">
+                {dateFormatted} — {appointment.start_time?.slice(0, 5)} até {appointment.end_time?.slice(0, 5)}
+              </span>
+            </div>
+            {professional && (
+              <div className="flex items-center gap-2.5">
+                <User className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="text-sm text-muted-foreground">
+                  {professional.name} — {professional.role_description}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Notes */}
+          {appointment.notes && (
+            <div className="flex items-start gap-2.5">
+              <FileText className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+              <span className="text-sm text-muted-foreground">{appointment.notes}</span>
+            </div>
+          )}
+
+          {/* Executed by */}
+          {appointment.executed_by && (
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 className="w-4 h-4 text-muted-foreground shrink-0" />
+              <span className="text-sm text-muted-foreground">
+                Atendido por: {appointment.executed_by}
+              </span>
+            </div>
+          )}
+
+          {/* Cancellation reason */}
+          {appointment.status === "cancelado" && appointment.cancellation_reason && (
+            <div className="flex items-start gap-2.5 p-3 bg-muted rounded-lg">
+              <AlertCircle className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+              <span className="text-sm text-muted-foreground">
+                Motivo: {appointment.cancellation_reason}
+              </span>
+            </div>
+          )}
+
+          {/* Actions */}
+          {actions.length > 0 && (
+            <>
+              <Separator />
+
+              {showCancelForm ? (
+                <div className="space-y-3">
+                  <Label>Motivo do cancelamento (opcional)</Label>
+                  <Textarea
+                    value={cancellationReason}
+                    onChange={(e) => setCancellationReason(e.target.value)}
+                    placeholder="Ex: cliente não compareceu, remarcou..."
+                    rows={2}
+                    maxLength={300}
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      variant="destructive"
+                      className="flex-1"
+                      onClick={handleConfirmCancel}
+                      disabled={statusMutation.isPending}
+                    >
+                      {statusMutation.isPending && (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      )}
+                      Confirmar Cancelamento
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowCancelForm(false)}
+                    >
+                      Voltar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {actions.map((action) => (
+                    <Button
+                      key={action.next}
+                      variant={action.next === "cancelado" ? "destructive" : "outline"}
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={() => handleStatusChange(action.next)}
+                      disabled={statusMutation.isPending}
+                    >
+                      {statusMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        action.icon
+                      )}
+                      {action.label}
+                    </Button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default AppointmentDetailDialog;
