@@ -145,9 +145,9 @@ const LoginPage = () => {
           )}
         </CardContent>
       </Card>
-      <div className="absolute bottom-6 flex items-center gap-1.5 opacity-40 hover:opacity-60 transition-opacity">
-        <span className="text-[10px] text-muted-foreground">powered by</span>
-        <img src={placeLogo} alt="Place" className="h-3" />
+      <div className="absolute bottom-6 flex items-center gap-2 opacity-70 hover:opacity-100 transition-opacity">
+        <span className="text-xs text-muted-foreground">powered by</span>
+        <img src={placeLogo} alt="Place" className="h-5" />
       </div>
     </div>
   );
