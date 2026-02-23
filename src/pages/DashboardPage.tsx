@@ -1,16 +1,22 @@
-import { sampleAppointments, professionals, Appointment, statusConfig } from "@/data/clinic";
+import { useProfessionals, useAppointments, statusConfig, DBAppointment } from "@/hooks/useClinicData";
 import { Calendar, Users, DollarSign, UserPlus, Clock, MoreVertical, User, MapPin, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const stats = [
-  { label: "Agendamentos Hoje", value: "9", sub: "1 confirmado", icon: Calendar, accent: false },
-  { label: "Clientes Ativos", value: "1.800+", sub: "Base exportada", icon: Users, accent: false },
-  { label: "Receita do Mês", value: "R$ 12.450,00", sub: "+8% vs mês anterior", icon: DollarSign, accent: true },
-  { label: "Novos Clientes", value: "8", sub: "Este mês", icon: UserPlus, accent: false },
-];
+import { format } from "date-fns";
 
 const DashboardPage = () => {
-  const todayAppointments = sampleAppointments.filter(a => a.date === '2026-02-23');
+  const today = format(new Date(), 'yyyy-MM-dd');
+  const { data: professionals = [] } = useProfessionals();
+  const { data: appointments = [] } = useAppointments(today, today);
+
+  const todayAppointments = appointments.filter(a => a.date === today);
+  const confirmed = todayAppointments.filter(a => a.status === 'confirmado').length;
+
+  const stats = [
+    { label: "Agendamentos Hoje", value: String(todayAppointments.length), sub: `${confirmed} confirmado${confirmed !== 1 ? 's' : ''}`, icon: Calendar, accent: false },
+    { label: "Clientes Ativos", value: "1.800+", sub: "Base exportada", icon: Users, accent: false },
+    { label: "Receita do Mês", value: "R$ 12.450,00", sub: "+8% vs mês anterior", icon: DollarSign, accent: true },
+    { label: "Novos Clientes", value: "8", sub: "Este mês", icon: UserPlus, accent: false },
+  ];
 
   return (
     <div className="flex flex-col h-full overflow-auto">
@@ -53,7 +59,7 @@ const DashboardPage = () => {
                 <Clock className="w-5 h-5 text-muted-foreground" />
                 <div>
                   <h2 className="font-display font-bold text-lg">Agenda de Hoje</h2>
-                  <p className="text-xs text-muted-foreground">domingo, 23 de fevereiro</p>
+                  <p className="text-xs text-muted-foreground">{format(new Date(), "EEEE, dd 'de' MMMM")}</p>
                 </div>
               </div>
               <span className="text-xs font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
@@ -63,8 +69,8 @@ const DashboardPage = () => {
 
             <div className="space-y-3">
               {todayAppointments.map(appt => {
-                const prof = professionals.find(p => p.id === appt.professionalId);
-                const cfg = statusConfig[appt.status];
+                const prof = professionals.find(p => p.id === appt.professional_id);
+                const cfg = statusConfig[appt.status as keyof typeof statusConfig] || statusConfig.agendado;
 
                 return (
                   <div key={appt.id} className={cn(
@@ -75,15 +81,14 @@ const DashboardPage = () => {
                       <div>
                         <div className="flex items-center gap-2 text-sm">
                           <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span className="font-semibold">{appt.time}</span>
+                          <span className="font-semibold">{appt.start_time?.slice(0, 5)}</span>
                         </div>
-                        <p className="font-medium mt-1.5">{appt.serviceNames.join(' + ')}</p>
-                        <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1.5 mt-1.5 text-xs text-muted-foreground">
                           <User className="w-3 h-3" />
-                          <span>{appt.clientName}</span>
+                          <span>{appt.client_name}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-1.5">
-                          <span className="text-xs text-muted-foreground">com {prof?.name}</span>
+                          <span className="text-xs text-muted-foreground">com {prof?.name || 'Profissional'}</span>
                           <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium border", cfg.bgClass)}>
                             {cfg.label}
                           </span>
@@ -99,6 +104,9 @@ const DashboardPage = () => {
                   </div>
                 );
               })}
+              {todayAppointments.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-8">Nenhum agendamento para hoje</p>
+              )}
             </div>
           </div>
 
@@ -141,11 +149,11 @@ const DashboardPage = () => {
                   <div key={prof.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
-                        {prof.avatar}
+                        {prof.avatar_initials}
                       </div>
                       <div>
                         <p className="text-sm font-medium">{prof.name}</p>
-                        <p className="text-[10px] text-muted-foreground">{prof.role}</p>
+                        <p className="text-[10px] text-muted-foreground">{prof.role_description}</p>
                       </div>
                     </div>
                     <div className="w-2 h-2 rounded-full bg-emerald-500" />
