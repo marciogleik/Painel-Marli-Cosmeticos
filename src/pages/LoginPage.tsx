@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, ArrowLeft } from "lucide-react";
+import placeLogo from "@/assets/place-logo.png";
 
 const LoginPage = () => {
   const { user, loading, signIn } = useAuth();
@@ -57,7 +58,7 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 relative">
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center space-y-2">
           <div className="mx-auto w-12 h-12 rounded-full bg-primary flex items-center justify-center mb-2">
@@ -144,6 +145,10 @@ const LoginPage = () => {
           )}
         </CardContent>
       </Card>
+      <div className="absolute bottom-6 flex items-center gap-1.5 opacity-40 hover:opacity-60 transition-opacity">
+        <span className="text-[10px] text-muted-foreground">powered by</span>
+        <img src={placeLogo} alt="Place" className="h-3" />
+      </div>
     </div>
   );
 };
