@@ -126,6 +126,7 @@ const ClientDetailPage = () => {
       </div>
     );
   }
+  const isIncomplete = !client.phone || !client.email || !client.birth_date;
 
   const age = client.birth_date
     ? differenceInYears(new Date(), parseISO(client.birth_date))
@@ -158,6 +159,9 @@ const ClientDetailPage = () => {
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-display font-bold truncate">
               {client.full_name}
+              {isIncomplete && (
+                <Badge className="ml-2 bg-blue-900 text-white hover:bg-blue-900 text-[10px] px-1.5 py-0 align-middle">CADASTRO INCOMPLETO</Badge>
+              )}
             </h1>
             <div className="flex items-center flex-wrap gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
               {client.phone && (

@@ -8,7 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Search, Plus, Phone, Mail, ChevronRight, SlidersHorizontal, ChevronDown, RotateCcw } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import NewClientDialog from "@/components/client/NewClientDialog";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+
+const isIncomplete = (c: { phone?: string | null; email?: string | null; birth_date?: string | null }) =>
+  !c.phone || !c.email || !c.birth_date;
 
 const ClientsPage = () => {
   const navigate = useNavigate();
@@ -98,7 +102,12 @@ const ClientsPage = () => {
                 {getInitials(client.full_name)}
               </div>
               <div>
-                <p className="font-semibold text-sm">{client.full_name}</p>
+                <p className="font-semibold text-sm">
+                  {client.full_name}
+                  {isIncomplete(client) && (
+                    <Badge className="ml-2 bg-blue-900 text-white hover:bg-blue-900 text-[10px] px-1.5 py-0">CADASTRO INCOMPLETO</Badge>
+                  )}
+                </p>
                 <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
                   {client.phone && (
                     <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{client.phone}</span>
