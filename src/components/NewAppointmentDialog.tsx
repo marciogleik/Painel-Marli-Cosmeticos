@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { maskPhone } from "@/utils/masks";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -299,7 +300,7 @@ const NewAppointmentDialog = ({ open, onOpenChange, defaultDate }: NewAppointmen
                 <Input
                   placeholder="Telefone"
                   value={clientPhone}
-                  onChange={(e) => setClientPhone(e.target.value)}
+                  onChange={(e) => setClientPhone(maskPhone(e.target.value))}
                 />
               </div>
             )}
