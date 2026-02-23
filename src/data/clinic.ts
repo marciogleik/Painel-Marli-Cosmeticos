@@ -9,7 +9,7 @@ export interface Professional {
 export interface Service {
   id: string;
   name: string;
-  duration: number; // minutes
+  duration: number;
   price: number;
   category: string;
   requiresEvaluation?: boolean;
@@ -112,7 +112,9 @@ export const sampleAppointments: Appointment[] = [
     clientName: 'Maria Silva',
     clientPhone: '(66) 99999-0001',
     professionalId: '1',
-    services: [{ id: 's1', name: 'Limpeza de Pele', duration: 60, price: 150, category: 'Facial' }],
+    services: [
+      { id: 's1', name: 'Limpeza de Pele', duration: 60, price: 150, category: 'Facial' },
+    ],
     date: '2026-02-23',
     time: '09:00',
     status: 'confirmed',
@@ -122,7 +124,9 @@ export const sampleAppointments: Appointment[] = [
     clientName: 'Ana Oliveira',
     clientPhone: '(66) 99999-0002',
     professionalId: '1',
-    services: [{ id: 's2', name: 'Peeling Químico', duration: 45, price: 200, category: 'Facial' }],
+    services: [
+      { id: 's2', name: 'Peeling Químico', duration: 45, price: 200, category: 'Facial' },
+    ],
     date: '2026-02-23',
     time: '10:30',
     status: 'pending',
@@ -132,7 +136,9 @@ export const sampleAppointments: Appointment[] = [
     clientName: 'Carla Santos',
     clientPhone: '(66) 99999-0003',
     professionalId: '3',
-    services: [{ id: 's6', name: 'Design de Sobrancelha', duration: 30, price: 60, category: 'Sobrancelha' }],
+    services: [
+      { id: 's6', name: 'Design de Sobrancelha', duration: 30, price: 60, category: 'Sobrancelha' },
+    ],
     date: '2026-02-23',
     time: '14:00',
     status: 'confirmed',
@@ -142,7 +148,9 @@ export const sampleAppointments: Appointment[] = [
     clientName: 'Julia Costa',
     clientPhone: '(66) 99999-0004',
     professionalId: '2',
-    services: [{ id: 's5', name: 'Drenagem Linfática', duration: 60, price: 170, category: 'Corporal' }],
+    services: [
+      { id: 's5', name: 'Drenagem Linfática', duration: 60, price: 170, category: 'Corporal' },
+    ],
     date: '2026-02-23',
     time: '11:00',
     status: 'cancelled',
@@ -152,10 +160,36 @@ export const sampleAppointments: Appointment[] = [
     clientName: 'Fernanda Lima',
     clientPhone: '(66) 99999-0005',
     professionalId: '4',
-    services: [{ id: 's8', name: 'Depilação a Laser', duration: 40, price: 250, category: 'Depilação' }],
+    services: [
+      { id: 's8', name: 'Depilação a Laser', duration: 40, price: 250, category: 'Depilação' },
+    ],
     date: '2026-02-23',
     time: '15:00',
     status: 'confirmed',
+  },
+  {
+    id: 'a6',
+    clientName: 'Beatriz Almeida',
+    clientPhone: '(66) 99999-0006',
+    professionalId: '5',
+    services: [
+      { id: 's10', name: 'Limpeza de Pele Profunda', duration: 75, price: 180, category: 'Facial' },
+    ],
+    date: '2026-02-24',
+    time: '09:00',
+    status: 'confirmed',
+  },
+  {
+    id: 'a7',
+    clientName: 'Renata Souza',
+    clientPhone: '(66) 99999-0007',
+    professionalId: '6',
+    services: [
+      { id: 's12', name: 'Criolipólise', duration: 60, price: 350, category: 'Corporal' },
+    ],
+    date: '2026-02-24',
+    time: '14:00',
+    status: 'pending',
   },
 ];
 
