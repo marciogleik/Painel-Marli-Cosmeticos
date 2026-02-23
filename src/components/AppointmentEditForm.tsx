@@ -39,10 +39,10 @@ interface AppointmentEditFormProps {
   onCancel: () => void;
 }
 
-const timeSlots = Array.from({ length: 24 }, (_, i) => {
-  const hour = Math.floor(i / 2) + 8;
-  const min = i % 2 === 0 ? "00" : "30";
-  return `${hour.toString().padStart(2, "0")}:${min}`;
+const timeSlots = Array.from({ length: 48 }, (_, i) => {
+  const hour = Math.floor(i / 4) + 8;
+  const min = (i % 4) * 15;
+  return `${hour.toString().padStart(2, "0")}:${min.toString().padStart(2, "0")}`;
 });
 
 const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }: AppointmentEditFormProps) => {
