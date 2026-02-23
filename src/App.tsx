@@ -12,6 +12,7 @@ import ClientsPage from "./pages/ClientsPage";
 import ProntuariosPage from "./pages/ProntuariosPage";
 import PlaceholderPage from "./pages/PlaceholderPage";
 import LoginPage from "./pages/LoginPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
             <Route element={<ProtectedRoute><PainelLayout /></ProtectedRoute>}>

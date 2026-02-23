@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 
 const LoginPage = () => {
   const { user, loading, signIn } = useAuth();
@@ -13,6 +14,11 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSent, setForgotSent] = useState(false);
+  const [forgotError, setForgotError] = useState("");
+  const [forgotSubmitting, setForgotSubmitting] = useState(false);
 
   if (loading) {
     return (
@@ -35,6 +41,21 @@ const LoginPage = () => {
     setSubmitting(false);
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotError("");
+    setForgotSubmitting(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) {
+      setForgotError("Erro ao enviar o e-mail. Verifique o endereço.");
+    } else {
+      setForgotSent(true);
+    }
+    setForgotSubmitting(false);
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-sm">
@@ -43,38 +64,84 @@ const LoginPage = () => {
             <span className="text-primary-foreground text-lg font-bold font-display">M</span>
           </div>
           <CardTitle className="text-xl">Marli Cosméticos</CardTitle>
-          <CardDescription>Entre com suas credenciais</CardDescription>
+          <CardDescription>
+            {forgotMode ? "Recuperação de senha" : "Entre com suas credenciais"}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Entrar
-            </Button>
-          </form>
+          {forgotMode ? (
+            forgotSent ? (
+              <div className="space-y-4 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Um e-mail com o link de recuperação foi enviado para <strong>{forgotEmail}</strong>. Verifique sua caixa de entrada.
+                </p>
+                <Button variant="outline" className="w-full" onClick={() => { setForgotMode(false); setForgotSent(false); }}>
+                  <ArrowLeft className="w-4 h-4 mr-2" /> Voltar ao Login
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="forgotEmail">E-mail</Label>
+                  <Input
+                    id="forgotEmail"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={forgotEmail}
+                    onChange={e => setForgotEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                {forgotError && <p className="text-sm text-destructive">{forgotError}</p>}
+                <Button type="submit" className="w-full" disabled={forgotSubmitting}>
+                  {forgotSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Enviar Link de Recuperação
+                </Button>
+                <Button type="button" variant="ghost" className="w-full" onClick={() => setForgotMode(false)}>
+                  <ArrowLeft className="w-4 h-4 mr-2" /> Voltar ao Login
+                </Button>
+              </form>
+            )
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">E-mail</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Senha</Label>
+                  <button
+                    type="button"
+                    onClick={() => { setForgotMode(true); setForgotEmail(email); }}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Esqueci minha senha
+                  </button>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              {error && <p className="text-sm text-destructive">{error}</p>}
+              <Button type="submit" className="w-full" disabled={submitting}>
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Entrar
+              </Button>
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>
