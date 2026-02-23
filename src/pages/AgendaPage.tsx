@@ -39,7 +39,7 @@ interface PendingReschedule {
 }
 
 const AgendaPage = () => {
-  const [viewMode, setViewMode] = useState<ViewMode>("week");
+  const [viewMode, setViewMode] = useState<ViewMode>("day");
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [selectedDay, setSelectedDay] = useState(() => new Date());
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
