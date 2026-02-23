@@ -1,29 +1,29 @@
 import { useState } from "react";
+import { useAppointments, useProfessionals } from "@/hooks/useClinicData";
 import { Search, ChevronDown, FileText, User, Calendar } from "lucide-react";
 import { Input } from "@/components/ui/input";
-
-interface Record {
-  id: string;
-  clientName: string;
-  service: string;
-  professional: string;
-  date: string;
-}
-
-const sampleRecords: Record[] = [
-  { id: '1', clientName: 'Maria Helena Santos', service: 'Design de Sobrancelhas', professional: 'Letícia Ramos', date: '27/01/2024' },
-  { id: '2', clientName: 'Camila Alves Pereira', service: 'Manutenção Extensão de Cílios', professional: 'Letícia Ramos', date: '25/01/2024' },
-  { id: '3', clientName: 'Ana Paula Oliveira', service: 'Hidratação Profunda', professional: 'Carla Souza', date: '24/01/2024' },
-  { id: '4', clientName: 'Maria Helena Santos', service: 'Limpeza de Pele', professional: 'Marli Ferreira', date: '14/01/2024' },
-  { id: '5', clientName: 'Ana Paula Oliveira', service: 'Coloração', professional: 'Carla Souza', date: '09/01/2024' },
-];
+import { format } from "date-fns";
 
 const ProntuariosPage = () => {
   const [search, setSearch] = useState('');
+  const { data: professionals = [] } = useProfessionals();
+  const { data: appointments = [] } = useAppointments();
 
-  const filtered = sampleRecords.filter(r =>
+  // Build records from appointments that were attended
+  const records = appointments
+    .filter(a => a.status === 'atendido')
+    .map(a => {
+      const prof = professionals.find(p => p.id === a.professional_id);
+      return {
+        id: a.id,
+        clientName: a.client_name || 'Cliente',
+        professional: prof?.name || 'Profissional',
+        date: a.date,
+      };
+    });
+
+  const filtered = records.filter(r =>
     r.clientName.toLowerCase().includes(search.toLowerCase()) ||
-    r.service.toLowerCase().includes(search.toLowerCase()) ||
     r.professional.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -42,7 +42,7 @@ const ProntuariosPage = () => {
           <Input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar por cliente, serviço ou profissional..."
+            placeholder="Buscar por cliente ou profissional..."
             className="pl-9 bg-card"
           />
         </div>
@@ -50,6 +50,9 @@ const ProntuariosPage = () => {
 
       {/* Records */}
       <div className="px-8 pb-8 space-y-2">
+        {filtered.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-8">Nenhum prontuário encontrado</p>
+        )}
         {filtered.map(record => (
           <div key={record.id} className="flex items-center justify-between p-4 rounded-lg bg-card border border-border hover:shadow-sm transition-shadow cursor-pointer">
             <div className="flex items-center gap-4">
@@ -57,10 +60,7 @@ const ProntuariosPage = () => {
                 <FileText className="w-4 h-4 text-primary" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <p className="font-semibold text-sm">{record.clientName}</p>
-                  <span className="text-xs text-primary font-medium">{record.service}</span>
-                </div>
+                <p className="font-semibold text-sm">{record.clientName}</p>
                 <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1"><User className="w-3 h-3" />{record.professional}</span>
                   <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{record.date}</span>
