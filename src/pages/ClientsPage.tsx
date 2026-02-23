@@ -6,8 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Phone, Mail, ChevronRight, SlidersHorizontal, ChevronDown, RotateCcw } from "lucide-react";
+import { Search, Plus, Phone, Mail, ChevronRight, SlidersHorizontal, ChevronDown, ChevronLeft, RotateCcw } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import NewClientDialog from "@/components/client/NewClientDialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -15,17 +16,19 @@ import { toast } from "sonner";
 const isIncomplete = (c: { email?: string | null; birth_date?: string | null }) =>
   !c.email || !c.birth_date;
 
-const ROW_HEIGHT = 72;
+const PAGE_SIZE_OPTIONS = [5, 10, 25, 50, 100];
 
 const ClientsPage = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [showNewClient, setShowNewClient] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const { data: clients = [], isLoading } = useClients(search);
   const { data: inactiveClients = [] } = useInactiveClients();
   const queryClient = useQueryClient();
-  const parentRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   const reactivateMutation = useMutation({
     mutationFn: async (clientId: string) => {
@@ -46,18 +49,48 @@ const ClientsPage = () => {
   });
 
   const displayClients = clients.length > 0 ? clients : [];
+  const totalPages = Math.max(1, Math.ceil(displayClients.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const startIndex = (safePage - 1) * pageSize;
+  const paginatedClients = displayClients.slice(startIndex, startIndex + pageSize);
 
-  const virtualizer = useVirtualizer({
-    count: displayClients.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => ROW_HEIGHT,
-    overscan: 15,
-  });
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    listRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Reset page on search change
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setCurrentPage(1);
+  };
 
   const getInitials = (name: string) => {
     const parts = name.split(' ').filter(Boolean);
     if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
     return name.slice(0, 2).toUpperCase();
+  };
+
+  // Generate page numbers to show
+  const getPageNumbers = () => {
+    const pages: (number | 'ellipsis')[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (safePage > 3) pages.push('ellipsis');
+      for (let i = Math.max(2, safePage - 1); i <= Math.min(totalPages - 1, safePage + 1); i++) {
+        pages.push(i);
+      }
+      if (safePage < totalPages - 2) pages.push('ellipsis');
+      pages.push(totalPages);
+    }
+    return pages;
   };
 
   return (
@@ -81,7 +114,7 @@ const ClientsPage = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => handleSearchChange(e.target.value)}
             placeholder="Buscar por nome ou telefone..."
             className="pl-9 bg-card"
           />
@@ -96,8 +129,8 @@ const ClientsPage = () => {
         </select>
       </div>
 
-      {/* Client List - Virtualized */}
-      <div ref={parentRef} className="flex-1 overflow-auto px-8">
+      {/* Client List - Paginated */}
+      <div ref={listRef} className="flex-1 overflow-auto px-8">
         {isLoading && (
           <p className="text-sm text-muted-foreground text-center py-8">Carregando...</p>
         )}
@@ -106,60 +139,44 @@ const ClientsPage = () => {
             {search ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado. Faça login para ver os dados.'}
           </p>
         )}
-        {!isLoading && displayClients.length > 0 && (
-          <div
-            style={{ height: `${virtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}
-          >
-            {virtualizer.getVirtualItems().map(virtualRow => {
-              const client = displayClients[virtualRow.index];
-              return (
-                <div
-                  key={client.id}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: `${virtualRow.size}px`,
-                    transform: `translateY(${virtualRow.start}px)`,
-                  }}
-                >
-                  <div
-                    onClick={() => navigate(`/clientes/${client.id}`)}
-                    className="flex items-center justify-between p-4 rounded-lg hover:bg-card border border-transparent hover:border-border transition-all cursor-pointer group h-full"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary shrink-0">
-                        {getInitials(client.full_name)}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-sm">
-                          {client.full_name}
-                          {isIncomplete(client) && (
-                            <Badge className="ml-2 bg-blue-900 text-white hover:bg-blue-900 text-[10px] px-1.5 py-0">CADASTRO INCOMPLETO</Badge>
-                          )}
-                        </p>
-                        <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
-                          {client.phone && (
-                            <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{client.phone}</span>
-                          )}
-                          {client.email && (
-                            <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{client.email}</span>
-                          )}
-                        </div>
-                      </div>
+        {!isLoading && paginatedClients.length > 0 && (
+          <div className="space-y-1">
+            {paginatedClients.map(client => (
+              <div
+                key={client.id}
+                onClick={() => navigate(`/clientes/${client.id}`)}
+                className="flex items-center justify-between p-4 rounded-lg hover:bg-card border border-transparent hover:border-border transition-all cursor-pointer group"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary shrink-0">
+                    {getInitials(client.full_name)}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">
+                      {client.full_name}
+                      {isIncomplete(client) && (
+                        <Badge className="ml-2 bg-blue-900 text-white hover:bg-blue-900 text-[10px] px-1.5 py-0">CADASTRO INCOMPLETO</Badge>
+                      )}
+                    </p>
+                    <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+                      {client.phone && (
+                        <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{client.phone}</span>
+                      )}
+                      {client.email && (
+                        <span className="flex items-center gap-1"><Mail className="w-3 h-3" />{client.email}</span>
+                      )}
                     </div>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                 </div>
-              );
-            })}
+                <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+            ))}
           </div>
         )}
 
         {/* Inactive Clients Section */}
         {inactiveClients.length > 0 && (
-          <div className="pb-8">
+          <div className="pb-4 mt-4">
             <Collapsible open={showInactive} onOpenChange={setShowInactive}>
               <CollapsibleTrigger asChild>
                 <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2">
@@ -201,6 +218,72 @@ const ClientsPage = () => {
           </div>
         )}
       </div>
+
+      {/* Pagination Footer */}
+      {!isLoading && displayClients.length > 0 && (
+        <div className="flex items-center justify-between px-8 py-3 border-t border-border shrink-0 bg-background">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Mostrando {startIndex + 1}–{Math.min(startIndex + pageSize, displayClients.length)} de {displayClients.length}</span>
+            <span className="mx-1">·</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-border bg-card text-sm font-medium hover:bg-muted transition-colors">
+                  {pageSize} por página
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="bg-popover z-50">
+                {PAGE_SIZE_OPTIONS.map(size => (
+                  <DropdownMenuItem
+                    key={size}
+                    onClick={() => handlePageSizeChange(size)}
+                    className={pageSize === size ? "font-semibold" : ""}
+                  >
+                    {pageSize === size && <span className="mr-1">✓</span>}
+                    {size} por página
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="w-8 h-8"
+              disabled={safePage <= 1}
+              onClick={() => handlePageChange(safePage - 1)}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            {getPageNumbers().map((page, i) =>
+              page === 'ellipsis' ? (
+                <span key={`e${i}`} className="px-1 text-muted-foreground text-sm">…</span>
+              ) : (
+                <Button
+                  key={page}
+                  variant={page === safePage ? "default" : "outline"}
+                  size="icon"
+                  className="w-8 h-8 text-xs"
+                  onClick={() => handlePageChange(page as number)}
+                >
+                  {page}
+                </Button>
+              )
+            )}
+            <Button
+              variant="outline"
+              size="icon"
+              className="w-8 h-8"
+              disabled={safePage >= totalPages}
+              onClick={() => handlePageChange(safePage + 1)}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       <NewClientDialog open={showNewClient} onOpenChange={setShowNewClient} />
     </div>
