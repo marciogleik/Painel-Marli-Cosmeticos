@@ -73,7 +73,7 @@ const DashboardPage = () => {
       {/* Header */}
       <div className="px-8 pt-8 pb-2">
         <h1 className="text-2xl font-display font-bold">
-          Olá, {displayName}! 👋
+          Olá, {displayName}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           {format(new Date(), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
