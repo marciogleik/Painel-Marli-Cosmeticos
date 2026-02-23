@@ -1,5 +1,5 @@
 import { sampleAppointments, professionals, Appointment } from "@/data/clinic";
-import { Calendar, Users, DollarSign, UserPlus, Clock, MoreVertical, User } from "lucide-react";
+import { Calendar, Users, DollarSign, UserPlus, Clock, MoreVertical, User, MapPin, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const statusStyles: Record<Appointment['status'], { bg: string; text: string; label: string }> = {
@@ -11,7 +11,7 @@ const statusStyles: Record<Appointment['status'], { bg: string; text: string; la
 };
 
 const stats = [
-  { label: "Agendamentos Hoje", value: "6", sub: "6 confirmados", icon: Calendar, accent: false },
+  { label: "Agendamentos Hoje", value: "5", sub: "4 confirmados", icon: Calendar, accent: false },
   { label: "Clientes Ativos", value: "156", sub: "", icon: Users, accent: false },
   { label: "Receita do Mês", value: "R$ 12.450,00", sub: "+8% vs mês anterior", icon: DollarSign, accent: true },
   { label: "Novos Clientes", value: "8", sub: "Este mês", icon: UserPlus, accent: false },
@@ -22,41 +22,40 @@ const DashboardPage = () => {
 
   return (
     <div className="flex flex-col h-full overflow-auto">
-      {/* Header */}
       <div className="px-8 pt-8 pb-4">
         <h1 className="text-2xl font-display font-bold">Dashboard</h1>
         <p className="text-sm text-muted-foreground mt-1">Bem-vinda de volta! Aqui está o resumo do seu dia.</p>
       </div>
 
       <div className="px-8 pb-8 space-y-6">
-        {/* Stats Cards */}
+        {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map(stat => (
             <div
               key={stat.label}
               className={cn(
                 "p-5 rounded-xl border",
-                stat.accent ? "bg-emerald-50 border-emerald-100" : "bg-card border-border"
+                stat.accent ? "bg-primary/5 border-primary/20" : "bg-card border-border"
               )}
             >
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">{stat.label}</p>
                 <div className={cn(
                   "w-9 h-9 rounded-lg flex items-center justify-center",
-                  stat.accent ? "bg-emerald-100" : "bg-secondary"
+                  stat.accent ? "bg-primary/10" : "bg-secondary"
                 )}>
-                  <stat.icon className={cn("w-4 h-4", stat.accent ? "text-emerald-600" : "text-primary")} />
+                  <stat.icon className={cn("w-4 h-4", stat.accent ? "text-primary" : "text-primary")} />
                 </div>
               </div>
               <p className="text-2xl font-bold mt-2">{stat.value}</p>
-              {stat.sub && <p className="text-xs text-emerald-600 mt-0.5">{stat.sub}</p>}
+              {stat.sub && <p className="text-xs text-primary mt-0.5">{stat.sub}</p>}
             </div>
           ))}
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Agenda de Hoje */}
-          <div className="lg:col-span-2 bg-emerald-50/50 rounded-xl border border-emerald-100 p-6">
+          <div className="lg:col-span-2 bg-primary/5 rounded-xl border border-primary/10 p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <Clock className="w-5 h-5 text-muted-foreground" />
@@ -65,7 +64,7 @@ const DashboardPage = () => {
                   <p className="text-xs text-muted-foreground">segunda-feira, 23 de fevereiro</p>
                 </div>
               </div>
-              <span className="text-xs font-medium text-emerald-600 bg-emerald-100 px-3 py-1 rounded-full">
+              <span className="text-xs font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
                 {todayAppointments.length} agendamentos
               </span>
             </div>
@@ -77,7 +76,10 @@ const DashboardPage = () => {
                 const totalDuration = appt.services.reduce((s, srv) => s + srv.duration, 0);
 
                 return (
-                  <div key={appt.id} className={cn("p-4 rounded-lg border bg-card", appt.status === 'cancelled' && 'opacity-50')}>
+                  <div key={appt.id} className={cn(
+                    "p-4 rounded-lg border bg-card",
+                    appt.status === 'cancelled' && 'opacity-50'
+                  )}>
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="flex items-center gap-2 text-sm">
@@ -85,13 +87,13 @@ const DashboardPage = () => {
                           <span className="font-semibold">{appt.time}</span>
                           <span className="text-muted-foreground">({totalDuration} min)</span>
                         </div>
-                        <p className="font-medium mt-1.5">{appt.services[0].name}</p>
+                        <p className="font-medium mt-1.5">{appt.services.map(s => s.name).join(' + ')}</p>
                         <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
                           <User className="w-3 h-3" />
                           <span>{appt.clientName}</span>
                         </div>
                         <div className="flex items-center gap-2 mt-1.5">
-                          <span className="text-xs text-muted-foreground">com {prof?.name.split(' ')[0]}</span>
+                          <span className="text-xs text-muted-foreground">com {prof?.name}</span>
                           <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium", style.bg, style.text)}>
                             {style.label}
                           </span>
@@ -113,7 +115,7 @@ const DashboardPage = () => {
             <div className="bg-card rounded-xl border border-border p-5">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center">
-                  <span className="text-primary text-sm">📋</span>
+                  <span className="text-sm">📋</span>
                 </div>
                 <div>
                   <p className="font-semibold text-sm">Ações Pendentes</p>
@@ -132,11 +134,11 @@ const DashboardPage = () => {
               </div>
             </div>
 
-            {/* Active professionals */}
+            {/* Professionals */}
             <div className="bg-card rounded-xl border border-border p-5">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center">
-                  <span className="text-primary text-sm">📈</span>
+                  <span className="text-sm">👩‍⚕️</span>
                 </div>
                 <div>
                   <p className="font-semibold text-sm">Profissionais</p>
@@ -144,20 +146,39 @@ const DashboardPage = () => {
                 </div>
               </div>
               <div className="space-y-3">
-                {professionals.slice(0, 3).map(prof => (
+                {professionals.slice(0, 4).map(prof => (
                   <div key={prof.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
-                        {prof.avatar.charAt(0)}
+                        {prof.avatar}
                       </div>
                       <div>
-                        <p className="text-sm font-medium">{prof.name.split(' ')[0]} {prof.name.split(' ').pop()}</p>
+                        <p className="text-sm font-medium">{prof.name}</p>
                         <p className="text-[10px] text-muted-foreground">{prof.role}</p>
                       </div>
                     </div>
                     <div className="w-2 h-2 rounded-full bg-emerald-500" />
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Business Info */}
+            <div className="bg-card rounded-xl border border-border p-5">
+              <p className="font-semibold text-sm mb-3">Informações</p>
+              <div className="space-y-2 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-3.5 h-3.5 text-primary" />
+                  <span>Av. Planalto, 399 – Centro</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Phone className="w-3.5 h-3.5 text-primary" />
+                  <span>(66) 99634-2599</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-primary">📸</span>
+                  <span>@marlicosmeticos</span>
+                </div>
               </div>
             </div>
           </div>
