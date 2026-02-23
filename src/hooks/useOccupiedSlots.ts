@@ -8,7 +8,7 @@ interface OccupiedSlot {
 }
 
 /**
- * Fetches existing appointments for a professional on a given date.
+ * Fetches existing appointments and blocked slots for a professional on a given date.
  * Returns a helper to check if a given time slot overlaps with any.
  */
 export function useOccupiedSlots(
@@ -37,12 +37,26 @@ export function useOccupiedSlots(
         console.warn("Failed to fetch occupied slots:", error.message);
         return [];
       }
-      return data || [];
+
+      // Also fetch blocked slots
+      const { data: blocked } = await supabase
+        .from("blocked_slots")
+        .select("start_time, end_time, reason")
+        .eq("professional_id", professionalId)
+        .eq("date", date);
+
+      const blockedSlots: OccupiedSlot[] = (blocked || []).map((b) => ({
+        start_time: b.start_time,
+        end_time: b.end_time,
+        client_name: `🚫 ${b.reason || "Bloqueado"}`,
+      }));
+
+      return [...(data || []), ...blockedSlots];
     },
     enabled: !!professionalId && !!date,
   });
 
-  /** Check if a slot starting at `time` (HH:MM) with `durationMinutes` overlaps any existing appointment */
+  /** Check if a slot starting at `time` (HH:MM) with `durationMinutes` overlaps any existing appointment or block */
   const getConflict = (time: string, durationMinutes: number): string | null => {
     if (!time || durationMinutes <= 0) return null;
 
