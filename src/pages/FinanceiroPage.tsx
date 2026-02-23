@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useFinanceReport } from "@/hooks/useFinanceReport";
+import { useProfessionals } from "@/hooks/useClinicData";
 import { format, subMonths, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, DollarSign, TrendingUp, CalendarCheck, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area,
@@ -25,7 +27,9 @@ const formatCurrency = (v: number) =>
 
 const FinanceiroPage = () => {
   const [month, setMonth] = useState(new Date());
-  const { data, isLoading } = useFinanceReport(month);
+  const [selectedProfessional, setSelectedProfessional] = useState<string>("all");
+  const { data: professionals = [] } = useProfessionals();
+  const { data, isLoading } = useFinanceReport(month, selectedProfessional === "all" ? undefined : selectedProfessional);
 
   const prev = () => setMonth(m => subMonths(m, 1));
   const next = () => setMonth(m => addMonths(m, 1));
@@ -55,17 +59,29 @@ const FinanceiroPage = () => {
       </div>
 
       <div className="px-8 pb-8 space-y-6">
-        {/* Month selector */}
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={prev}>
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-          <span className="text-sm font-semibold min-w-[140px] text-center capitalize">
-            {format(month, "MMMM yyyy", { locale: ptBR })}
-          </span>
-          <Button variant="outline" size="icon" className="h-8 w-8" onClick={next} disabled={isCurrentMonth}>
-            <ChevronRight className="w-4 h-4" />
-          </Button>
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={prev}>
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <span className="text-sm font-semibold min-w-[140px] text-center capitalize">
+              {format(month, "MMMM yyyy", { locale: ptBR })}
+            </span>
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={next} disabled={isCurrentMonth}>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+          <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
+            <SelectTrigger className="h-8 w-[200px]">
+              <SelectValue placeholder="Todos profissionais" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos profissionais</SelectItem>
+              {professionals.map(p => (
+                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {isLoading ? (
