@@ -1,11 +1,23 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Phone, Mail, Calendar, MapPin, FileText, User, Clock, Pencil } from "lucide-react";
+import { ArrowLeft, Phone, Mail, Calendar, MapPin, FileText, User, Clock, Pencil, UserX } from "lucide-react";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { format, differenceInYears, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { DBClient } from "@/hooks/useClinicData";
@@ -68,6 +80,25 @@ const ClientDetailPage = () => {
   const { data: stats } = useClientStats(id!);
   const { data: appointments } = useClientAppointments(id!);
   const [showEdit, setShowEdit] = useState(false);
+  const queryClient = useQueryClient();
+
+  const deactivateMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("clients")
+        .update({ is_active: false } as any)
+        .eq("id", id!);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Cliente desativado com sucesso");
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      navigate("/clientes");
+    },
+    onError: (err: any) => {
+      toast.error(err.message ?? "Erro ao desativar cliente");
+    },
+  });
 
   const { data: professionals } = useQuery({
     queryKey: ["professionals_map"],
@@ -188,7 +219,31 @@ const ClientDetailPage = () => {
 
           <TabsContent value="resumo">
             <div className="space-y-4 max-w-2xl">
-              <div className="flex justify-end">
+              <div className="flex justify-end gap-2">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-1.5 text-destructive hover:text-destructive">
+                      <UserX className="w-3.5 h-3.5" /> Desativar
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Desativar cliente?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        O cliente <strong>{client.full_name}</strong> será desativado e não aparecerá mais na lista de clientes. O histórico será preservado. Esta ação pode ser revertida.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => deactivateMutation.mutate()}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Desativar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
                 <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowEdit(true)}>
                   <Pencil className="w-3.5 h-3.5" /> Editar Dados
                 </Button>
