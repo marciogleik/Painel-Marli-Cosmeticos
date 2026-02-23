@@ -4,10 +4,12 @@ import { useClients } from "@/hooks/useClinicData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, Phone, Mail, ChevronRight, SlidersHorizontal } from "lucide-react";
+import NewClientDialog from "@/components/client/NewClientDialog";
 
 const ClientsPage = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [showNewClient, setShowNewClient] = useState(false);
   const { data: clients = [], isLoading } = useClients(search);
 
   // Fallback to sample data if no DB clients
@@ -29,7 +31,7 @@ const ClientsPage = () => {
             {displayClients.length} clientes {search ? 'encontrados' : 'cadastrados'}
           </p>
         </div>
-        <Button className="gap-1.5">
+        <Button className="gap-1.5" onClick={() => setShowNewClient(true)}>
           <Plus className="w-4 h-4" /> Novo Cliente
         </Button>
       </div>
@@ -87,6 +89,8 @@ const ClientsPage = () => {
           </div>
         ))}
       </div>
+
+      <NewClientDialog open={showNewClient} onOpenChange={setShowNewClient} />
     </div>
   );
 };
