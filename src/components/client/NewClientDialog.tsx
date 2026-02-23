@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { z } from "zod";
+import { maskPhone, maskCPF } from "@/utils/masks";
 
 const clientSchema = z.object({
   full_name: z.string().trim().min(2, "Nome deve ter ao menos 2 caracteres").max(120),
@@ -127,7 +128,7 @@ const NewClientDialog = ({ open, onOpenChange }: Props) => {
               <Input
                 id="phone"
                 value={form.phone}
-                onChange={(e) => handleChange("phone", e.target.value)}
+                onChange={(e) => handleChange("phone", maskPhone(e.target.value))}
                 placeholder="(00) 00000-0000"
               />
             </div>
@@ -136,7 +137,7 @@ const NewClientDialog = ({ open, onOpenChange }: Props) => {
               <Input
                 id="phone2"
                 value={form.phone2}
-                onChange={(e) => handleChange("phone2", e.target.value)}
+                onChange={(e) => handleChange("phone2", maskPhone(e.target.value))}
                 placeholder="(00) 00000-0000"
               />
             </div>
@@ -160,7 +161,7 @@ const NewClientDialog = ({ open, onOpenChange }: Props) => {
               <Input
                 id="cpf"
                 value={form.cpf}
-                onChange={(e) => handleChange("cpf", e.target.value)}
+                onChange={(e) => handleChange("cpf", maskCPF(e.target.value))}
                 placeholder="000.000.000-00"
               />
             </div>
