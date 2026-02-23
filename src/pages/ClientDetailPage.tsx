@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Phone, Mail, Calendar, MapPin, FileText, User } from "lucide-react";
+import { ArrowLeft, Phone, Mail, Calendar, MapPin, FileText, User, Clock } from "lucide-react";
 import { format, differenceInYears, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { DBClient } from "@/hooks/useClinicData";
@@ -44,11 +44,36 @@ const useClientStats = (clientId: string) =>
     enabled: !!clientId,
   });
 
+const useClientAppointments = (clientId: string) =>
+  useQuery({
+    queryKey: ["client_appointments", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("appointments")
+        .select("*, appointment_services(*)")
+        .eq("client_id", clientId)
+        .order("date", { ascending: false })
+        .order("start_time", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!clientId,
+  });
+
 const ClientDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: client, isLoading } = useClient(id!);
   const { data: stats } = useClientStats(id!);
+  const { data: appointments } = useClientAppointments(id!);
+
+  const { data: professionals } = useQuery({
+    queryKey: ["professionals_map"],
+    queryFn: async () => {
+      const { data } = await supabase.from("professionals").select("id, name").eq("is_active", true);
+      return new Map((data ?? []).map((p) => [p.id, p.name]));
+    },
+  });
 
   if (isLoading) {
     return (
@@ -198,9 +223,66 @@ const ClientDetailPage = () => {
           </TabsContent>
 
           <TabsContent value="historico">
-            <p className="text-sm text-muted-foreground py-4">
-              Em breve: histórico de agendamentos deste cliente.
-            </p>
+            {!appointments?.length ? (
+              <p className="text-sm text-muted-foreground py-4">
+                Nenhum agendamento encontrado para este cliente.
+              </p>
+            ) : (
+              <div className="space-y-2 max-w-3xl">
+                {appointments.map((apt) => {
+                  const statusColors: Record<string, string> = {
+                    agendado: "bg-sky-100 text-sky-800",
+                    confirmado: "bg-emerald-100 text-emerald-800",
+                    atendido: "bg-violet-100 text-violet-800",
+                    cancelado: "bg-gray-100 text-gray-500",
+                    falta: "bg-amber-100 text-amber-800",
+                    espera: "bg-amber-100 text-amber-800",
+                  };
+                  const services = (apt as any).appointment_services as any[] | undefined;
+                  const profName = professionals?.get(apt.professional_id) ?? "—";
+
+                  return (
+                    <div
+                      key={apt.id}
+                      className={`flex items-center gap-4 p-3 rounded-lg border border-border ${
+                        apt.status === "cancelado" ? "opacity-60 line-through" : ""
+                      }`}
+                    >
+                      <div className="text-center shrink-0 w-16">
+                        <p className="text-xs text-muted-foreground">
+                          {format(parseISO(apt.date), "dd/MM/yy")}
+                        </p>
+                        <p className="text-sm font-semibold">
+                          {apt.start_time.slice(0, 5)}
+                        </p>
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">
+                          {services && services.length > 0
+                            ? services.map((s) => s.service_name).join(", ")
+                            : "Sem serviço registrado"}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {profName}
+                          {apt.executed_by ? ` • Exec: ${apt.executed_by}` : ""}
+                          {apt.notes ? ` • ${apt.notes}` : ""}
+                        </p>
+                      </div>
+
+                      <Badge
+                        variant="secondary"
+                        className={`shrink-0 text-[10px] ${
+                          statusColors[apt.status] ?? ""
+                        }`}
+                      >
+                        {apt.status}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>
