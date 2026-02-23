@@ -11,6 +11,7 @@ import AgendaPage from "./pages/AgendaPage";
 import ClientsPage from "./pages/ClientsPage";
 import ProntuariosPage from "./pages/ProntuariosPage";
 import PlaceholderPage from "./pages/PlaceholderPage";
+import ConfiguracoesPage from "./pages/ConfiguracoesPage";
 import LoginPage from "./pages/LoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
@@ -35,7 +36,7 @@ const App = () => (
               <Route path="/clientes" element={<ClientsPage />} />
               <Route path="/prontuarios" element={<ProntuariosPage />} />
               <Route path="/notificacoes" element={<PlaceholderPage title="Notificações" />} />
-              <Route path="/configuracoes" element={<PlaceholderPage title="Configurações" />} />
+              <Route path="/configuracoes" element={<ConfiguracoesPage />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
