@@ -12,6 +12,7 @@ import ClientsPage from "./pages/ClientsPage";
 import ProntuariosPage from "./pages/ProntuariosPage";
 import PlaceholderPage from "./pages/PlaceholderPage";
 import ConfiguracoesPage from "./pages/ConfiguracoesPage";
+import FinanceiroPage from "./pages/FinanceiroPage";
 import LoginPage from "./pages/LoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import NotFound from "./pages/NotFound";
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="/agenda" element={<AgendaPage />} />
               <Route path="/clientes" element={<ClientsPage />} />
               <Route path="/prontuarios" element={<ProntuariosPage />} />
+              <Route path="/financeiro" element={<FinanceiroPage />} />
               <Route path="/notificacoes" element={<PlaceholderPage title="Notificações" />} />
               <Route path="/configuracoes" element={<ConfiguracoesPage />} />
             </Route>
