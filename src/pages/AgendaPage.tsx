@@ -1,25 +1,17 @@
 import { useState } from "react";
-import { professionals, sampleAppointments, Appointment } from "@/data/clinic";
+import { professionals, sampleAppointments, Appointment, statusConfig, services } from "@/data/clinic";
 import { cn } from "@/lib/utils";
 import { format, addDays, startOfWeek, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Plus, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const statusColors: Record<Appointment['status'], string> = {
-  confirmed: 'bg-emerald-400',
-  pending: 'bg-amber-400',
-  cancelled: 'bg-muted-foreground/30 opacity-60 line-through',
-  inprogress: 'bg-sky-400',
-  completed: 'bg-violet-400',
-};
-
 const AgendaPage = () => {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-  const hours = Array.from({ length: 11 }, (_, i) => `${(i + 8).toString().padStart(2, '0')}:00`);
+  const hours = Array.from({ length: 12 }, (_, i) => `${(i + 8).toString().padStart(2, '0')}:00`);
 
   const getAppts = (dayStr: string) => {
     return sampleAppointments.filter(a => {
@@ -32,8 +24,10 @@ const AgendaPage = () => {
   const getPosition = (appt: Appointment) => {
     const [h, m] = appt.time.split(':').map(Number);
     const top = (h - 8) * 64 + (m / 60) * 64;
-    const duration = appt.services.reduce((s, srv) => s + srv.duration, 0);
-    const height = Math.max((duration / 60) * 64, 40);
+    // Find duration from services data or default to 30
+    const srvData = services.find(s => s.name === appt.serviceNames[0]);
+    const duration = srvData?.duration || 30;
+    const height = Math.max((duration / 60) * 64, 32);
     return { top, height };
   };
 
@@ -71,7 +65,6 @@ const AgendaPage = () => {
           </button>
         </div>
 
-        {/* Professional filters - showing all 7 */}
         <div className="flex items-center gap-1.5 overflow-x-auto">
           <button
             onClick={() => setSelectedFilter('all')}
@@ -127,16 +120,21 @@ const AgendaPage = () => {
                   ))}
                   {dayAppts.map(appt => {
                     const { top, height } = getPosition(appt);
+                    const cfg = statusConfig[appt.status];
+                    const isCancelled = appt.status === 'cancelado';
+
                     return (
                       <div
                         key={appt.id}
                         className={cn(
-                          "absolute left-1 right-1 rounded-md px-2 py-1 cursor-pointer shadow-sm hover:shadow-md transition-shadow overflow-hidden text-primary-foreground",
-                          statusColors[appt.status]
+                          "absolute left-1 right-1 rounded-md px-2 py-1 cursor-pointer shadow-sm hover:shadow-md transition-shadow overflow-hidden",
+                          cfg.color,
+                          isCancelled ? "opacity-50 line-through" : "text-white"
                         )}
                         style={{ top: `${top}px`, height: `${height}px` }}
+                        title={`${appt.serviceNames.join(' + ')} — ${appt.clientName}${appt.notes ? ` (${appt.notes})` : ''}`}
                       >
-                        <p className="text-[11px] font-semibold truncate">{appt.services[0].name}</p>
+                        <p className="text-[11px] font-semibold truncate">{appt.serviceNames[0]}</p>
                         <p className="text-[10px] opacity-80 truncate">{appt.clientName}</p>
                       </div>
                     );
