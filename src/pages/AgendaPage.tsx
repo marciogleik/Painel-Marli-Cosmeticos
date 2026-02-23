@@ -6,11 +6,14 @@ import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Plus, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import NewAppointmentDialog from "@/components/NewAppointmentDialog";
+import AppointmentDetailDialog from "@/components/AppointmentDetailDialog";
 
 const AgendaPage = () => {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<DBAppointment | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const hours = Array.from({ length: 12 }, (_, i) => `${(i + 8).toString().padStart(2, '0')}:00`);
@@ -143,6 +146,7 @@ const AgendaPage = () => {
                         )}
                         style={{ top: `${top}px`, height: `${height}px` }}
                         title={`${appt.client_name}${appt.notes ? ` (${appt.notes})` : ''}`}
+                        onClick={() => { setSelectedAppointment(appt); setDetailOpen(true); }}
                       >
                         <p className="text-[11px] font-semibold truncate">{appt.client_name}</p>
                         <p className="text-[10px] opacity-80 truncate">{appt.start_time?.slice(0, 5)}</p>
@@ -157,6 +161,11 @@ const AgendaPage = () => {
       </div>
 
       <NewAppointmentDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <AppointmentDetailDialog
+        appointment={selectedAppointment}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
     </div>
   );
 };
