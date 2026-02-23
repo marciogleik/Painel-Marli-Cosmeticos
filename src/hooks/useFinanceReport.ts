@@ -20,20 +20,24 @@ export interface DailyRevenue {
   total: number;
 }
 
-export const useFinanceReport = (month: Date) => {
+export const useFinanceReport = (month: Date, professionalId?: string) => {
   const from = format(startOfMonth(month), "yyyy-MM-dd");
   const to = format(endOfMonth(month), "yyyy-MM-dd");
 
   return useQuery({
-    queryKey: ["finance-report", from, to],
+    queryKey: ["finance-report", from, to, professionalId ?? "all"],
     queryFn: async () => {
       // Get completed appointments with their services and prices
-      const { data: appointments, error: appErr } = await supabase
+      let query = supabase
         .from("appointments")
         .select("id, date, professional_id, status")
         .gte("date", from)
         .lte("date", to)
         .in("status", ["concluido", "confirmado", "agendado"]);
+
+      if (professionalId) query = query.eq("professional_id", professionalId);
+
+      const { data: appointments, error: appErr } = await query;
 
       if (appErr) throw appErr;
       if (!appointments?.length) return { byProfessional: [], byService: [], daily: [], totalRevenue: 0, totalAppointments: 0 };
