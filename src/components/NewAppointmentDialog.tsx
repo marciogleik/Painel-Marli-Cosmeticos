@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { maskPhone } from "@/utils/masks";
+import { checkAppointmentConflict } from "@/utils/appointmentConflict";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -120,6 +121,17 @@ const NewAppointmentDialog = ({ open, onOpenChange, defaultDate }: NewAppointmen
       }
 
       const dateStr = format(date, "yyyy-MM-dd");
+
+      // Check for time conflicts
+      const conflict = await checkAppointmentConflict({
+        professionalId,
+        date: dateStr,
+        startTime: startTime + ":00",
+        endTime: endTime + ":00",
+      });
+      if (conflict) {
+        throw new Error(`Conflito de horário: a profissional já tem agendamento com ${conflict} neste horário.`);
+      }
 
       const { data, error } = await supabase.from("appointments").insert({
         professional_id: professionalId,
