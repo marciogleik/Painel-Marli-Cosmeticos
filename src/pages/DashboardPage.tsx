@@ -84,36 +84,36 @@ const DashboardPage = () => {
       <div className="px-8 py-6 space-y-6">
         {/* Quick stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-5 rounded-xl border bg-card border-border">
+          <div className="p-5 rounded-xl border border-border/60 bg-card">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-primary" />
+              <div className="w-9 h-9 rounded-md bg-primary/10 flex items-center justify-center">
+                <Calendar className="w-4 h-4 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{todayAppointments.length}</p>
-                <p className="text-xs text-muted-foreground">Agendamentos hoje</p>
+                <p className="text-xl font-semibold">{todayAppointments.length}</p>
+                <p className="text-[11px] text-muted-foreground tracking-wide uppercase">Agendamentos</p>
               </div>
             </div>
           </div>
-          <div className="p-5 rounded-xl border bg-card border-border">
+          <div className="p-5 rounded-xl border border-border/60 bg-card">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                <Clock className="w-5 h-5 text-emerald-600" />
+              <div className="w-9 h-9 rounded-md bg-accent flex items-center justify-center">
+                <Clock className="w-4 h-4 text-accent-foreground" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{confirmed}</p>
-                <p className="text-xs text-muted-foreground">Confirmados</p>
+                <p className="text-xl font-semibold">{confirmed}</p>
+                <p className="text-[11px] text-muted-foreground tracking-wide uppercase">Confirmados</p>
               </div>
             </div>
           </div>
-          <div className="p-5 rounded-xl border bg-card border-border">
+          <div className="p-5 rounded-xl border border-border/60 bg-card">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                <Clock className="w-5 h-5 text-amber-600" />
+              <div className="w-9 h-9 rounded-md bg-secondary flex items-center justify-center">
+                <Clock className="w-4 h-4 text-secondary-foreground" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{pending}</p>
-                <p className="text-xs text-muted-foreground">Pendentes</p>
+                <p className="text-xl font-semibold">{pending}</p>
+                <p className="text-[11px] text-muted-foreground tracking-wide uppercase">Pendentes</p>
               </div>
             </div>
           </div>
@@ -159,7 +159,7 @@ const DashboardPage = () => {
                           )}
                         </div>
                         {appt.notes && (
-                          <p className="text-[10px] text-muted-foreground italic">📝 {appt.notes}</p>
+                          <p className="text-[10px] text-muted-foreground italic">{appt.notes}</p>
                         )}
                       </div>
                     </div>
@@ -168,7 +168,7 @@ const DashboardPage = () => {
               })}
               {todayAppointments.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-8">
-                  Nenhum agendamento para hoje. Aproveite o dia, {firstName}! ☀️
+                  Nenhum agendamento para hoje.
                 </p>
               )}
             </div>
@@ -197,8 +197,8 @@ const DashboardPage = () => {
                     : null;
                   return (
                     <div key={client.id} className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm">
-                        🎂
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Cake className="w-3.5 h-3.5 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium truncate">{client.full_name}</p>
@@ -213,7 +213,7 @@ const DashboardPage = () => {
               </div>
             ) : (
               <p className="text-xs text-muted-foreground text-center py-3">
-                🎈 Nenhum aniversariante hoje
+                Nenhum aniversariante hoje
               </p>
             )}
           </div>
