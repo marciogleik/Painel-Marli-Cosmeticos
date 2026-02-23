@@ -1,12 +1,31 @@
 import { useProfessionals, useAppointments, statusConfig, DBAppointment } from "@/hooks/useClinicData";
-import { Calendar, Users, DollarSign, UserPlus, Clock, MoreVertical, User, MapPin, Phone } from "lucide-react";
+import { Calendar, Users, DollarSign, UserPlus, Clock, MoreVertical, User, MapPin, Phone, Cake } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const DashboardPage = () => {
   const today = format(new Date(), 'yyyy-MM-dd');
+  const todayMMDD = format(new Date(), 'MM-dd');
   const { data: professionals = [] } = useProfessionals();
   const { data: appointments = [] } = useAppointments(today, today);
+
+  const { data: birthdays = [] } = useQuery({
+    queryKey: ["birthdays-today", todayMMDD],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clients")
+        .select("id, full_name, phone, birth_date")
+        .not("birth_date", "is", null)
+        .eq("is_active", true);
+      if (error) throw error;
+      return (data || []).filter(c => {
+        if (!c.birth_date) return false;
+        return c.birth_date.slice(5) === todayMMDD;
+      });
+    },
+  });
 
   const todayAppointments = appointments.filter(a => a.date === today);
   const confirmed = todayAppointments.filter(a => a.status === 'confirmado').length;
@@ -156,11 +175,52 @@ const DashboardPage = () => {
                         <p className="text-[10px] text-muted-foreground">{prof.role_description}</p>
                       </div>
                     </div>
-                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <div className="w-2 h-2 rounded-full bg-primary" />
                   </div>
                 ))}
               </div>
             </div>
+
+            {/* Aniversariantes de Hoje */}
+            <div className="bg-card rounded-xl border border-border p-5">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Cake className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">Aniversariantes de Hoje</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {birthdays.length > 0
+                      ? `${birthdays.length} aniversariante${birthdays.length > 1 ? "s" : ""}`
+                      : "Nenhum hoje"}
+                  </p>
+                </div>
+              </div>
+              {birthdays.length > 0 ? (
+                <div className="space-y-3">
+                  {birthdays.map(client => {
+                    const year = client.birth_date ? new Date().getFullYear() - parseInt(client.birth_date.slice(0, 4)) : null;
+                    return (
+                      <div key={client.id} className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm">
+                          🎂
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{client.full_name}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {year ? `${year} anos` : ""}
+                            {client.phone ? ` · ${client.phone}` : ""}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground text-center py-3">🎈 Nenhum aniversariante hoje</p>
+              )}
+            </div>
+
 
             <div className="bg-card rounded-xl border border-border p-5">
               <p className="font-semibold text-sm mb-3">Informações</p>
