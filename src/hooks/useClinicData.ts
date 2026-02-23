@@ -152,20 +152,39 @@ export const useClients = (search?: string) => {
   return useQuery({
     queryKey: ["clients", search],
     queryFn: async () => {
-      let query = supabase
-        .from("clients")
-        .select("*")
-        .eq("is_active", true)
-        .order("full_name");
-
       if (search && search.length > 0) {
-        query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%`);
+        // When searching, query with filter (limited results are fine)
+        const { data, error } = await supabase
+          .from("clients")
+          .select("*")
+          .eq("is_active", true)
+          .or(`full_name.ilike.%${search}%,phone.ilike.%${search}%`)
+          .order("full_name")
+          .limit(200);
+
+        if (error) throw error;
+        return (data ?? []) as DBClient[];
       }
 
-      const { data, error } = await query;
+      // No search: fetch all clients in pages to bypass 1000-row limit
+      const all: DBClient[] = [];
+      const pageSize = 1000;
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from("clients")
+          .select("*")
+          .eq("is_active", true)
+          .order("full_name")
+          .range(from, from + pageSize - 1);
 
-      if (error) throw error;
-      return (data ?? []) as DBClient[];
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        all.push(...(data as DBClient[]));
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+      return all;
     },
   });
 };
