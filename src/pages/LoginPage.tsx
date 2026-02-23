@@ -146,8 +146,8 @@ const LoginPage = () => {
         </CardContent>
       </Card>
       <div className="absolute bottom-8 flex items-center gap-3">
-        <span className="text-sm font-medium text-muted-foreground">powered by</span>
-        <img src={placeLogo} alt="Place" className="h-8" />
+        <span className="text-base font-medium text-muted-foreground">powered by</span>
+        <img src={placeLogo} alt="Place" className="h-12" />
       </div>
     </div>
   );
