@@ -126,7 +126,7 @@ const ClientDetailPage = () => {
       </div>
     );
   }
-  const isIncomplete = !client.phone || !client.email || !client.birth_date;
+  const isIncomplete = !client.email || !client.birth_date;
 
   const age = client.birth_date
     ? differenceInYears(new Date(), parseISO(client.birth_date))
