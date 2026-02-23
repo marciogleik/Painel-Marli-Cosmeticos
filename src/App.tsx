@@ -16,6 +16,7 @@ import ConfiguracoesPage from "./pages/ConfiguracoesPage";
 import FinanceiroPage from "./pages/FinanceiroPage";
 import LoginPage from "./pages/LoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import FaqPage from "./pages/FaqPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
               <Route path="/prontuarios" element={<ProntuariosPage />} />
               <Route path="/financeiro" element={<FinanceiroPage />} />
               <Route path="/notificacoes" element={<PlaceholderPage title="Notificações" />} />
+              <Route path="/faq" element={<FaqPage />} />
               <Route path="/configuracoes" element={<ConfiguracoesPage />} />
             </Route>
 
