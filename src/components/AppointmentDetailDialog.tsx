@@ -27,8 +27,10 @@ import {
   CalendarCheck,
   AlertCircle,
   Scissors,
+  Pencil,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import AppointmentEditForm from "@/components/AppointmentEditForm";
 
 interface AppointmentDetailDialogProps {
   appointment: DBAppointment | null;
@@ -74,6 +76,7 @@ const AppointmentDetailDialog = ({
   const { data: professionals = [] } = useProfessionals();
   const [cancellationReason, setCancellationReason] = useState("");
   const [showCancelForm, setShowCancelForm] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   const { data: appointmentServices = [] } = useQuery({
     queryKey: ["appointment_services", appointment?.id],
@@ -172,17 +175,33 @@ const AppointmentDetailDialog = ({
         if (!v) {
           setShowCancelForm(false);
           setCancellationReason("");
+          setEditing(false);
         }
         onOpenChange(v);
       }}
     >
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-display flex items-center gap-3">
-            Detalhes do Agendamento
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="font-display">
+              {editing ? "Editar Agendamento" : "Detalhes do Agendamento"}
+            </DialogTitle>
+            {!editing && appointment.status !== "cancelado" && appointment.status !== "atendido" && (
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing(true)}>
+                <Pencil className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
         </DialogHeader>
 
+        {editing ? (
+          <AppointmentEditForm
+            appointment={appointment}
+            initialServices={appointmentServices}
+            onSaved={() => { setEditing(false); onOpenChange(false); }}
+            onCancel={() => setEditing(false)}
+          />
+        ) : (
         <div className="space-y-4 pt-1">
           {/* Status Badge */}
           <div className="flex items-center gap-2">
@@ -331,6 +350,7 @@ const AppointmentDetailDialog = ({
             </>
           )}
         </div>
+        )}
       </DialogContent>
     </Dialog>
   );
