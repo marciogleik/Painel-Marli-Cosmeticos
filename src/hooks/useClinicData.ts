@@ -170,5 +170,21 @@ export const useClients = (search?: string) => {
   });
 };
 
+export const useInactiveClients = () => {
+  return useQuery({
+    queryKey: ["clients_inactive"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("clients")
+        .select("*")
+        .eq("is_active", false)
+        .order("full_name");
+
+      if (error) throw error;
+      return (data ?? []) as DBClient[];
+    },
+  });
+};
+
 // Re-export statusConfig for convenience
 export { statusConfig };

@@ -1,18 +1,42 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useClients } from "@/hooks/useClinicData";
+import { useClients, useInactiveClients } from "@/hooks/useClinicData";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Phone, Mail, ChevronRight, SlidersHorizontal } from "lucide-react";
+import { Search, Plus, Phone, Mail, ChevronRight, SlidersHorizontal, ChevronDown, RotateCcw } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import NewClientDialog from "@/components/client/NewClientDialog";
+import { toast } from "sonner";
 
 const ClientsPage = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [showNewClient, setShowNewClient] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
   const { data: clients = [], isLoading } = useClients(search);
+  const { data: inactiveClients = [] } = useInactiveClients();
+  const queryClient = useQueryClient();
 
-  // Fallback to sample data if no DB clients
+  const reactivateMutation = useMutation({
+    mutationFn: async (clientId: string) => {
+      const { error } = await supabase
+        .from("clients")
+        .update({ is_active: true } as any)
+        .eq("id", clientId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Cliente reativado com sucesso");
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      queryClient.invalidateQueries({ queryKey: ["clients_inactive"] });
+    },
+    onError: (err: any) => {
+      toast.error(err.message ?? "Erro ao reativar cliente");
+    },
+  });
+
   const displayClients = clients.length > 0 ? clients : [];
 
   const getInitials = (name: string) => {
@@ -58,7 +82,7 @@ const ClientsPage = () => {
       </div>
 
       {/* Client List */}
-      <div className="px-8 pb-8 space-y-1">
+      <div className="px-8 pb-4 space-y-1">
         {isLoading && (
           <p className="text-sm text-muted-foreground text-center py-8">Carregando...</p>
         )}
@@ -89,6 +113,50 @@ const ClientsPage = () => {
           </div>
         ))}
       </div>
+
+      {/* Inactive Clients Section */}
+      {inactiveClients.length > 0 && (
+        <div className="px-8 pb-8">
+          <Collapsible open={showInactive} onOpenChange={setShowInactive}>
+            <CollapsibleTrigger asChild>
+              <button className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors py-2">
+                <ChevronDown className={`w-4 h-4 transition-transform ${showInactive ? 'rotate-0' : '-rotate-90'}`} />
+                Clientes inativos ({inactiveClients.length})
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="space-y-1 mt-1">
+                {inactiveClients.map(client => (
+                  <div key={client.id} className="flex items-center justify-between p-4 rounded-lg border border-border bg-muted/30 opacity-70">
+                    <div className="flex items-center gap-4">
+                      <div className="w-11 h-11 rounded-full bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground">
+                        {getInitials(client.full_name)}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm text-muted-foreground">{client.full_name}</p>
+                        <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+                          {client.phone && (
+                            <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{client.phone}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 shrink-0"
+                      onClick={() => reactivateMutation.mutate(client.id)}
+                      disabled={reactivateMutation.isPending}
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" /> Reativar
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
+      )}
 
       <NewClientDialog open={showNewClient} onOpenChange={setShowNewClient} />
     </div>
