@@ -3,13 +3,15 @@ import { useFinanceReport } from "@/hooks/useFinanceReport";
 import { useProfessionals } from "@/hooks/useClinicData";
 import { format, subMonths, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, DollarSign, TrendingUp, CalendarCheck, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, DollarSign, TrendingUp, CalendarCheck, Loader2, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area,
 } from "recharts";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { exportToExcel, exportToPDF } from "@/utils/financeExport";
 
 const COLORS = [
   "hsl(43, 75%, 48%)",   // primary gold
@@ -82,6 +84,30 @@ const FinanceiroPage = () => {
               ))}
             </SelectContent>
           </Select>
+          {data && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 gap-1.5">
+                  <FileDown className="w-4 h-4" />
+                  Exportar
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => {
+                  const profName = selectedProfessional !== "all" ? professionals.find(p => p.id === selectedProfessional)?.name : undefined;
+                  exportToExcel(data, month, profName);
+                }}>
+                  Exportar Excel (.xlsx)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  const profName = selectedProfessional !== "all" ? professionals.find(p => p.id === selectedProfessional)?.name : undefined;
+                  exportToPDF(data, month, profName);
+                }}>
+                  Exportar PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
 
         {isLoading ? (
