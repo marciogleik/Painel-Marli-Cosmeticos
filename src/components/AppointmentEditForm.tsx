@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { maskPhone } from "@/utils/masks";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -278,6 +279,23 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
                 {c.phone && <span className="text-muted-foreground ml-2">{c.phone}</span>}
               </button>
             ))}
+          </div>
+        )}
+        {clientSearch.length >= 2 && filteredClients.length === 0 && !selectedClientId && (
+          <div className="space-y-2 p-3 border border-dashed border-border rounded-lg">
+            <p className="text-xs text-muted-foreground">Cliente não encontrado. Preencha os dados:</p>
+            <Input
+              placeholder="Nome do cliente"
+              value={clientName}
+              onChange={(e) => setClientName(e.target.value)}
+              className="h-9"
+            />
+            <Input
+              placeholder="Telefone"
+              value={clientPhone}
+              onChange={(e) => setClientPhone(maskPhone(e.target.value))}
+              className="h-9"
+            />
           </div>
         )}
       </div>
