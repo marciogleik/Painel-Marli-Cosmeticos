@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { startOfMonth, endOfMonth, format, subMonths, eachDayOfInterval, parseISO } from "date-fns";
+import { startOfMonth, endOfMonth, format, subMonths, eachDayOfInterval, parseISO, differenceInDays } from "date-fns";
 
 export interface RevenueByProfessional {
   professional_id: string;
@@ -20,7 +20,13 @@ export interface DailyRevenue {
   total: number;
 }
 
-async function fetchMonthData(from: string, to: string, month: Date, professionalId?: string) {
+export interface PreviousMonthComparison {
+  revenueDelta: number | null;
+  appointmentsDelta: number | null;
+  ticketDelta: number | null;
+}
+
+async function fetchPeriodData(from: string, to: string, professionalId?: string) {
   let query = supabase
     .from("appointments")
     .select("id, date, professional_id, status")
@@ -32,7 +38,7 @@ async function fetchMonthData(from: string, to: string, month: Date, professiona
 
   const { data: appointments, error: appErr } = await query;
   if (appErr) throw appErr;
-  if (!appointments?.length) return { byProfessional: [], byService: [], daily: [], totalRevenue: 0, totalAppointments: 0 };
+  if (!appointments?.length) return { byProfessional: [], byService: [], daily: [] as DailyRevenue[], totalRevenue: 0, totalAppointments: 0 };
 
   const appointmentIds = appointments.map(a => a.id);
 
@@ -81,7 +87,10 @@ async function fetchMonthData(from: string, to: string, month: Date, professiona
     .map(([name, v]) => ({ service_name: name, total: v.total, count: v.count }))
     .sort((a, b) => b.total - a.total);
 
-  const allDays = eachDayOfInterval({ start: startOfMonth(month), end: endOfMonth(month) > new Date() ? new Date() : endOfMonth(month) });
+  // Fill daily for the range
+  const startDate = parseISO(from);
+  const endDate = parseISO(to) > new Date() ? new Date() : parseISO(to);
+  const allDays = eachDayOfInterval({ start: startDate, end: endDate });
   const daily: DailyRevenue[] = allDays.map(d => {
     const key = format(d, "yyyy-MM-dd");
     return { date: key, total: dailyMap.get(key) ?? 0 };
@@ -93,32 +102,36 @@ async function fetchMonthData(from: string, to: string, month: Date, professiona
   return { byProfessional, byService, daily, totalRevenue, totalAppointments };
 }
 
-export interface PreviousMonthComparison {
-  revenueDelta: number | null;
-  appointmentsDelta: number | null;
-  ticketDelta: number | null;
-}
+const calcDelta = (curr: number, prev: number): number | null => {
+  if (prev === 0) return curr > 0 ? 100 : null;
+  return ((curr - prev) / prev) * 100;
+};
 
-export const useFinanceReport = (month: Date, professionalId?: string) => {
-  const from = format(startOfMonth(month), "yyyy-MM-dd");
-  const to = format(endOfMonth(month), "yyyy-MM-dd");
+export const useFinanceReport = (
+  month: Date,
+  professionalId?: string,
+  customRange?: { from: Date; to: Date } | null,
+) => {
+  const isCustom = !!customRange;
+  const from = isCustom ? format(customRange.from, "yyyy-MM-dd") : format(startOfMonth(month), "yyyy-MM-dd");
+  const to = isCustom ? format(customRange.to, "yyyy-MM-dd") : format(endOfMonth(month), "yyyy-MM-dd");
 
+  // For comparison: previous period of equal length, or previous month
   const prevMonth = subMonths(month, 1);
-  const prevFrom = format(startOfMonth(prevMonth), "yyyy-MM-dd");
-  const prevTo = format(endOfMonth(prevMonth), "yyyy-MM-dd");
+  const prevFrom = isCustom
+    ? format(new Date(customRange.from.getTime() - (customRange.to.getTime() - customRange.from.getTime()) - 86400000), "yyyy-MM-dd")
+    : format(startOfMonth(prevMonth), "yyyy-MM-dd");
+  const prevTo = isCustom
+    ? format(new Date(customRange.from.getTime() - 86400000), "yyyy-MM-dd")
+    : format(endOfMonth(prevMonth), "yyyy-MM-dd");
 
   return useQuery({
     queryKey: ["finance-report", from, to, professionalId ?? "all"],
     queryFn: async () => {
       const [current, previous] = await Promise.all([
-        fetchMonthData(from, to, month, professionalId),
-        fetchMonthData(prevFrom, prevTo, prevMonth, professionalId),
+        fetchPeriodData(from, to, professionalId),
+        fetchPeriodData(prevFrom, prevTo, professionalId),
       ]);
-
-      const calcDelta = (curr: number, prev: number): number | null => {
-        if (prev === 0) return curr > 0 ? 100 : null;
-        return ((curr - prev) / prev) * 100;
-      };
 
       const prevTicket = previous.totalAppointments > 0 ? previous.totalRevenue / previous.totalAppointments : 0;
       const currTicket = current.totalAppointments > 0 ? current.totalRevenue / current.totalAppointments : 0;
