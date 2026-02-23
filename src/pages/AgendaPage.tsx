@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { professionals, sampleAppointments, Appointment, statusConfig, services } from "@/data/clinic";
+import { useProfessionals, useAppointments, statusConfig, DBAppointment } from "@/hooks/useClinicData";
 import { cn } from "@/lib/utils";
 import { format, addDays, startOfWeek, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -13,20 +13,28 @@ const AgendaPage = () => {
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const hours = Array.from({ length: 12 }, (_, i) => `${(i + 8).toString().padStart(2, '0')}:00`);
 
+  const dateFrom = format(weekStart, 'yyyy-MM-dd');
+  const dateTo = format(addDays(weekStart, 6), 'yyyy-MM-dd');
+
+  const { data: professionals = [] } = useProfessionals();
+  const { data: appointments = [] } = useAppointments(dateFrom, dateTo);
+
   const getAppts = (dayStr: string) => {
-    return sampleAppointments.filter(a => {
+    return appointments.filter(a => {
       const matchDay = a.date === dayStr;
-      const matchProf = selectedFilter === 'all' || a.professionalId === selectedFilter;
+      const matchProf = selectedFilter === 'all' || a.professional_id === selectedFilter;
       return matchDay && matchProf;
     });
   };
 
-  const getPosition = (appt: Appointment) => {
-    const [h, m] = appt.time.split(':').map(Number);
-    const top = (h - 8) * 64 + (m / 60) * 64;
-    // Find duration from services data or default to 30
-    const srvData = services.find(s => s.name === appt.serviceNames[0]);
-    const duration = srvData?.duration || 30;
+  const getPosition = (appt: DBAppointment) => {
+    const timeParts = appt.start_time.split(':').map(Number);
+    const endParts = appt.end_time.split(':').map(Number);
+    const startMinutes = timeParts[0] * 60 + timeParts[1];
+    const endMinutes = endParts[0] * 60 + endParts[1];
+    const duration = endMinutes - startMinutes;
+
+    const top = (timeParts[0] - 8) * 64 + (timeParts[1] / 60) * 64;
     const height = Math.max((duration / 60) * 64, 32);
     return { top, height };
   };
@@ -120,7 +128,7 @@ const AgendaPage = () => {
                   ))}
                   {dayAppts.map(appt => {
                     const { top, height } = getPosition(appt);
-                    const cfg = statusConfig[appt.status];
+                    const cfg = statusConfig[appt.status as keyof typeof statusConfig] || statusConfig.agendado;
                     const isCancelled = appt.status === 'cancelado';
 
                     return (
@@ -132,10 +140,10 @@ const AgendaPage = () => {
                           isCancelled ? "opacity-50 line-through" : "text-white"
                         )}
                         style={{ top: `${top}px`, height: `${height}px` }}
-                        title={`${appt.serviceNames.join(' + ')} — ${appt.clientName}${appt.notes ? ` (${appt.notes})` : ''}`}
+                        title={`${appt.client_name}${appt.notes ? ` (${appt.notes})` : ''}`}
                       >
-                        <p className="text-[11px] font-semibold truncate">{appt.serviceNames[0]}</p>
-                        <p className="text-[10px] opacity-80 truncate">{appt.clientName}</p>
+                        <p className="text-[11px] font-semibold truncate">{appt.client_name}</p>
+                        <p className="text-[10px] opacity-80 truncate">{appt.start_time?.slice(0, 5)}</p>
                       </div>
                     );
                   })}
