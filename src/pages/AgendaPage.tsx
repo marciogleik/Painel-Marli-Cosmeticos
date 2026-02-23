@@ -1,16 +1,42 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useProfessionals, useAppointments, statusConfig, DBAppointment } from "@/hooks/useClinicData";
 import { cn } from "@/lib/utils";
 import { format, addDays, subDays, startOfWeek, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, Calendar, Check, X as XIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Calendar, Check, X as XIcon, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import NewAppointmentDialog from "@/components/NewAppointmentDialog";
 import AppointmentDetailDialog from "@/components/AppointmentDetailDialog";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { checkAppointmentConflict } from "@/utils/appointmentConflict";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type ViewMode = "week" | "day";
+
+interface DragState {
+  appointment: DBAppointment;
+  startY: number;
+  initialTop: number;
+  currentTop: number;
+  columnEl: HTMLDivElement | null;
+}
+
+interface PendingReschedule {
+  appointment: DBAppointment;
+  newStartTime: string;
+  newEndTime: string;
+}
 
 const AgendaPage = () => {
   const [viewMode, setViewMode] = useState<ViewMode>("week");
@@ -21,6 +47,16 @@ const AgendaPage = () => {
   const [selectedAppointment, setSelectedAppointment] = useState<DBAppointment | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
+  // Drag state
+  const dragRef = useRef<DragState | null>(null);
+  const [draggingApptId, setDraggingApptId] = useState<string | null>(null);
+  const [dragPreviewTop, setDragPreviewTop] = useState<number>(0);
+
+  // Confirmation dialog
+  const [pendingReschedule, setPendingReschedule] = useState<PendingReschedule | null>(null);
+  const [isRescheduling, setIsRescheduling] = useState(false);
+
+  const queryClient = useQueryClient();
   const hours = Array.from({ length: 15 }, (_, i) => `${(i + 7).toString().padStart(2, "0")}:00`);
 
   // Date range for queries
@@ -68,6 +104,133 @@ const AgendaPage = () => {
     return null;
   };
 
+  // Convert pixel position to time
+  const pixelToTime = (px: number): { hours: number; minutes: number } => {
+    // Snap to 15-minute intervals
+    const totalMinutes = Math.round((px / 64) * 60) + 7 * 60;
+    const snapped = Math.round(totalMinutes / 15) * 15;
+    const h = Math.floor(snapped / 60);
+    const m = snapped % 60;
+    return { hours: Math.max(7, Math.min(h, 21)), minutes: m };
+  };
+
+  const formatTime = (h: number, m: number) =>
+    `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:00`;
+
+  // Drag handlers
+  const handleDragStart = useCallback((e: React.MouseEvent, appt: DBAppointment, columnEl: HTMLDivElement | null) => {
+    if (appt.status === "cancelado" || appt.status === "falta") return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const { top } = getPosition(appt);
+    dragRef.current = {
+      appointment: appt,
+      startY: e.clientY,
+      initialTop: top,
+      currentTop: top,
+      columnEl,
+    };
+    setDraggingApptId(appt.id);
+    setDragPreviewTop(top);
+
+    const handleMouseMove = (ev: MouseEvent) => {
+      if (!dragRef.current) return;
+      const delta = ev.clientY - dragRef.current.startY;
+      const newTop = Math.max(0, dragRef.current.initialTop + delta);
+      // Snap to 15-min grid (16px = 15min)
+      const snappedTop = Math.round(newTop / 16) * 16;
+      dragRef.current.currentTop = snappedTop;
+      setDragPreviewTop(snappedTop);
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+
+      if (!dragRef.current) return;
+      const drag = dragRef.current;
+
+      if (Math.abs(drag.currentTop - drag.initialTop) < 8) {
+        // Too small movement, treat as click
+        dragRef.current = null;
+        setDraggingApptId(null);
+        return;
+      }
+
+      // Calculate new times
+      const { hours: newStartH, minutes: newStartM } = pixelToTime(drag.currentTop);
+      const oldParts = drag.appointment.start_time.split(":").map(Number);
+      const endParts = drag.appointment.end_time.split(":").map(Number);
+      const durationMin = (endParts[0] * 60 + endParts[1]) - (oldParts[0] * 60 + oldParts[1]);
+
+      const newStartTotalMin = newStartH * 60 + newStartM;
+      const newEndTotalMin = newStartTotalMin + durationMin;
+      const newEndH = Math.floor(newEndTotalMin / 60);
+      const newEndM = newEndTotalMin % 60;
+
+      const newStartTime = formatTime(newStartH, newStartM);
+      const newEndTime = formatTime(newEndH, newEndM);
+
+      // Check if time actually changed
+      if (newStartTime === drag.appointment.start_time) {
+        dragRef.current = null;
+        setDraggingApptId(null);
+        return;
+      }
+
+      setPendingReschedule({
+        appointment: drag.appointment,
+        newStartTime,
+        newEndTime,
+      });
+
+      dragRef.current = null;
+      setDraggingApptId(null);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  }, []);
+
+  const handleConfirmReschedule = async () => {
+    if (!pendingReschedule) return;
+    setIsRescheduling(true);
+
+    const { appointment, newStartTime, newEndTime } = pendingReschedule;
+
+    // Check conflicts
+    const conflict = await checkAppointmentConflict({
+      professionalId: appointment.professional_id,
+      date: appointment.date,
+      startTime: newStartTime,
+      endTime: newEndTime,
+      excludeAppointmentId: appointment.id,
+    });
+
+    if (conflict) {
+      toast.error(`Conflito de horário com ${conflict}. Escolha outro horário.`);
+      setIsRescheduling(false);
+      setPendingReschedule(null);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("appointments")
+      .update({ start_time: newStartTime, end_time: newEndTime })
+      .eq("id", appointment.id);
+
+    if (error) {
+      toast.error("Erro ao reagendar: " + error.message);
+    } else {
+      toast.success("Agendamento reagendado com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+    }
+
+    setIsRescheduling(false);
+    setPendingReschedule(null);
+  };
+
   // Navigation handlers
   const handlePrev = () => {
     if (viewMode === "week") setWeekStart(addDays(weekStart, -7));
@@ -87,10 +250,8 @@ const AgendaPage = () => {
       ? `${format(weekStart, "dd", { locale: ptBR })} de ${format(weekStart, "MMM.", { locale: ptBR })} - ${format(addDays(weekStart, 6), "dd", { locale: ptBR })} de ${format(addDays(weekStart, 6), "MMM.", { locale: ptBR })} de ${format(weekStart, "yyyy")}`
       : format(selectedDay, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
 
-  // Columns for the grid
   const days = viewMode === "week" ? Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)) : [selectedDay];
 
-  // In day view, show per-professional columns; in week view, per-day columns
   const filteredProfessionals =
     selectedFilter === "all" ? professionals : professionals.filter((p) => p.id === selectedFilter);
 
@@ -103,31 +264,44 @@ const AgendaPage = () => {
     });
   };
 
-  const renderAppointmentBlock = (appt: DBAppointment, showProfName: boolean) => {
+  const renderAppointmentBlock = (appt: DBAppointment, showProfName: boolean, columnEl: HTMLDivElement | null) => {
     const { top, height } = getPosition(appt);
     const cfg = statusConfig[appt.status as keyof typeof statusConfig] || statusConfig.agendado;
     const isCancelled = appt.status === "cancelado";
+    const isFalta = appt.status === "falta";
+    const isDraggable = !isCancelled && !isFalta;
+    const isDragging = draggingApptId === appt.id;
     const prof = professionals.find((p) => p.id === appt.professional_id);
     const serviceName = getServiceNames(appt.id);
     const timeRange = `${appt.start_time?.slice(0, 5)} - ${appt.end_time?.slice(0, 5)}`;
     const isCompact = height < 56;
 
+    const displayTop = isDragging ? dragPreviewTop : top;
+
     return (
       <div
         key={appt.id}
         className={cn(
-          "absolute left-1 right-1 rounded-md cursor-pointer shadow-sm hover:shadow-md transition-shadow overflow-hidden border-l-[3px]",
+          "absolute left-1 right-1 rounded-md shadow-sm overflow-hidden border-l-[3px] transition-shadow select-none",
           cfg.color.replace("bg-", "border-l-"),
-          isCancelled ? "opacity-60" : ""
+          isCancelled ? "opacity-60" : "",
+          isDraggable ? "cursor-grab hover:shadow-md" : "cursor-pointer",
+          isDragging && "opacity-80 shadow-lg ring-2 ring-primary/40 z-50"
         )}
         style={{
-          top: `${top}px`,
+          top: `${displayTop}px`,
           height: `${height}px`,
           backgroundColor: isCancelled ? "hsl(var(--muted))" : undefined,
+          transition: isDragging ? "none" : "box-shadow 0.15s",
+        }}
+        onMouseDown={(e) => {
+          if (isDraggable) handleDragStart(e, appt, columnEl);
         }}
         onClick={() => {
-          setSelectedAppointment(appt);
-          setDetailOpen(true);
+          if (!draggingApptId) {
+            setSelectedAppointment(appt);
+            setDetailOpen(true);
+          }
         }}
       >
         <div
@@ -136,6 +310,7 @@ const AgendaPage = () => {
         >
           {isCompact ? (
             <div className="flex items-center gap-1">
+              {isDraggable && <GripVertical className="w-3 h-3 shrink-0 text-muted-foreground/50" />}
               {getStatusIcon(appt.status)}
               <span className={cn("text-[10px] font-bold truncate", isCancelled && "line-through")}>
                 {appt.client_name}
@@ -145,6 +320,7 @@ const AgendaPage = () => {
           ) : (
             <>
               <div className="flex items-center gap-1">
+                {isDraggable && <GripVertical className="w-3 h-3 shrink-0 text-muted-foreground/50" />}
                 <span className="text-[10px] font-semibold text-foreground/70">{timeRange}</span>
               </div>
               <div className="flex items-center gap-1">
@@ -168,6 +344,9 @@ const AgendaPage = () => {
       </div>
     );
   };
+
+  // Format time for display in dialog
+  const formatTimeDisplay = (time: string) => time.slice(0, 5);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -279,25 +458,20 @@ const AgendaPage = () => {
               const dayAbbr = format(day, "EEE.", { locale: ptBR }).toUpperCase();
 
               return (
-                <div
+                <DayColumn
                   key={dayStr}
-                  className="flex-1 min-w-[160px] border-r border-border last:border-r-0 cursor-pointer"
+                  dayStr={dayStr}
+                  dayAbbr={dayAbbr}
+                  dayNum={format(day, "d")}
+                  isToday={today}
+                  hours={hours}
+                  appts={dayAppts}
+                  renderBlock={(appt, el) => renderAppointmentBlock(appt, selectedFilter === "all", el)}
                   onDoubleClick={() => {
                     setSelectedDay(day);
                     setViewMode("day");
                   }}
-                >
-                  <div className="h-12 flex flex-col items-center justify-center border-b border-border bg-muted/30">
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{dayAbbr}</span>
-                    <span className={cn("text-sm font-bold", today ? "text-primary" : "text-foreground")}>{format(day, "d")}</span>
-                  </div>
-                  <div className="relative">
-                    {hours.map((time) => (
-                      <div key={time} className="h-16 border-t border-border/30 hover:bg-accent/30 transition-colors" />
-                    ))}
-                    {dayAppts.map((appt) => renderAppointmentBlock(appt, selectedFilter === "all"))}
-                  </div>
-                </div>
+                />
               );
             })}
           </div>
@@ -318,17 +492,13 @@ const AgendaPage = () => {
               const profAppts = getApptsForColumn(dayStr, prof.id);
 
               return (
-                <div key={prof.id} className="flex-1 min-w-[200px] border-r border-border last:border-r-0">
-                  <div className="h-12 flex items-center justify-center border-b border-border bg-muted/30 px-2">
-                    <span className="text-xs font-bold text-foreground truncate">{prof.name}</span>
-                  </div>
-                  <div className="relative">
-                    {hours.map((time) => (
-                      <div key={time} className="h-16 border-t border-border/30 hover:bg-accent/30 transition-colors" />
-                    ))}
-                    {profAppts.map((appt) => renderAppointmentBlock(appt, false))}
-                  </div>
-                </div>
+                <ProfColumn
+                  key={prof.id}
+                  profName={prof.name}
+                  hours={hours}
+                  appts={profAppts}
+                  renderBlock={(appt, el) => renderAppointmentBlock(appt, false, el)}
+                />
               );
             })}
           </div>
@@ -337,9 +507,91 @@ const AgendaPage = () => {
 
       <NewAppointmentDialog open={dialogOpen} onOpenChange={setDialogOpen} />
       <AppointmentDetailDialog appointment={selectedAppointment} open={detailOpen} onOpenChange={setDetailOpen} />
+
+      {/* Reschedule confirmation dialog */}
+      <AlertDialog open={!!pendingReschedule} onOpenChange={(open) => !open && setPendingReschedule(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar reagendamento</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>
+                  Deseja mover o agendamento de <strong>{pendingReschedule?.appointment.client_name}</strong> para o novo horário?
+                </p>
+                <div className="flex items-center gap-3 text-sm">
+                  <span className="px-2 py-1 rounded bg-muted font-medium">
+                    {pendingReschedule && formatTimeDisplay(pendingReschedule.appointment.start_time)} - {pendingReschedule && formatTimeDisplay(pendingReschedule.appointment.end_time)}
+                  </span>
+                  <span>→</span>
+                  <span className="px-2 py-1 rounded bg-primary/10 text-primary font-medium">
+                    {pendingReschedule && formatTimeDisplay(pendingReschedule.newStartTime)} - {pendingReschedule && formatTimeDisplay(pendingReschedule.newEndTime)}
+                  </span>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isRescheduling}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmReschedule} disabled={isRescheduling}>
+              {isRescheduling ? "Salvando..." : "Confirmar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
+
+// Sub-components to hold column refs
+function DayColumn({
+  dayStr, dayAbbr, dayNum, isToday: today, hours, appts, renderBlock, onDoubleClick,
+}: {
+  dayStr: string; dayAbbr: string; dayNum: string; isToday: boolean;
+  hours: string[]; appts: DBAppointment[];
+  renderBlock: (appt: DBAppointment, el: HTMLDivElement | null) => React.ReactNode;
+  onDoubleClick: () => void;
+}) {
+  const colRef = useRef<HTMLDivElement>(null);
+  return (
+    <div
+      className="flex-1 min-w-[160px] border-r border-border last:border-r-0 cursor-pointer"
+      onDoubleClick={onDoubleClick}
+    >
+      <div className="h-12 flex flex-col items-center justify-center border-b border-border bg-muted/30">
+        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{dayAbbr}</span>
+        <span className={cn("text-sm font-bold", today ? "text-primary" : "text-foreground")}>{dayNum}</span>
+      </div>
+      <div className="relative" ref={colRef}>
+        {hours.map((time) => (
+          <div key={time} className="h-16 border-t border-border/30 hover:bg-accent/30 transition-colors" />
+        ))}
+        {appts.map((appt) => renderBlock(appt, colRef.current))}
+      </div>
+    </div>
+  );
+}
+
+function ProfColumn({
+  profName, hours, appts, renderBlock,
+}: {
+  profName: string; hours: string[]; appts: DBAppointment[];
+  renderBlock: (appt: DBAppointment, el: HTMLDivElement | null) => React.ReactNode;
+}) {
+  const colRef = useRef<HTMLDivElement>(null);
+  return (
+    <div className="flex-1 min-w-[200px] border-r border-border last:border-r-0">
+      <div className="h-12 flex items-center justify-center border-b border-border bg-muted/30 px-2">
+        <span className="text-xs font-bold text-foreground truncate">{profName}</span>
+      </div>
+      <div className="relative" ref={colRef}>
+        {hours.map((time) => (
+          <div key={time} className="h-16 border-t border-border/30 hover:bg-accent/30 transition-colors" />
+        ))}
+        {appts.map((appt) => renderBlock(appt, colRef.current))}
+      </div>
+    </div>
+  );
+}
 
 function getStatusBg(status: string): string {
   const map: Record<string, string> = {
