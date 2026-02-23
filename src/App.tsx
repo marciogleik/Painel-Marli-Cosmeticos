@@ -11,6 +11,7 @@ import AgendaPage from "./pages/AgendaPage";
 import ClientsPage from "./pages/ClientsPage";
 import ProntuariosPage from "./pages/ProntuariosPage";
 import PlaceholderPage from "./pages/PlaceholderPage";
+import ClientDetailPage from "./pages/ClientDetailPage";
 import ConfiguracoesPage from "./pages/ConfiguracoesPage";
 import FinanceiroPage from "./pages/FinanceiroPage";
 import LoginPage from "./pages/LoginPage";
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/agenda" element={<AgendaPage />} />
               <Route path="/clientes" element={<ClientsPage />} />
+              <Route path="/clientes/:id" element={<ClientDetailPage />} />
               <Route path="/prontuarios" element={<ProntuariosPage />} />
               <Route path="/financeiro" element={<FinanceiroPage />} />
               <Route path="/notificacoes" element={<PlaceholderPage title="Notificações" />} />
