@@ -1,9 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useClients, useInactiveClients } from "@/hooks/useClinicData";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, Phone, Mail, ChevronRight, SlidersHorizontal, ChevronDown, ChevronLeft, RotateCcw } from "lucide-react";
@@ -25,10 +24,44 @@ const ClientsPage = () => {
   const [showInactive, setShowInactive] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [sortBy, setSortBy] = useState<'name' | 'last_visit' | 'total_visits'>('name');
   const { data: clients = [], isLoading } = useClients(search);
   const { data: inactiveClients = [] } = useInactiveClients();
   const queryClient = useQueryClient();
   const listRef = useRef<HTMLDivElement>(null);
+
+  // Fetch appointment stats per client (last visit date + total count)
+  const { data: appointmentStats = {} } = useQuery({
+    queryKey: ["client_appointment_stats"],
+    queryFn: async () => {
+      const stats: Record<string, { lastVisit: string | null; totalVisits: number }> = {};
+      const pageSize = 1000;
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from("appointments")
+          .select("client_id, date")
+          .not("client_id", "is", null)
+          .order("date", { ascending: false })
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        for (const row of data) {
+          if (!row.client_id) continue;
+          if (!stats[row.client_id]) {
+            stats[row.client_id] = { lastVisit: row.date, totalVisits: 0 };
+          }
+          stats[row.client_id].totalVisits++;
+          if (!stats[row.client_id].lastVisit || row.date > stats[row.client_id].lastVisit!) {
+            stats[row.client_id].lastVisit = row.date;
+          }
+        }
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+      return stats;
+    },
+  });
 
   const reactivateMutation = useMutation({
     mutationFn: async (clientId: string) => {
@@ -48,7 +81,25 @@ const ClientsPage = () => {
     },
   });
 
-  const displayClients = clients.length > 0 ? clients : [];
+  const displayClients = useMemo(() => {
+    const list = clients.length > 0 ? [...clients] : [];
+    if (sortBy === 'last_visit') {
+      list.sort((a, b) => {
+        const aDate = appointmentStats[a.id]?.lastVisit ?? '';
+        const bDate = appointmentStats[b.id]?.lastVisit ?? '';
+        return bDate.localeCompare(aDate); // most recent first
+      });
+    } else if (sortBy === 'total_visits') {
+      list.sort((a, b) => {
+        const aCount = appointmentStats[a.id]?.totalVisits ?? 0;
+        const bCount = appointmentStats[b.id]?.totalVisits ?? 0;
+        return bCount - aCount; // most visits first
+      });
+    }
+    // 'name' is already sorted from the query
+    return list;
+  }, [clients, sortBy, appointmentStats]);
+
   const totalPages = Math.max(1, Math.ceil(displayClients.length / pageSize));
   const safePage = Math.min(currentPage, totalPages);
   const startIndex = (safePage - 1) * pageSize;
@@ -122,10 +173,17 @@ const ClientsPage = () => {
         <button className="p-2.5 rounded-lg border border-border hover:bg-muted">
           <SlidersHorizontal className="w-4 h-4 text-muted-foreground" />
         </button>
-        <select className="text-sm border border-border rounded-lg px-3 py-2.5 bg-card text-foreground">
-          <option>Nome (A-Z)</option>
-          <option>Última visita</option>
-          <option>Total de visitas</option>
+        <select
+          className="text-sm border border-border rounded-lg px-3 py-2.5 bg-card text-foreground"
+          value={sortBy}
+          onChange={e => {
+            setSortBy(e.target.value as 'name' | 'last_visit' | 'total_visits');
+            setCurrentPage(1);
+          }}
+        >
+          <option value="name">Nome (A-Z)</option>
+          <option value="last_visit">Última visita</option>
+          <option value="total_visits">Total de visitas</option>
         </select>
       </div>
 
