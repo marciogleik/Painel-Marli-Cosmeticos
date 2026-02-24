@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Copy, Link2, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { Copy, Link2, Clock, CheckCircle2, XCircle, Ban } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -52,6 +52,23 @@ const ConvitesTab = () => {
     if (new Date(invite.expires_at) < new Date()) return "expirado";
     return "ativo";
   };
+
+  const cancelMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("invitations")
+        .update({ expires_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Convite cancelado!");
+      queryClient.invalidateQueries({ queryKey: ["invitations"] });
+    },
+    onError: (error: any) => {
+      toast.error("Erro ao cancelar convite", { description: error.message });
+    },
+  });
 
   const copyLink = (token: string) => {
     const link = `${window.location.origin}/cadastro?token=${token}`;
@@ -141,9 +158,20 @@ const ConvitesTab = () => {
                       </div>
                     </div>
                     {status === "ativo" && (
-                      <Button variant="ghost" size="sm" onClick={() => copyLink(invite.token)}>
-                        <Copy className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => copyLink(invite.token)}>
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => cancelMutation.mutate(invite.id)}
+                          disabled={cancelMutation.isPending}
+                        >
+                          <Ban className="h-4 w-4" />
+                        </Button>
+                      </div>
                     )}
                   </div>
                 );
