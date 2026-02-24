@@ -18,6 +18,7 @@ import LoginPage from "./pages/LoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import FaqPage from "./pages/FaqPage";
 import WelcomePage from "./pages/WelcomePage";
+import CadastroConvitePage from "./pages/CadastroConvitePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/cadastro" element={<CadastroConvitePage />} />
             <Route path="/bem-vinda" element={<ProtectedRoute><WelcomePage /></ProtectedRoute>} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
