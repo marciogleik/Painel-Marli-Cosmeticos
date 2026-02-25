@@ -9,7 +9,6 @@ interface RawRow {
   [key: string]: any;
 }
 
-// Professional name mapping (Excel first name → DB ID)
 const PROF_MAP: Record<string, string> = {
   "patricia": "00000000-0000-0000-0000-000000000007",
   "dhionara": "00000000-0000-0000-0000-000000000001",
@@ -32,7 +31,6 @@ const STATUS_MAP: Record<string, string> = {
 
 function parseDateStr(dateStr: string): { date: string; time: string } | null {
   if (!dateStr) return null;
-  // Format: "DD/MM/YYYY HH:MM" or "DD/MM/YYYY"
   const parts = dateStr.trim().split(" ");
   const dateParts = parts[0].split("/");
   if (dateParts.length !== 3) return null;
@@ -67,11 +65,8 @@ const ImportPage = () => {
   const [progress, setProgress] = useState(0);
   const [stats, setStats] = useState({ inserted: 0, skipped: 0, errors: 0 });
   const [error, setError] = useState<string | null>(null);
-  const abortRef = useRef(false);
 
-  useEffect(() => {
-    loadFile();
-  }, []);
+  useEffect(() => { loadFile(); }, []);
 
   const loadFile = async () => {
     setLoading(true);
@@ -83,9 +78,7 @@ const ImportPage = () => {
       const sheetName = wb.SheetNames.includes("AGENDAMENTOS") ? "AGENDAMENTOS" : wb.SheetNames[0];
       const ws = wb.Sheets[sheetName];
       const json: RawRow[] = XLSX.utils.sheet_to_json(ws, { defval: "" });
-      if (json.length > 0) {
-        setHeaders(Object.keys(json[0]));
-      }
+      if (json.length > 0) setHeaders(Object.keys(json[0]));
       setRows(json);
       toast.success(`${json.length} linhas carregadas`);
     } catch (err: any) {
@@ -99,118 +92,101 @@ const ImportPage = () => {
     setImporting(true);
     setProgress(0);
     setStats({ inserted: 0, skipped: 0, errors: 0 });
-    abortRef.current = false;
 
-    // Build client cache from DB
+    // Load clients for lookup
     const { data: existingClients } = await supabase
       .from("clients")
-      .select("id, full_name, phone")
+      .select("id, full_name")
       .order("full_name");
-    
     const clientMap = new Map<string, string>();
     (existingClients ?? []).forEach((c: any) => {
-      const key = c.full_name.toLowerCase().trim();
-      clientMap.set(key, c.id);
+      clientMap.set(c.full_name.toLowerCase().trim(), c.id);
     });
 
-    // Load services for duration lookup
+    // Load services for duration
     const { data: services } = await supabase
       .from("services")
       .select("name, duration_minutes");
-    
     const svcDuration = new Map<string, number>();
     (services ?? []).forEach((s: any) => {
       svcDuration.set(s.name.toLowerCase().trim(), s.duration_minutes);
     });
 
-    let inserted = 0;
+    // Transform ALL rows first
     let skipped = 0;
+    const allAppointments: any[] = [];
+
+    for (const row of rows) {
+      const parsed = parseDateStr(row["Data"]);
+      if (!parsed) { skipped++; continue; }
+      const profId = matchProfessional(row["Profissional"]);
+      if (!profId) { skipped++; continue; }
+
+      const status = STATUS_MAP[(row["Status"] || "").toLowerCase().trim()] || "agendado";
+      const clientName = (row["Cliente"] || "").trim();
+      const phone = (row["Telefone"] || "").trim();
+      const serviceName = (row["Serviço"] || "").trim();
+      const notes = (row["Observação"] || "").trim();
+      const executedBy = (row["Executado por"] || "").trim();
+
+      let duration = 30;
+      if (serviceName) {
+        const svcLower = serviceName.toLowerCase();
+        for (const [svcName, dur] of svcDuration.entries()) {
+          if (svcLower.includes(svcName) || svcName.includes(svcLower)) {
+            duration = dur;
+            break;
+          }
+        }
+      }
+
+      const clientId = clientName ? (clientMap.get(clientName.toLowerCase().trim()) || null) : null;
+      const endTime = addMinutes(parsed.time, duration);
+
+      allAppointments.push({
+        date: parsed.date,
+        start_time: parsed.time,
+        end_time: endTime,
+        professional_id: profId,
+        client_id: clientId,
+        client_name: clientName || null,
+        client_phone: phone || null,
+        status,
+        notes: notes || null,
+        executed_by: executedBy || null,
+      });
+    }
+
+    console.log(`Transformed: ${allAppointments.length} appointments, ${skipped} skipped`);
+
+    // Send in chunks to edge function
+    let inserted = 0;
     let errors = 0;
+    const CHUNK = 500;
+    const total = allAppointments.length;
 
-    const BATCH = 100;
-    const DELAY_MS = 300;
-    const total = rows.length;
-
-    const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
-
-    for (let i = 0; i < total; i += BATCH) {
-      if (abortRef.current) break;
-
-      const batch = rows.slice(i, i + BATCH);
-      const appointments: any[] = [];
-
-      for (const row of batch) {
-        const dateStr = row["Data"];
-        const parsed = parseDateStr(dateStr);
-        if (!parsed) { skipped++; continue; }
-
-        const profId = matchProfessional(row["Profissional"]);
-        if (!profId) { skipped++; continue; }
-
-        const status = STATUS_MAP[(row["Status"] || "").toLowerCase().trim()] || "agendado";
-        const clientName = (row["Cliente"] || "").trim();
-        const phone = (row["Telefone"] || "").trim();
-        const serviceName = (row["Serviço"] || "").trim();
-        const notes = (row["Observação"] || "").trim();
-        const executedBy = (row["Executado por"] || "").trim();
-
-        // Lookup service duration
-        let duration = 30; // default
-        if (serviceName) {
-          const svcLower = serviceName.toLowerCase();
-          for (const [svcName, dur] of svcDuration.entries()) {
-            if (svcLower.includes(svcName) || svcName.includes(svcLower)) {
-              duration = dur;
-              break;
-            }
-          }
-        }
-
-        // Lookup or skip client (we'll match by name)
-        let clientId: string | null = null;
-        if (clientName) {
-          clientId = clientMap.get(clientName.toLowerCase().trim()) || null;
-        }
-
-        const endTime = addMinutes(parsed.time, duration);
-
-        appointments.push({
-          date: parsed.date,
-          start_time: parsed.time,
-          end_time: endTime,
-          professional_id: profId,
-          client_id: clientId,
-          client_name: clientName || null,
-          client_phone: phone || null,
-          status,
-          notes: notes || null,
-          executed_by: executedBy || null,
-        });
-      }
-
-      if (appointments.length > 0) {
-        try {
-          const { error: insertError } = await supabase
-            .from("appointments")
-            .insert(appointments);
-
-          if (insertError) {
-            console.error("Batch error at", i, ":", insertError.message);
-            errors += appointments.length;
-          } else {
-            inserted += appointments.length;
-          }
-        } catch (e: any) {
-          console.error("Exception at batch", i, ":", e.message);
-          errors += appointments.length;
-        }
-      }
-
-      setProgress(Math.min(100, Math.round(((i + batch.length) / total) * 100)));
-      setStats({ inserted, skipped, errors });
+    for (let i = 0; i < total; i += CHUNK) {
+      const chunk = allAppointments.slice(i, i + CHUNK);
       
-      // Delay between batches to avoid rate limits
-      await delay(DELAY_MS);
+      try {
+        const { data, error: fnError } = await supabase.functions.invoke("bulk-import", {
+          body: { appointments: chunk },
+        });
+
+        if (fnError) {
+          console.error(`Chunk ${i} error:`, fnError);
+          errors += chunk.length;
+        } else if (data) {
+          inserted += data.inserted || 0;
+          errors += data.errors || 0;
+        }
+      } catch (e: any) {
+        console.error(`Chunk ${i} exception:`, e);
+        errors += chunk.length;
+      }
+
+      setProgress(Math.min(100, Math.round(((i + chunk.length) / total) * 100)));
+      setStats({ inserted, skipped, errors });
     }
 
     setImporting(false);
@@ -223,7 +199,7 @@ const ImportPage = () => {
       {loading && <p>Carregando arquivo...</p>}
       {error && <p className="text-destructive text-sm">Erro: {error}</p>}
 
-      {rows.length > 0 && !importing && (
+      {rows.length > 0 && !importing && stats.inserted === 0 && (
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">{rows.length} agendamentos prontos para importar</p>
           <Button onClick={doImport} size="lg">
@@ -239,7 +215,7 @@ const ImportPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {rows.slice(0, 20).map((row, i) => (
+                {rows.slice(0, 15).map((row, i) => (
                   <tr key={i} className="border-t">
                     {headers.slice(0, 10).map((h) => (
                       <td key={h} className="p-1 whitespace-nowrap border-r">{String(row[h] ?? "")}</td>
