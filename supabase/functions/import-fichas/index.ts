@@ -16,6 +16,9 @@ const PROF_MAP: Record<string, string> = {
   "patricia": "00000000-0000-0000-0000-000000000007",
   "jenifer": "00000000-0000-0000-0000-000000000008",
   "cris": "00000000-0000-0000-0000-000000000009",
+  "marcia": "7316eaa7-124b-4931-88ff-3a67a757c28f",
+  "rafaela": "3069027e-f129-4e91-a4fc-2f7b96b143e0",
+  "raiane": "5896cf9c-4062-4434-8d07-b9d8b0260406",
 };
 
 function matchProfessional(name: string): string | null {
