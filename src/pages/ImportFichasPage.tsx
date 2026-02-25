@@ -20,6 +20,9 @@ const ImportFichasPage = () => {
   const [progress, setProgress] = useState(0);
   const [stats, setStats] = useState({ inserted: 0, skipped: 0, errors: 0 });
   const [error, setError] = useState<string | null>(null);
+  const [skippedClients, setSkippedClients] = useState<string[]>([]);
+  const [skippedProfs, setSkippedProfs] = useState<string[]>([]);
+  const [diagnosing, setDiagnosing] = useState(false);
 
   useEffect(() => { loadFile(); }, []);
 
@@ -47,6 +50,42 @@ const ImportFichasPage = () => {
       setError(err.message);
     }
     setLoading(false);
+  };
+
+  const runDiagnosis = async () => {
+    if (rows.length === 0) return;
+    setDiagnosing(true);
+    setSkippedClients([]);
+    setSkippedProfs([]);
+
+    const allSkippedClients = new Set<string>();
+    const allSkippedProfs = new Set<string>();
+    const CHUNK = 500;
+    const total = rows.length;
+
+    for (let i = 0; i < total; i += CHUNK) {
+      const chunk = rows.slice(i, i + CHUNK);
+      try {
+        const { data } = await supabase.functions.invoke("import-fichas", {
+          body: { records: chunk, dryRun: true },
+        });
+        if (data?.skippedClients) {
+          data.skippedClients.forEach((c: string) => allSkippedClients.add(c));
+        }
+        if (data?.skippedProfs) {
+          data.skippedProfs.forEach((p: string) => allSkippedProfs.add(p));
+        }
+      } catch (e) {
+        console.error("Diagnosis chunk error:", e);
+      }
+    }
+
+    const clients = Array.from(allSkippedClients).sort();
+    const profs = Array.from(allSkippedProfs).sort();
+    setSkippedClients(clients);
+    setSkippedProfs(profs);
+    setDiagnosing(false);
+    toast.success(`Diagnóstico concluído: ${clients.length} clientes e ${profs.length} profissionais não encontrados`);
   };
 
   const doImport = async () => {
@@ -96,12 +135,43 @@ const ImportFichasPage = () => {
       {loading && <p>Carregando arquivo...</p>}
       {error && <p className="text-destructive text-sm">Erro: {error}</p>}
 
-      {rows.length > 0 && !importing && stats.inserted === 0 && (
+      {rows.length > 0 && !importing && (
         <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">{rows.length} fichas prontas para importar</p>
-          <Button onClick={doImport} size="lg">
-            Importar {rows.length} fichas
-          </Button>
+          <p className="text-sm text-muted-foreground">{rows.length} fichas no arquivo</p>
+          <div className="flex gap-2">
+            <Button onClick={runDiagnosis} variant="outline" disabled={diagnosing}>
+              {diagnosing ? "Analisando..." : "🔍 Diagnóstico (não importa)"}
+            </Button>
+            <Button onClick={doImport} size="lg">
+              Importar {rows.length} fichas
+            </Button>
+          </div>
+
+          {(skippedClients.length > 0 || skippedProfs.length > 0) && (
+            <div className="space-y-4">
+              {skippedProfs.length > 0 && (
+                <div className="p-4 border rounded-lg bg-orange-50">
+                  <p className="font-medium text-orange-800 mb-2">⚠️ Profissionais não encontrados ({skippedProfs.length}):</p>
+                  <ul className="text-sm space-y-1">
+                    {skippedProfs.map((p, i) => (
+                      <li key={i} className="text-orange-700">• {p || "(vazio)"}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {skippedClients.length > 0 && (
+                <div className="p-4 border rounded-lg bg-yellow-50 max-h-[400px] overflow-auto">
+                  <p className="font-medium text-yellow-800 mb-2">⚠️ Clientes não encontrados ({skippedClients.length}):</p>
+                  <ul className="text-sm space-y-1 columns-2">
+                    {skippedClients.map((c, i) => (
+                      <li key={i} className="text-yellow-700">• {c || "(vazio)"}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="overflow-auto max-h-[400px] border rounded">
             <table className="text-xs w-full">
               <thead className="sticky top-0">

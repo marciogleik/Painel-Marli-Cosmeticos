@@ -72,7 +72,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { records } = await req.json();
+    const { records, dryRun } = await req.json();
 
     if (!records || !Array.isArray(records)) {
       return new Response(JSON.stringify({ error: "Missing records array" }), {
@@ -107,6 +107,8 @@ serve(async (req) => {
     let skipped = 0;
     let errors = 0;
     const batch: any[] = [];
+    const skippedClients = new Set<string>();
+    const skippedProfs = new Set<string>();
 
     for (const row of records) {
       const clientName = String(row.cliente || "").trim();
@@ -116,10 +118,10 @@ serve(async (req) => {
       const dataStr = row.data;
 
       const profId = matchProfessional(profName);
-      if (!profId) { skipped++; continue; }
+      if (!profId) { skipped++; skippedProfs.add(profName); continue; }
 
       const clientId = clientName ? (clientMap.get(clientName.toLowerCase().trim()) || null) : null;
-      if (!clientId) { skipped++; continue; }
+      if (!clientId) { skipped++; skippedClients.add(clientName); continue; }
 
       const createdAt = parseDateStr(dataStr) || new Date().toISOString();
       const content = parseDescription(descricao);
@@ -134,7 +136,7 @@ serve(async (req) => {
         updated_at: createdAt,
       });
 
-      if (batch.length >= 500) {
+      if (!dryRun && batch.length >= 500) {
         const chunk = batch.splice(0, 500);
         const { error } = await supabaseAdmin.from("patient_records").insert(chunk);
         if (error) {
@@ -146,8 +148,9 @@ serve(async (req) => {
       }
     }
 
-    // Insert remaining
-    if (batch.length > 0) {
+    if (dryRun) {
+      inserted = batch.length;
+    } else if (batch.length > 0) {
       const { error } = await supabaseAdmin.from("patient_records").insert(batch);
       if (error) {
         console.error("Final batch error:", error.message);
@@ -160,7 +163,11 @@ serve(async (req) => {
     console.log(`Fichas import: ${inserted} inserted, ${skipped} skipped, ${errors} errors`);
 
     return new Response(
-      JSON.stringify({ inserted, skipped, errors, total: records.length }),
+      JSON.stringify({ 
+        inserted, skipped, errors, total: records.length,
+        skippedClients: Array.from(skippedClients),
+        skippedProfs: Array.from(skippedProfs),
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
