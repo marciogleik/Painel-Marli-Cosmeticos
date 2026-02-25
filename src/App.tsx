@@ -20,6 +20,7 @@ import FaqPage from "./pages/FaqPage";
 import WelcomePage from "./pages/WelcomePage";
 import CadastroConvitePage from "./pages/CadastroConvitePage";
 import ImportPage from "./pages/ImportPage";
+import ImportFichasPage from "./pages/ImportFichasPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/cadastro" element={<CadastroConvitePage />} />
             <Route path="/import" element={<ProtectedRoute><ImportPage /></ProtectedRoute>} />
+            <Route path="/import-fichas" element={<ProtectedRoute><ImportFichasPage /></ProtectedRoute>} />
             <Route path="/bem-vinda" element={<ProtectedRoute><WelcomePage /></ProtectedRoute>} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
