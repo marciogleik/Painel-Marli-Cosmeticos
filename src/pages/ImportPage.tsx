@@ -93,84 +93,18 @@ const ImportPage = () => {
     setProgress(0);
     setStats({ inserted: 0, skipped: 0, errors: 0 });
 
-    // Load clients for lookup
-    const { data: existingClients } = await supabase
-      .from("clients")
-      .select("id, full_name")
-      .order("full_name");
-    const clientMap = new Map<string, string>();
-    (existingClients ?? []).forEach((c: any) => {
-      clientMap.set(c.full_name.toLowerCase().trim(), c.id);
-    });
-
-    // Load services for duration
-    const { data: services } = await supabase
-      .from("services")
-      .select("name, duration_minutes");
-    const svcDuration = new Map<string, number>();
-    (services ?? []).forEach((s: any) => {
-      svcDuration.set(s.name.toLowerCase().trim(), s.duration_minutes);
-    });
-
-    // Transform ALL rows first
-    let skipped = 0;
-    const allAppointments: any[] = [];
-
-    for (const row of rows) {
-      const parsed = parseDateStr(row["Data"]);
-      if (!parsed) { skipped++; continue; }
-      const profId = matchProfessional(row["Profissional"]);
-      if (!profId) { skipped++; continue; }
-
-      const status = STATUS_MAP[(row["Status"] || "").toLowerCase().trim()] || "agendado";
-      const clientName = (row["Cliente"] || "").trim();
-      const phone = (row["Telefone"] || "").trim();
-      const serviceName = (row["Serviço"] || "").trim();
-      const notes = (row["Observação"] || "").trim();
-      const executedBy = (row["Executado por"] || "").trim();
-
-      let duration = 30;
-      if (serviceName) {
-        const svcLower = serviceName.toLowerCase();
-        for (const [svcName, dur] of svcDuration.entries()) {
-          if (svcLower.includes(svcName) || svcName.includes(svcLower)) {
-            duration = dur;
-            break;
-          }
-        }
-      }
-
-      const clientId = clientName ? (clientMap.get(clientName.toLowerCase().trim()) || null) : null;
-      const endTime = addMinutes(parsed.time, duration);
-
-      allAppointments.push({
-        date: parsed.date,
-        start_time: parsed.time,
-        end_time: endTime,
-        professional_id: profId,
-        client_id: clientId,
-        client_name: clientName || null,
-        client_phone: phone || null,
-        status,
-        notes: notes || null,
-        executed_by: executedBy || null,
-      });
-    }
-
-    console.log(`Transformed: ${allAppointments.length} appointments, ${skipped} skipped`);
-
-    // Send in chunks to edge function
     let inserted = 0;
+    let skipped = 0;
     let errors = 0;
     const CHUNK = 500;
-    const total = allAppointments.length;
+    const total = rows.length;
 
     for (let i = 0; i < total; i += CHUNK) {
-      const chunk = allAppointments.slice(i, i + CHUNK);
-      
+      const chunk = rows.slice(i, i + CHUNK);
+
       try {
         const { data, error: fnError } = await supabase.functions.invoke("bulk-import", {
-          body: { appointments: chunk },
+          body: { rows: chunk },
         });
 
         if (fnError) {
@@ -178,6 +112,7 @@ const ImportPage = () => {
           errors += chunk.length;
         } else if (data) {
           inserted += data.inserted || 0;
+          skipped += data.skipped || 0;
           errors += data.errors || 0;
         }
       } catch (e: any) {
