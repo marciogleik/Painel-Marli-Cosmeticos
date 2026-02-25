@@ -1,0 +1,1 @@
+CREATE INDEX idx_appointment_services_appointment ON public.appointment_services USING btree (appointment_id);
