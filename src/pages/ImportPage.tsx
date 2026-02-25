@@ -12,7 +12,6 @@ const ImportPage = () => {
   const [rows, setRows] = useState<RawRow[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [imported, setImported] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -23,28 +22,11 @@ const ImportPage = () => {
     setLoading(true);
     setError(null);
     try {
-      console.log("Fetching file...");
       const resp = await fetch("/import-data/agendamentos.xls");
-      console.log("Response status:", resp.status);
       const buf = await resp.arrayBuffer();
-      console.log("File size:", buf.byteLength, "bytes");
+      console.log("File size:", buf.byteLength);
       
-      // Try with empty password (common for exported XLS files)
-      let wb;
-      try {
-        wb = XLSX.read(buf, { type: "array", password: "" });
-      } catch (e1) {
-        console.log("First attempt failed, trying without password...", e1);
-        try {
-          wb = XLSX.read(buf, { type: "array" });
-        } catch (e2) {
-          console.log("Second attempt failed, trying as binary...", e2);
-          const uint8 = new Uint8Array(buf);
-          let binary = "";
-          for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i]);
-          wb = XLSX.read(binary, { type: "binary", password: "" });
-        }
-      }
+      const wb = XLSX.read(buf, { type: "array", password: "02532763140" });
       
       console.log("Sheet names:", wb.SheetNames);
       const ws = wb.Sheets[wb.SheetNames[0]];
@@ -53,15 +35,15 @@ const ImportPage = () => {
       if (json.length > 0) {
         setHeaders(Object.keys(json[0]));
         console.log("Headers:", Object.keys(json[0]));
-        console.log("Sample row:", JSON.stringify(json[0]));
-        console.log("Sample row 2:", JSON.stringify(json[1]));
+        console.log("Sample:", JSON.stringify(json[0]));
+        console.log("Sample2:", JSON.stringify(json[1]));
       }
       setRows(json);
-      toast.success(`${json.length} linhas carregadas do Excel`);
+      toast.success(`${json.length} linhas carregadas`);
     } catch (err: any) {
-      console.error("Failed to load file:", err);
+      console.error("Failed:", err);
       setError(err.message);
-      toast.error("Erro ao ler arquivo: " + err.message);
+      toast.error("Erro: " + err.message);
     }
     setLoading(false);
   };
@@ -69,15 +51,11 @@ const ImportPage = () => {
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-4">
       <h1 className="text-2xl font-bold">Importar Agendamentos</h1>
-
       {loading && <p>Carregando...</p>}
-      {error && <p className="text-red-500 text-sm">Erro: {error}</p>}
-
+      {error && <p className="text-destructive text-sm">Erro: {error}</p>}
       {rows.length > 0 && (
         <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">
-            {rows.length} linhas • {headers.length} colunas
-          </p>
+          <p className="text-sm text-muted-foreground">{rows.length} linhas • {headers.length} colunas</p>
           <p className="text-xs font-mono bg-muted p-2 rounded overflow-x-auto whitespace-nowrap">
             Colunas: {headers.join(" | ")}
           </p>
@@ -101,7 +79,6 @@ const ImportPage = () => {
               </tbody>
             </table>
           </div>
-          {rows.length > 30 && <p className="text-xs text-muted-foreground">Mostrando 30 de {rows.length} linhas</p>}
         </div>
       )}
     </div>
