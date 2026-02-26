@@ -85,13 +85,18 @@ const flattenFields = (fields: { label: string; value: string }[]): QARow[] => {
   const rows: QARow[] = [];
   for (const f of fields) {
     const lines = f.value ? f.value.split("\n").filter(Boolean) : [];
-    const isMultiLine = lines.length > 1 && !f.label;
+    const hasMultipleQA = lines.length > 1 && lines.some((l) => /\?.*:/.test(l));
 
-    if (isMultiLine) {
+    if (hasMultipleQA) {
+      // If there's a label, add it as a section header
+      if (f.label) {
+        rows.push({ question: f.label, answer: "", isRaw: false });
+      }
       for (const line of lines) {
-        const idx = line.indexOf(":");
-        if (idx > 0 && idx < line.length - 1) {
-          rows.push({ question: line.slice(0, idx).trim(), answer: line.slice(idx + 1).trim() });
+        // Try to split on "?: " or ": " patterns
+        const qMatch = line.match(/^(.+?\??)\s*:\s*(.+)$/);
+        if (qMatch) {
+          rows.push({ question: qMatch[1].trim(), answer: qMatch[2].trim() });
         } else {
           rows.push({ question: "", answer: line, isRaw: true });
         }
