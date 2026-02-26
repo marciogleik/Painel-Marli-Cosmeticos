@@ -37,7 +37,7 @@ const UserAvatarMenu = () => {
         onClick={() => setOpen(true)}
         className="flex items-center gap-3 rounded-lg hover:opacity-80 transition-opacity w-full"
       >
-        <Avatar className="w-11 h-11 shrink-0 ring-2 ring-primary/20 bg-muted">
+        <Avatar className="w-11 h-11 shrink-0 ring-2 ring-sidebar-accent bg-sidebar-accent">
           {profile.avatar_url ? (
             <AvatarImage src={profile.avatar_url} alt={profile.full_name} className="object-cover" />
           ) : null}
@@ -47,7 +47,7 @@ const UserAvatarMenu = () => {
         </Avatar>
         <div className="min-w-0 text-left">
           <p className="text-xs font-bold text-sidebar-accent-foreground truncate">{profile.full_name}</p>
-          <p className="text-[9px] text-primary uppercase tracking-[0.15em]">Marli Cosméticos</p>
+          <p className="text-[9px] text-sidebar-foreground uppercase tracking-[0.15em]">Marli Cosméticos</p>
         </div>
       </button>
 
