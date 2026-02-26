@@ -19,7 +19,7 @@ const ClientsPage = () => {
   const [showInactive, setShowInactive] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [sortBy, setSortBy] = useState<SortBy>('name');
+  const [sortBy, setSortBy] = useState<SortBy>('last_visit');
   const [filterIncomplete, setFilterIncomplete] = useState(false);
   const [filterCity, setFilterCity] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
