@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useProfessionals } from "@/hooks/useClinicData";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,24 @@ const ProfissionaisTab = () => {
   const queryClient = useQueryClient();
   const [showInactive, setShowInactive] = useState(false);
   const { data: professionals = [], isLoading } = useProfessionals(showInactive);
+
+  // Fetch avatar URLs from profiles for linked professionals
+  const { data: profileAvatars = {} } = useQuery({
+    queryKey: ["profile-avatars"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, avatar_url")
+        .not("avatar_url", "is", null);
+      const map: Record<string, string> = {};
+      (data ?? []).forEach(p => { if (p.avatar_url) map[p.user_id] = p.avatar_url; });
+      return map;
+    },
+  });
+
+  const getAvatarUrl = (p: { user_id: string | null }) => {
+    return p.user_id ? profileAvatars[p.user_id] : undefined;
+  };
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<{ id: string; name: string } | null>(null);
@@ -145,9 +163,13 @@ const ProfissionaisTab = () => {
             <Card key={p.id} className="group relative">
               <CardContent className="flex flex-col gap-2 p-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <span className="text-sm font-bold text-primary">{p.avatar_initials || p.name.slice(0, 2).toUpperCase()}</span>
-                  </div>
+                  {getAvatarUrl(p) ? (
+                    <img src={getAvatarUrl(p)} alt={p.name} className="w-10 h-10 rounded-full object-cover shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <span className="text-sm font-bold text-primary">{p.avatar_initials || p.name.slice(0, 2).toUpperCase()}</span>
+                    </div>
+                  )}
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-sm truncate">{p.name}</p>
                     <p className="text-xs text-muted-foreground truncate">{p.role_description || "—"}</p>
