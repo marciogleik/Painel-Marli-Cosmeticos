@@ -129,33 +129,39 @@ const RecordFields = ({
   const hiddenCount = rows.length - collapsedLimit;
 
   return (
-    <div className="space-y-0.5">
-      <div className="divide-y divide-border/50 rounded-md border border-border/60 overflow-hidden">
-        {visibleRows.map((row, i) => (
-          <div
-            key={i}
-            className="flex gap-2 px-3 py-1.5 text-sm even:bg-muted/30"
-          >
-            {row.isRaw ? (
-              <span className="text-foreground">{row.answer}</span>
-            ) : (
-              <>
-                <span className="font-medium text-muted-foreground shrink-0 min-w-[40%] max-w-[55%]">
-                  {row.question}{row.question ? ":" : ""}
-                </span>
-                <span className="text-foreground">
-                  {row.answer || <span className="italic text-muted-foreground/60">—</span>}
-                </span>
-              </>
-            )}
-          </div>
-        ))}
+    <div className="space-y-1">
+      <div className="rounded-lg border border-border overflow-hidden">
+        <table className="w-full text-sm">
+          <tbody>
+            {visibleRows.map((row, i) => (
+              <tr
+                key={i}
+                className={i % 2 === 1 ? "bg-muted/40" : "bg-card"}
+              >
+                {row.isRaw ? (
+                  <td colSpan={2} className="px-4 py-2 text-foreground">
+                    {row.answer}
+                  </td>
+                ) : (
+                  <>
+                    <td className="px-4 py-2 font-semibold text-foreground w-[45%] align-top">
+                      {row.question}
+                    </td>
+                    <td className="px-4 py-2 text-muted-foreground align-top">
+                      {row.answer || <span className="italic opacity-50">—</span>}
+                    </td>
+                  </>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {needsCollapse && (
         <button
           onClick={onToggle}
-          className="flex items-center gap-1 text-xs text-primary hover:underline pt-1 mx-1"
+          className="flex items-center gap-1 text-xs text-primary hover:underline pt-0.5 mx-1"
         >
           {isExpanded ? (
             <>
