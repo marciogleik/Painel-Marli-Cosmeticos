@@ -16,23 +16,44 @@ import {
   X,
   HelpCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
-const navItems = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Agenda", href: "/agenda", icon: Calendar },
-  { label: "Clientes", href: "/clientes", icon: Users },
-  { label: "Profissionais", href: "/profissionais", icon: UserCog },
-  { label: "Financeiro", href: "/financeiro", icon: DollarSign },
-  { label: "Notificações", href: "/notificacoes", icon: Bell },
-  { label: "FAQ", href: "/faq", icon: HelpCircle },
-  { label: "Configurações", href: "/configuracoes", icon: Settings },
+const allNavItems = [
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, hideFor: [] as string[] },
+  { label: "Agenda", href: "/agenda", icon: Calendar, hideFor: [] as string[] },
+  { label: "Clientes", href: "/clientes", icon: Users, hideFor: [] as string[] },
+  { label: "Profissionais", href: "/profissionais", icon: UserCog, hideFor: ["secretaria"] },
+  { label: "Financeiro", href: "/financeiro", icon: DollarSign, hideFor: [] as string[] },
+  { label: "Notificações", href: "/notificacoes", icon: Bell, hideFor: [] as string[] },
+  { label: "FAQ", href: "/faq", icon: HelpCircle, hideFor: [] as string[] },
+  { label: "Configurações", href: "/configuracoes", icon: Settings, hideFor: ["secretaria"] },
 ];
 
 const AppSidebar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
+
+  const { data: userRole } = useQuery({
+    queryKey: ["my-role", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user!.id)
+        .single();
+      return data?.role ?? null;
+    },
+    enabled: !!user,
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const navItems = useMemo(
+    () => allNavItems.filter(item => !userRole || !item.hideFor.includes(userRole)),
+    [userRole]
+  );
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-sidebar">
