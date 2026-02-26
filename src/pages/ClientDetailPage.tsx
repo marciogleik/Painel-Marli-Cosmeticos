@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Phone, Mail, Calendar, MapPin, FileText, User, Clock, Pencil, UserX } from "lucide-react";
+import { ArrowLeft, Phone, Mail, Calendar, MapPin, FileText, User, Clock, Pencil, UserX, Paperclip } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -23,6 +23,7 @@ import { ptBR } from "date-fns/locale";
 import type { DBClient } from "@/hooks/useClinicData";
 import AnamneseTab from "@/components/client/AnamneseTab";
 import EditClientDialog from "@/components/client/EditClientDialog";
+import AnexosTab from "@/components/client/AnexosTab";
 const useClient = (id: string) =>
   useQuery({
     queryKey: ["client", id],
@@ -219,6 +220,9 @@ const ClientDetailPage = () => {
               Anamnese, Ficha e Contrato
             </TabsTrigger>
             <TabsTrigger value="historico">Hist. Agendamento</TabsTrigger>
+            <TabsTrigger value="anexos" className="gap-1.5">
+              <Paperclip className="w-3.5 h-3.5" /> Anexos
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="resumo">
@@ -359,6 +363,10 @@ const ClientDetailPage = () => {
                 })}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="anexos">
+            <AnexosTab clientId={client.id} />
           </TabsContent>
         </Tabs>
       </div>
