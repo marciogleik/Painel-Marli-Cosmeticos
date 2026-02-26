@@ -234,17 +234,42 @@ const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
                     )}
 
                     {/* Filled fields */}
-                    <div className="space-y-1">
-                      {fields.map((f, i) => (
-                        <p key={i} className="text-sm">
-                          <span className="font-semibold">{f.label}</span>{" "}
-                          {f.value || (
-                            <span className="text-muted-foreground italic">
-                              —
-                            </span>
-                          )}
-                        </p>
-                      ))}
+                    <div className="space-y-1.5">
+                      {fields.map((f, i) => {
+                        // For imported records with long multiline values, split into Q&A lines
+                        const lines = f.value ? f.value.split("\n").filter(Boolean) : [];
+                        const isMultiLine = lines.length > 1 && !f.label;
+
+                        if (isMultiLine) {
+                          return (
+                            <div key={i} className="space-y-1">
+                              {lines.map((line, li) => {
+                                const separatorIdx = line.indexOf(":");
+                                if (separatorIdx > 0 && separatorIdx < line.length - 1) {
+                                  const question = line.slice(0, separatorIdx).trim();
+                                  const answer = line.slice(separatorIdx + 1).trim();
+                                  return (
+                                    <div key={li} className="flex gap-1 text-sm">
+                                      <span className="font-medium text-muted-foreground">{question}:</span>
+                                      <span>{answer}</span>
+                                    </div>
+                                  );
+                                }
+                                return <p key={li} className="text-sm">{line}</p>;
+                              })}
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <p key={i} className="text-sm">
+                            {f.label && <span className="font-semibold">{f.label}: </span>}
+                            {f.value || (
+                              <span className="text-muted-foreground italic">—</span>
+                            )}
+                          </p>
+                        );
+                      })}
                       {fields.length === 0 && (
                         <p className="text-xs text-muted-foreground italic">
                           Sem dados preenchidos
