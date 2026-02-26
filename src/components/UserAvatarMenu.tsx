@@ -53,10 +53,8 @@ const UserAvatarMenu = () => {
       className="flex items-center gap-3 rounded-lg hover:opacity-80 transition-opacity w-full"
     >
       <Avatar className="w-11 h-11 shrink-0 ring-2 ring-sidebar-accent bg-sidebar-accent">
-        {displayAvatarUrl ? (
-          <AvatarImage src={displayAvatarUrl} alt={displayName} className="object-cover" />
-        ) : null}
-        <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary" delayMs={200}>
+        <AvatarImage src={displayAvatarUrl ?? ""} alt={displayName} className="object-cover" />
+        <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">
           {displayName.slice(0, 2).toUpperCase()}
         </AvatarFallback>
       </Avatar>
