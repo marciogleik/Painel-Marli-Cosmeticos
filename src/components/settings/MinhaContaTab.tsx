@@ -31,6 +31,8 @@ const MinhaContaTab = () => {
       return data;
     },
     enabled: !!user,
+    staleTime: 1000 * 60 * 5,
+    placeholderData: (prev) => prev,
   });
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

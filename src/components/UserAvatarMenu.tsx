@@ -20,6 +20,8 @@ const UserAvatarMenu = () => {
       return data;
     },
     enabled: !!user,
+    staleTime: 1000 * 60 * 5,
+    placeholderData: (prev) => prev,
   });
 
   const { data: myProfessionalId } = useQuery({
