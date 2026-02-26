@@ -37,9 +37,9 @@ const UserAvatarMenu = () => {
         onClick={() => setOpen(true)}
         className="flex items-center gap-3 rounded-lg hover:opacity-80 transition-opacity w-full"
       >
-        <Avatar className="w-9 h-9 shrink-0">
+        <Avatar className="w-11 h-11 shrink-0 ring-2 ring-primary/20">
           {profile.avatar_url ? (
-            <AvatarImage src={profile.avatar_url} alt={profile.full_name} />
+            <AvatarImage src={profile.avatar_url} alt={profile.full_name} className="object-cover" />
           ) : null}
           <AvatarFallback className="text-xs font-bold">
             {profile.full_name?.slice(0, 2).toUpperCase()}
