@@ -69,10 +69,6 @@ const LoginPage = () => {
         src={marliLogo}
         alt="Marli Cosméticos"
         className="w-64 h-auto mb-6"
-        style={{
-          maskImage: "radial-gradient(ellipse 85% 75% at center, black 50%, transparent 100%)",
-          WebkitMaskImage: "radial-gradient(ellipse 85% 75% at center, black 50%, transparent 100%)",
-        }}
       />
 
       {/* Form */}
