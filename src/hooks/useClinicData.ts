@@ -9,6 +9,7 @@ export interface DBProfessional {
   role_description: string | null;
   avatar_initials: string | null;
   is_active: boolean;
+  user_id: string | null;
 }
 
 export const useProfessionals = (includeInactive = false) => {

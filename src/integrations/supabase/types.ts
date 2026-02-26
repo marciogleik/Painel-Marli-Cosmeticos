@@ -378,6 +378,7 @@ export type Database = {
           created_by: string
           expires_at: string
           id: string
+          professional_id: string | null
           role: Database["public"]["Enums"]["app_role"]
           token: string
           used_at: string | null
@@ -388,6 +389,7 @@ export type Database = {
           created_by: string
           expires_at: string
           id?: string
+          professional_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           token?: string
           used_at?: string | null
@@ -398,12 +400,21 @@ export type Database = {
           created_by?: string
           expires_at?: string
           id?: string
+          professional_id?: string | null
           role?: Database["public"]["Enums"]["app_role"]
           token?: string
           used_at?: string | null
           used_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "invitations_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       patient_records: {
         Row: {
