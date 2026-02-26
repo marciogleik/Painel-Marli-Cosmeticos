@@ -190,6 +190,79 @@ export type Database = {
           },
         ]
       }
+      client_attachments: {
+        Row: {
+          attachment_date: string
+          client_id: string | null
+          client_name: string | null
+          created_at: string
+          ficha_code: string | null
+          ficha_type: string | null
+          file_path: string
+          file_type: string | null
+          id: string
+          ip_address: string | null
+          notes: string | null
+          patient_record_id: string | null
+          professional_id: string | null
+          professional_name: string | null
+        }
+        Insert: {
+          attachment_date?: string
+          client_id?: string | null
+          client_name?: string | null
+          created_at?: string
+          ficha_code?: string | null
+          ficha_type?: string | null
+          file_path: string
+          file_type?: string | null
+          id?: string
+          ip_address?: string | null
+          notes?: string | null
+          patient_record_id?: string | null
+          professional_id?: string | null
+          professional_name?: string | null
+        }
+        Update: {
+          attachment_date?: string
+          client_id?: string | null
+          client_name?: string | null
+          created_at?: string
+          ficha_code?: string | null
+          ficha_type?: string | null
+          file_path?: string
+          file_type?: string | null
+          id?: string
+          ip_address?: string | null
+          notes?: string | null
+          patient_record_id?: string | null
+          professional_id?: string | null
+          professional_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_attachments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_attachments_patient_record_id_fkey"
+            columns: ["patient_record_id"]
+            isOneToOne: false
+            referencedRelation: "patient_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_attachments_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: string | null
