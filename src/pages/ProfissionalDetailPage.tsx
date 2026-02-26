@@ -55,7 +55,7 @@ const ProfissionalDetailPage = () => {
       if (!professional?.user_id) return null;
       const { data } = await supabase
         .from("profiles")
-        .select("avatar_url, full_name, phone")
+        .select("avatar_url, full_name, phone, email")
         .eq("user_id", professional.user_id)
         .single();
       return data;
@@ -63,16 +63,6 @@ const ProfissionalDetailPage = () => {
     enabled: !!professional?.user_id,
   });
 
-  // Fetch user email via RPC
-  const { data: userEmail } = useQuery({
-    queryKey: ["professional-email", professional?.user_id],
-    queryFn: async () => {
-      if (!professional?.user_id) return null;
-      const { data } = await supabase.rpc("get_user_email", { _user_id: professional.user_id });
-      return data as string | null;
-    },
-    enabled: !!professional?.user_id,
-  });
 
   // Fetch user role
   const { data: userRole } = useQuery({
@@ -319,7 +309,7 @@ const ProfissionalDetailPage = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs">E-mail</Label>
-                  <Input value={userEmail || "—"} disabled className="opacity-60" />
+                  <Input value={linkedProfile?.email || "—"} disabled className="opacity-60" />
                 </div>
               </div>
             )}
