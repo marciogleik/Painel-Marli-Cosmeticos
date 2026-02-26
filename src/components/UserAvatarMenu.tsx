@@ -37,11 +37,11 @@ const UserAvatarMenu = () => {
         onClick={() => setOpen(true)}
         className="flex items-center gap-3 rounded-lg hover:opacity-80 transition-opacity w-full"
       >
-        <Avatar className="w-11 h-11 shrink-0 ring-2 ring-primary/20">
+        <Avatar className="w-11 h-11 shrink-0 ring-2 ring-primary/20 bg-muted">
           {profile.avatar_url ? (
             <AvatarImage src={profile.avatar_url} alt={profile.full_name} className="object-cover" />
           ) : null}
-          <AvatarFallback className="text-xs font-bold">
+          <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary" delayMs={200}>
             {profile.full_name?.slice(0, 2).toUpperCase()}
           </AvatarFallback>
         </Avatar>
