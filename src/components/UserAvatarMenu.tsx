@@ -35,19 +35,17 @@ const UserAvatarMenu = () => {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-3 rounded-lg hover:opacity-80 transition-opacity w-full"
+        className="flex items-center gap-2.5 rounded-lg hover:bg-sidebar-accent transition-colors w-full px-1 py-1.5"
       >
-        <Avatar className="w-9 h-9 shrink-0">
+        <Avatar className="w-7 h-7 shrink-0">
           {profile.avatar_url ? (
             <AvatarImage src={profile.avatar_url} alt={profile.full_name} />
           ) : null}
-          <AvatarFallback className="text-xs font-bold">
+          <AvatarFallback className="text-[10px] font-bold">
             {profile.full_name?.slice(0, 2).toUpperCase()}
           </AvatarFallback>
         </Avatar>
-        <div className="min-w-0 text-left">
-          <p className="text-xs font-bold text-sidebar-accent-foreground truncate">{profile.full_name}</p>
-        </div>
+        <p className="text-[11px] font-medium text-primary truncate">{profile.full_name}</p>
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
