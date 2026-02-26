@@ -4,11 +4,10 @@ import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, ArrowLeft } from "lucide-react";
-import placeLogo from "@/assets/place-logo.png";
+import { Loader2, ArrowLeft, User, Lock } from "lucide-react";
+import marbleBg from "@/assets/marble-bg.jpg";
 import marliLogo from "@/assets/marli-logo.jpg";
+import placeLogo from "@/assets/place-logo.png";
 
 const LoginPage = () => {
   const { user, loading, signIn } = useAuth();
@@ -24,8 +23,8 @@ const LoginPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <Loader2 className="w-8 h-8 animate-spin text-[#c9a55a]" />
       </div>
     );
   }
@@ -59,102 +58,135 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4 relative overflow-hidden">
-      <img
-        src={marliLogo}
-        alt=""
-        aria-hidden="true"
-        className="pointer-events-none select-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] opacity-[0.08]"
-      />
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center space-y-2">
-          <div className="mx-auto w-12 h-12 rounded-full bg-primary flex items-center justify-center mb-2">
-            <span className="text-primary-foreground text-lg font-bold font-display">M</span>
-          </div>
-          <CardTitle className="text-xl">Marli Cosméticos</CardTitle>
-          <CardDescription>
-            {forgotMode ? "Recuperação de senha" : "Entre com suas credenciais"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {forgotMode ? (
-            forgotSent ? (
-              <div className="space-y-4 text-center">
-                <p className="text-sm text-muted-foreground">
-                  Um e-mail com o link de recuperação foi enviado para <strong>{forgotEmail}</strong>. Verifique sua caixa de entrada.
-                </p>
-                <Button variant="outline" className="w-full" onClick={() => { setForgotMode(false); setForgotSent(false); }}>
-                  <ArrowLeft className="w-4 h-4 mr-2" /> Voltar ao Login
-                </Button>
-              </div>
-            ) : (
-              <form onSubmit={handleForgotPassword} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="forgotEmail">E-mail</Label>
-                  <Input
-                    id="forgotEmail"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={forgotEmail}
-                    onChange={e => setForgotEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                {forgotError && <p className="text-sm text-destructive">{forgotError}</p>}
-                <Button type="submit" className="w-full" disabled={forgotSubmitting}>
-                  {forgotSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                  Enviar Link de Recuperação
-                </Button>
-                <Button type="button" variant="ghost" className="w-full" onClick={() => setForgotMode(false)}>
-                  <ArrowLeft className="w-4 h-4 mr-2" /> Voltar ao Login
-                </Button>
-              </form>
-            )
+    <div
+      className="min-h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden"
+      style={{
+        backgroundImage: `url(${marbleBg})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      {/* Overlay for depth */}
+      <div className="absolute inset-0 bg-black/30" />
+
+      {/* Content */}
+      <div className="relative z-10 flex flex-col items-center w-full max-w-md">
+        {/* Logo */}
+        <div className="mb-8 flex flex-col items-center">
+          <img
+            src={marliLogo}
+            alt="Marli Cosméticos"
+            className="w-48 h-auto mb-2 drop-shadow-2xl"
+          />
+        </div>
+
+        {forgotMode ? (
+          forgotSent ? (
+            <div className="w-full space-y-4 text-center">
+              <p className="text-sm text-[#c9a55a]/80">
+                Um e-mail com o link de recuperação foi enviado para{" "}
+                <strong className="text-[#c9a55a]">{forgotEmail}</strong>. Verifique sua caixa de entrada.
+              </p>
+              <button
+                onClick={() => { setForgotMode(false); setForgotSent(false); }}
+                className="w-full py-3 rounded-md border border-[#c9a55a]/40 text-[#c9a55a] hover:bg-[#c9a55a]/10 transition-colors flex items-center justify-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" /> Voltar ao Login
+              </button>
+            </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">E-mail</Label>
-                <Input
-                  id="email"
+            <form onSubmit={handleForgotPassword} className="w-full space-y-5">
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c9a55a]/60" />
+                <input
                   type="email"
-                  placeholder="seu@email.com"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
+                  placeholder="Email"
+                  value={forgotEmail}
+                  onChange={e => setForgotEmail(e.target.value)}
                   required
+                  className="w-full pl-12 pr-4 py-3.5 rounded-md bg-black/50 border border-[#c9a55a]/30 text-[#c9a55a] placeholder:text-[#c9a55a]/40 focus:outline-none focus:border-[#c9a55a]/70 transition-colors"
                 />
               </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Senha</Label>
-                  <button
-                    type="button"
-                    onClick={() => { setForgotMode(true); setForgotEmail(email); }}
-                    className="text-xs text-primary hover:underline"
-                  >
-                    Esqueci minha senha
-                  </button>
-                </div>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-              {error && <p className="text-sm text-destructive">{error}</p>}
-              <Button type="submit" className="w-full" disabled={submitting}>
-                {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                Entrar
-              </Button>
+              {forgotError && <p className="text-sm text-red-400">{forgotError}</p>}
+              <button
+                type="submit"
+                disabled={forgotSubmitting}
+                className="w-full py-3.5 rounded-md font-semibold text-black tracking-wide transition-all disabled:opacity-50"
+                style={{
+                  background: "linear-gradient(135deg, #c9a55a 0%, #e8d5a0 50%, #c9a55a 100%)",
+                }}
+              >
+                {forgotSubmitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Enviar Link de Recuperação"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setForgotMode(false)}
+                className="w-full text-sm text-[#c9a55a]/60 hover:text-[#c9a55a] transition-colors flex items-center justify-center gap-1"
+              >
+                <ArrowLeft className="w-3 h-3" /> Voltar ao Login
+              </button>
             </form>
-          )}
-        </CardContent>
-      </Card>
-      <div className="absolute bottom-8 flex items-center gap-3">
-        <span className="text-base font-medium text-muted-foreground">powered by</span>
-        <img src={placeLogo} alt="Place" className="h-12" />
+          )
+        ) : (
+          <form onSubmit={handleSubmit} className="w-full space-y-5">
+            {/* Email */}
+            <div className="relative">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c9a55a]/60" />
+              <input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+                className="w-full pl-12 pr-4 py-3.5 rounded-md bg-black/50 border border-[#c9a55a]/30 text-[#c9a55a] placeholder:text-[#c9a55a]/40 focus:outline-none focus:border-[#c9a55a]/70 transition-colors"
+              />
+            </div>
+
+            {/* Password */}
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c9a55a]/60" />
+              <input
+                type="password"
+                placeholder="Senha"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                className="w-full pl-12 pr-4 py-3.5 rounded-md bg-black/50 border border-[#c9a55a]/30 text-[#c9a55a] placeholder:text-[#c9a55a]/40 focus:outline-none focus:border-[#c9a55a]/70 transition-colors"
+              />
+            </div>
+
+            {error && <p className="text-sm text-red-400">{error}</p>}
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full py-3.5 rounded-md font-semibold text-black tracking-wide transition-all disabled:opacity-50"
+              style={{
+                background: "linear-gradient(135deg, #c9a55a 0%, #e8d5a0 50%, #c9a55a 100%)",
+              }}
+            >
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Entrar"}
+            </button>
+
+            {/* Forgot */}
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => { setForgotMode(true); setForgotEmail(email); }}
+                className="text-sm text-[#c9a55a]/60 hover:text-[#c9a55a] transition-colors"
+              >
+                Esqueceu sua senha?
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      {/* Powered by */}
+      <div className="absolute bottom-8 flex items-center gap-3 z-10">
+        <span className="text-base font-medium text-[#c9a55a]/40">powered by</span>
+        <img src={placeLogo} alt="Place" className="h-10 opacity-40" />
       </div>
     </div>
   );
