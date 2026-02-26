@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import type { User, Session } from "@supabase/supabase-js";
 
 interface AuthContextType {
@@ -16,6 +17,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  const prefetchProfile = (userId: string) => {
+    queryClient.prefetchQuery({
+      queryKey: ["my-profile", userId],
+      queryFn: async () => {
+        const { data } = await supabase
+          .from("profiles")
+          .select("full_name, avatar_url")
+          .eq("user_id", userId)
+          .single();
+        return data;
+      },
+      staleTime: 1000 * 60 * 5,
+    });
+  };
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -24,8 +41,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // Record last login on SIGNED_IN
+        // Prefetch profile on sign in
         if (_event === "SIGNED_IN" && session?.user) {
+          prefetchProfile(session.user.id);
           setTimeout(() => {
             supabase
               .from("professionals")
@@ -41,6 +59,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session?.user) prefetchProfile(session.user.id);
     });
 
     return () => subscription.unsubscribe();
