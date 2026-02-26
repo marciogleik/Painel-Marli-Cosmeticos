@@ -7,6 +7,7 @@ import ServicosTab from "@/components/settings/ServicosTab";
 import VinculosTab from "@/components/settings/VinculosTab";
 import AnamnesesTab from "@/components/settings/AnamnesesTab";
 import ConvitesTab from "@/components/settings/ConvitesTab";
+import MinhaContaTab from "@/components/settings/MinhaContaTab";
 
 const ConfiguracoesPage = () => {
   const { user } = useAuth();
@@ -34,12 +35,17 @@ const ConfiguracoesPage = () => {
       <div className="flex-1 overflow-auto px-8 py-4">
         <Tabs defaultValue="profissionais" className="w-full">
           <TabsList className="mb-4">
+            <TabsTrigger value="minha-conta">Minha Conta</TabsTrigger>
             <TabsTrigger value="profissionais">Profissionais</TabsTrigger>
             <TabsTrigger value="servicos">Serviços</TabsTrigger>
             <TabsTrigger value="vinculos">Vínculos</TabsTrigger>
             <TabsTrigger value="anamneses">Anamneses</TabsTrigger>
             {isGestor && <TabsTrigger value="convites">Convites</TabsTrigger>}
           </TabsList>
+
+          <TabsContent value="minha-conta">
+            <MinhaContaTab />
+          </TabsContent>
 
           <TabsContent value="profissionais">
             <ProfissionaisTab />
