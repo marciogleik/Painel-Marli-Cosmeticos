@@ -64,7 +64,7 @@ const LoginPage = () => {
         src={marliLogo}
         alt=""
         aria-hidden="true"
-        className="pointer-events-none select-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] opacity-[0.03]"
+        className="pointer-events-none select-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] opacity-[0.06]"
       />
       <Card className="w-full max-w-sm">
         <CardHeader className="text-center space-y-2">
