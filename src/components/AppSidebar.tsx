@@ -35,8 +35,16 @@ const AppSidebar = () => {
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-sidebar">
-      {/* Logo */}
-      <div className="flex items-center px-4 h-16 shrink-0">
+      {/* Logo + Profile */}
+      <div className="flex flex-col px-4 pt-4 pb-2 shrink-0 gap-2">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center shrink-0">
+            <span className="text-primary-foreground text-xs font-bold">M</span>
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-sidebar-accent-foreground truncate">Marli Cosméticos</p>
+          </div>
+        </div>
         <UserAvatarMenu />
       </div>
 
