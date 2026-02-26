@@ -70,8 +70,8 @@ const LoginPage = () => {
         alt="Marli Cosméticos"
         className="w-96 h-auto mb-6"
         style={{
-          maskImage: "radial-gradient(ellipse 70% 60% at 50% 45%, black 40%, transparent 100%)",
-          WebkitMaskImage: "radial-gradient(ellipse 70% 60% at 50% 45%, black 40%, transparent 100%)",
+          maskImage: "linear-gradient(to bottom, transparent 0%, black 20%, black 100%)",
+          WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 20%, black 100%)",
         }}
       />
 
