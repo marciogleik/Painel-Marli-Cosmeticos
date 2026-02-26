@@ -17,8 +17,6 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -32,21 +30,7 @@ const navItems = [
 
 const AppSidebar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { user, signOut } = useAuth();
-
-  const { data: profile } = useQuery({
-    queryKey: ["my-profile", user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data } = await supabase
-        .from("profiles")
-        .select("full_name, avatar_url")
-        .eq("user_id", user.id)
-        .single();
-      return data;
-    },
-    enabled: !!user,
-  });
+  const { signOut } = useAuth();
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-sidebar">
@@ -97,19 +81,7 @@ const AppSidebar = () => {
       </div>
 
       {/* Footer */}
-      <div className="px-3 py-4 border-t border-sidebar-border shrink-0 space-y-2">
-        {profile && (
-          <div className="flex items-center gap-2.5 px-3 py-1.5">
-            {profile.avatar_url ? (
-              <img src={profile.avatar_url} alt={profile.full_name} className="w-8 h-8 rounded-full object-cover shrink-0" />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <span className="text-xs font-bold text-primary">{profile.full_name?.slice(0, 2).toUpperCase()}</span>
-              </div>
-            )}
-            <p className="text-xs font-medium text-sidebar-foreground truncate">{profile.full_name}</p>
-          </div>
-        )}
+      <div className="px-3 py-4 border-t border-sidebar-border shrink-0">
         <button onClick={signOut} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent w-full transition-colors">
           <LogOut className="w-[18px] h-[18px]" />
           <span>Sair</span>
