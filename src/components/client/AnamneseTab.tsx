@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ChevronDown as ChevronDownIcon, ChevronUp as ChevronUpIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -72,6 +73,105 @@ const usePatientRecords = (clientId: string) =>
     enabled: !!clientId,
   });
 
+/** Parsed Q&A row */
+interface QARow {
+  question: string;
+  answer: string;
+  isRaw?: boolean;
+}
+
+/** Flatten fields into displayable Q&A rows */
+const flattenFields = (fields: { label: string; value: string }[]): QARow[] => {
+  const rows: QARow[] = [];
+  for (const f of fields) {
+    const lines = f.value ? f.value.split("\n").filter(Boolean) : [];
+    const isMultiLine = lines.length > 1 && !f.label;
+
+    if (isMultiLine) {
+      for (const line of lines) {
+        const idx = line.indexOf(":");
+        if (idx > 0 && idx < line.length - 1) {
+          rows.push({ question: line.slice(0, idx).trim(), answer: line.slice(idx + 1).trim() });
+        } else {
+          rows.push({ question: "", answer: line, isRaw: true });
+        }
+      }
+    } else {
+      rows.push({ question: f.label, answer: f.value });
+    }
+  }
+  return rows;
+};
+
+const RecordFields = ({
+  fields,
+  recordId,
+  isExpanded,
+  onToggle,
+  collapsedLimit,
+}: {
+  fields: { label: string; value: string }[];
+  recordId: string;
+  isExpanded: boolean;
+  onToggle: () => void;
+  collapsedLimit: number;
+}) => {
+  const rows = useMemo(() => flattenFields(fields), [fields]);
+
+  if (rows.length === 0) {
+    return (
+      <p className="text-xs text-muted-foreground italic">Sem dados preenchidos</p>
+    );
+  }
+
+  const needsCollapse = rows.length > collapsedLimit;
+  const visibleRows = needsCollapse && !isExpanded ? rows.slice(0, collapsedLimit) : rows;
+  const hiddenCount = rows.length - collapsedLimit;
+
+  return (
+    <div className="space-y-0.5">
+      <div className="divide-y divide-border/50 rounded-md border border-border/60 overflow-hidden">
+        {visibleRows.map((row, i) => (
+          <div
+            key={i}
+            className="flex gap-2 px-3 py-1.5 text-sm even:bg-muted/30"
+          >
+            {row.isRaw ? (
+              <span className="text-foreground">{row.answer}</span>
+            ) : (
+              <>
+                <span className="font-medium text-muted-foreground shrink-0 min-w-[40%] max-w-[55%]">
+                  {row.question}{row.question ? ":" : ""}
+                </span>
+                <span className="text-foreground">
+                  {row.answer || <span className="italic text-muted-foreground/60">—</span>}
+                </span>
+              </>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {needsCollapse && (
+        <button
+          onClick={onToggle}
+          className="flex items-center gap-1 text-xs text-primary hover:underline pt-1 mx-1"
+        >
+          {isExpanded ? (
+            <>
+              <ChevronUpIcon className="w-3.5 h-3.5" /> Recolher
+            </>
+          ) : (
+            <>
+              <ChevronDownIcon className="w-3.5 h-3.5" /> Ver mais {hiddenCount} itens
+            </>
+          )}
+        </button>
+      )}
+    </div>
+  );
+};
+
 const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
   const queryClient = useQueryClient();
   const { data: templates = [] } = useActiveTemplates();
@@ -79,6 +179,18 @@ const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
   const [fillTemplate, setFillTemplate] = useState<AnamnesisTemplate | null>(null);
   const [editingRecord, setEditingRecord] = useState<PatientRecord | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PatientRecord | null>(null);
+  const [expandedRecords, setExpandedRecords] = useState<Set<string>>(new Set());
+
+  const COLLAPSED_LIMIT = 5;
+
+  const toggleExpand = (id: string) => {
+    setExpandedRecords((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const deleteMutation = useMutation({
     mutationFn: async (recordId: string) => {
@@ -234,48 +346,13 @@ const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
                     )}
 
                     {/* Filled fields */}
-                    <div className="space-y-1.5">
-                      {fields.map((f, i) => {
-                        // For imported records with long multiline values, split into Q&A lines
-                        const lines = f.value ? f.value.split("\n").filter(Boolean) : [];
-                        const isMultiLine = lines.length > 1 && !f.label;
-
-                        if (isMultiLine) {
-                          return (
-                            <div key={i} className="space-y-1">
-                              {lines.map((line, li) => {
-                                const separatorIdx = line.indexOf(":");
-                                if (separatorIdx > 0 && separatorIdx < line.length - 1) {
-                                  const question = line.slice(0, separatorIdx).trim();
-                                  const answer = line.slice(separatorIdx + 1).trim();
-                                  return (
-                                    <div key={li} className="flex gap-1 text-sm">
-                                      <span className="font-medium text-muted-foreground">{question}:</span>
-                                      <span>{answer}</span>
-                                    </div>
-                                  );
-                                }
-                                return <p key={li} className="text-sm">{line}</p>;
-                              })}
-                            </div>
-                          );
-                        }
-
-                        return (
-                          <p key={i} className="text-sm">
-                            {f.label && <span className="font-semibold">{f.label}: </span>}
-                            {f.value || (
-                              <span className="text-muted-foreground italic">—</span>
-                            )}
-                          </p>
-                        );
-                      })}
-                      {fields.length === 0 && (
-                        <p className="text-xs text-muted-foreground italic">
-                          Sem dados preenchidos
-                        </p>
-                      )}
-                    </div>
+                    <RecordFields
+                      fields={fields}
+                      recordId={record.id}
+                      isExpanded={expandedRecords.has(record.id)}
+                      onToggle={() => toggleExpand(record.id)}
+                      collapsedLimit={COLLAPSED_LIMIT}
+                    />
                   </CardContent>
                 </Card>
               </div>
