@@ -1,4 +1,5 @@
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink } from "react-router-dom";
+import UserAvatarMenu from "@/components/UserAvatarMenu";
 import { cn } from "@/lib/utils";
 import placeLogo from "@/assets/place-logo.png";
 import {
@@ -35,14 +36,8 @@ const AppSidebar = () => {
   const sidebarContent = (
     <div className="flex flex-col h-full bg-sidebar">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 h-16 shrink-0">
-        <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center shrink-0">
-          <span className="text-primary-foreground text-xs font-bold">M</span>
-        </div>
-        <div className="min-w-0">
-          <p className="text-xs font-bold text-sidebar-accent-foreground truncate">Marli Cosméticos</p>
-          <p className="text-[9px] text-primary uppercase tracking-[0.15em]">Prime Estética</p>
-        </div>
+      <div className="flex items-center px-4 h-16 shrink-0">
+        <UserAvatarMenu />
       </div>
 
       {/* Collapse */}
