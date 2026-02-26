@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Pencil, Loader2, Archive, ArchiveRestore } from "lucide-react";
+import { Plus, Pencil, Loader2, Archive, ArchiveRestore, Mail, Copy, Check } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface ProfForm {
@@ -28,6 +28,33 @@ const ProfissionaisTab = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<{ id: string; name: string } | null>(null);
   const [form, setForm] = useState<ProfForm>(emptyForm);
+  const [inviteLink, setInviteLink] = useState<{ profId: string; url: string } | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const inviteMutation = useMutation({
+    mutationFn: async (professionalId: string) => {
+      const { data, error } = await supabase.functions.invoke("generate-invite", {
+        body: { role: "profissional", professional_id: professionalId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data.token as string;
+    },
+    onSuccess: (token, professionalId) => {
+      const url = `${window.location.origin}/cadastro?token=${token}`;
+      setInviteLink({ profId: professionalId, url });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Erro ao gerar convite", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const copyLink = async (url: string, profId: string) => {
+    await navigator.clipboard.writeText(url);
+    setCopiedId(profId);
+    toast({ title: "Link copiado!" });
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   const generateInitials = (name: string) => {
     const parts = name.trim().split(/\s+/);
@@ -116,29 +143,62 @@ const ProfissionaisTab = () => {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {active.map(p => (
             <Card key={p.id} className="group relative">
-              <CardContent className="flex items-center gap-3 p-4">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <span className="text-sm font-bold text-primary">{p.avatar_initials || p.name.slice(0, 2).toUpperCase()}</span>
+              <CardContent className="flex flex-col gap-2 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <span className="text-sm font-bold text-primary">{p.avatar_initials || p.name.slice(0, 2).toUpperCase()}</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm truncate">{p.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{p.role_description || "—"}</p>
+                  </div>
+                  <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)} title="Editar">
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => setDeactivateTarget({ id: p.id, name: p.name })}
+                      title="Desativar"
+                      disabled={toggleActiveMutation.isPending}
+                    >
+                      <Archive className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-sm truncate">{p.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{p.role_description || "—"}</p>
-                </div>
-                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)} title="Editar">
-                    <Pencil className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    onClick={() => setDeactivateTarget({ id: p.id, name: p.name })}
-                    title="Desativar"
-                    disabled={toggleActiveMutation.isPending}
-                  >
-                    <Archive className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
+                {!p.user_id && (
+                  inviteLink?.profId === p.id ? (
+                    <div className="flex items-center gap-1.5">
+                      <Input value={inviteLink.url} readOnly className="h-7 text-xs flex-1" />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7 shrink-0"
+                        onClick={() => copyLink(inviteLink.url, p.id)}
+                      >
+                        {copiedId === p.id ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 h-7 text-xs w-full"
+                      onClick={() => inviteMutation.mutate(p.id)}
+                      disabled={inviteMutation.isPending}
+                    >
+                      {inviteMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Mail className="w-3 h-3" />}
+                      Gerar Convite
+                    </Button>
+                  )
+                )}
+                {p.user_id && (
+                  <p className="text-xs text-green-600 flex items-center gap-1">
+                    <Check className="w-3 h-3" /> Conta vinculada
+                  </p>
+                )}
               </CardContent>
             </Card>
           ))}
