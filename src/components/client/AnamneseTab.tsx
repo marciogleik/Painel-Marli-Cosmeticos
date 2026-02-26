@@ -100,6 +100,18 @@ const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
   const getFieldsFromContent = (record: PatientRecord): { label: string; value: string }[] => {
     const content = record.content as Record<string, unknown> | null;
     if (!content) return [];
+
+    // Handle imported records: content is an array of {label, value}
+    if (Array.isArray(content)) {
+      return content
+        .filter((item: any) => item.label || item.value)
+        .map((item: any) => ({
+          label: item.label ?? "",
+          value: item.value ?? "",
+        }));
+    }
+
+    // Handle template-based records: content has templateFields + answers
     const templateFields = (content.templateFields as TemplateField[]) ?? [];
     const answers = (content.answers as Record<string, string>) ?? {};
 

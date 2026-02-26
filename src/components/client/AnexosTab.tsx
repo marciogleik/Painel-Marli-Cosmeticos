@@ -119,11 +119,12 @@ const AnexosTab = ({ clientId }: AnexosTabProps) => {
                       variant="ghost"
                       size="sm"
                       className="text-xs shrink-0"
-                      onClick={() => {
-                        const { data } = supabase.storage
+                      onClick={async () => {
+                        const { data, error } = await supabase.storage
                           .from("client-attachments")
-                          .getPublicUrl(att.file_path);
-                        setPreviewUrl(data.publicUrl);
+                          .createSignedUrl(att.file_path, 300);
+                        if (error || !data?.signedUrl) return;
+                        setPreviewUrl(data.signedUrl);
                       }}
                     >
                       Visualizar
