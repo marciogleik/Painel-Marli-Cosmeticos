@@ -72,11 +72,13 @@ const LoginPage = () => {
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center w-full max-w-md">
         {/* Logo */}
-        <div className="mb-8 flex flex-col items-center">
+        <div className="mb-10 flex flex-col items-center relative">
+          {/* Golden glow behind logo */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full bg-[#c9a55a]/15 blur-3xl" />
           <img
             src={marliLogo}
             alt="Marli Cosméticos"
-            className="w-48 h-auto mb-2 drop-shadow-2xl"
+            className="w-72 h-auto relative z-10 drop-shadow-[0_0_30px_rgba(201,165,90,0.3)]"
           />
         </div>
 
