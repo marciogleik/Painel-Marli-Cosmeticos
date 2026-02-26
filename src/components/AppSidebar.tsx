@@ -22,7 +22,6 @@ const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Agenda", href: "/agenda", icon: Calendar },
   { label: "Clientes", href: "/clientes", icon: Users },
-  { label: "Prontuários", href: "/prontuarios", icon: FileText },
   { label: "Financeiro", href: "/financeiro", icon: DollarSign },
   { label: "Notificações", href: "/notificacoes", icon: Bell },
   { label: "FAQ", href: "/faq", icon: HelpCircle },
