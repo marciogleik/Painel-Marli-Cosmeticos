@@ -28,23 +28,26 @@ const UserAvatarMenu = () => {
   const [stableProfile, setStableProfile] = useState<{ full_name: string; avatar_url: string | null } | null>(null);
   const [imgError, setImgError] = useState(false);
   const [imgRetries, setImgRetries] = useState(0);
+  const [avatarCacheKey, setAvatarCacheKey] = useState(() => Date.now());
 
   useEffect(() => {
     if (profile) {
       setStableProfile(profile);
       setImgError(false);
       setImgRetries(0);
+      setAvatarCacheKey(Date.now());
     }
   }, [profile]);
 
   useEffect(() => {
     setImgError(false);
     setImgRetries(0);
+    setAvatarCacheKey(Date.now());
   }, [location.pathname]);
 
   const displayName = stableProfile?.full_name || user?.email?.split("@")[0] || "Usuário";
   const displayAvatarUrl = stableProfile?.avatar_url
-    ? `${stableProfile.avatar_url.split('?')[0]}?t=${imgRetries || Date.now()}`
+    ? `${stableProfile.avatar_url.split("?")[0]}?t=${avatarCacheKey}-${imgRetries}`
     : null;
   const initials = displayName.slice(0, 2).toUpperCase();
 
