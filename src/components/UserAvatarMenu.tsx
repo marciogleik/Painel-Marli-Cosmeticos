@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -24,6 +25,15 @@ const UserAvatarMenu = () => {
     placeholderData: (prev) => prev,
   });
 
+  const [stableProfile, setStableProfile] = useState<{ full_name: string; avatar_url: string | null } | null>(null);
+
+  useEffect(() => {
+    if (profile) setStableProfile(profile);
+  }, [profile]);
+
+  const displayName = stableProfile?.full_name || user?.email?.split("@")[0] || "Usuário";
+  const displayAvatarUrl = stableProfile?.avatar_url || null;
+
   const { data: myProfessionalId } = useQuery({
     queryKey: ["my-professional-id", user?.id],
     queryFn: async () => {
@@ -32,8 +42,6 @@ const UserAvatarMenu = () => {
     },
     enabled: !!user,
   });
-
-  if (!profile) return null;
 
   return (
     <button
@@ -45,15 +53,15 @@ const UserAvatarMenu = () => {
       className="flex items-center gap-3 rounded-lg hover:opacity-80 transition-opacity w-full"
     >
       <Avatar className="w-11 h-11 shrink-0 ring-2 ring-sidebar-accent bg-sidebar-accent">
-        {profile.avatar_url ? (
-          <AvatarImage src={profile.avatar_url} alt={profile.full_name} className="object-cover" />
+        {displayAvatarUrl ? (
+          <AvatarImage src={displayAvatarUrl} alt={displayName} className="object-cover" />
         ) : null}
         <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary" delayMs={200}>
-          {profile.full_name?.slice(0, 2).toUpperCase()}
+          {displayName.slice(0, 2).toUpperCase()}
         </AvatarFallback>
       </Avatar>
       <div className="min-w-0 text-left">
-        <p className="text-xs font-bold text-sidebar-accent-foreground truncate">{profile.full_name}</p>
+        <p className="text-xs font-bold text-sidebar-accent-foreground truncate">{displayName}</p>
         <p className="text-[9px] text-sidebar-foreground uppercase tracking-[0.15em]">Marli Cosméticos</p>
       </div>
     </button>
