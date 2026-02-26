@@ -23,7 +23,7 @@ export interface Appointment {
   serviceNames: string[];
   date: string;
   time: string;
-  status: 'agendado' | 'confirmado' | 'cancelado' | 'atendido' | 'espera';
+  status: 'agendado' | 'confirmado' | 'cancelado' | 'atendido' | 'espera' | 'atendendo' | 'atrasado' | 'falta';
   notes?: string;
   executedBy?: string;
 }
@@ -258,9 +258,12 @@ export const sampleAppointments: Appointment[] = [
 ];
 
 export const statusConfig: Record<Appointment['status'], { color: string; label: string; bgClass: string }> = {
-  agendado: { color: 'bg-green-500', label: 'Agendado', bgClass: 'bg-green-50 border-green-200 text-green-700' },
-  confirmado: { color: 'bg-blue-500', label: 'Confirmado', bgClass: 'bg-blue-50 border-blue-200 text-blue-700' },
-  cancelado: { color: 'bg-rose-400', label: 'Cancelado', bgClass: 'bg-rose-50 border-rose-200 text-rose-700' },
-  atendido: { color: 'bg-orange-500', label: 'Atendido', bgClass: 'bg-orange-50 border-orange-200 text-orange-700' },
-  espera: { color: 'bg-amber-400', label: 'Espera', bgClass: 'bg-amber-50 border-amber-200 text-amber-700' },
+  agendado:  { color: 'bg-[#4285F4]',  label: 'Agendado',   bgClass: 'bg-[#4285F4]/10 border-[#4285F4]/30 text-[#4285F4]' },
+  confirmado:{ color: 'bg-[#1a237e]',  label: 'Confirmado', bgClass: 'bg-[#1a237e]/10 border-[#1a237e]/30 text-[#1a237e]' },
+  espera:    { color: 'bg-[#FF9800]',  label: 'Espera',     bgClass: 'bg-[#FF9800]/10 border-[#FF9800]/30 text-[#FF9800]' },
+  atendendo: { color: 'bg-[#E040FB]',  label: 'Atendendo',  bgClass: 'bg-[#E040FB]/10 border-[#E040FB]/30 text-[#E040FB]' },
+  atendido:  { color: 'bg-[#4CAF50]',  label: 'Atendido',   bgClass: 'bg-[#4CAF50]/10 border-[#4CAF50]/30 text-[#4CAF50]' },
+  cancelado: { color: 'bg-[#9E9E9E]',  label: 'Cancelado',  bgClass: 'bg-[#9E9E9E]/10 border-[#9E9E9E]/30 text-[#9E9E9E]' },
+  atrasado:  { color: 'bg-[#CDDC39]',  label: 'Atrasado',   bgClass: 'bg-[#CDDC39]/10 border-[#CDDC39]/30 text-[#9E9D00]' },
+  falta:     { color: 'bg-[#8B0000]',  label: 'Faltou',     bgClass: 'bg-[#8B0000]/10 border-[#8B0000]/30 text-[#8B0000]' },
 };
