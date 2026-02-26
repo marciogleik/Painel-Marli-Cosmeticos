@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAppointments, useProfessionals } from "@/hooks/useClinicData";
 import { Search, ChevronDown, FileText, User, Calendar } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -6,6 +7,7 @@ import { format } from "date-fns";
 
 const ProntuariosPage = () => {
   const [search, setSearch] = useState('');
+  const navigate = useNavigate();
   const { data: professionals = [] } = useProfessionals();
   const { data: appointments = [] } = useAppointments();
 
@@ -16,6 +18,7 @@ const ProntuariosPage = () => {
       const prof = professionals.find(p => p.id === a.professional_id);
       return {
         id: a.id,
+        clientId: a.client_id,
         clientName: a.client_name || 'Cliente',
         professional: prof?.name || 'Profissional',
         date: a.date,
@@ -54,7 +57,15 @@ const ProntuariosPage = () => {
           <p className="text-sm text-muted-foreground text-center py-8">Nenhum prontuário encontrado</p>
         )}
         {filtered.map(record => (
-          <div key={record.id} className="flex items-center justify-between p-4 rounded-lg bg-card border border-border hover:shadow-sm transition-shadow cursor-pointer">
+          <div
+            key={record.id}
+            className="flex items-center justify-between p-4 rounded-lg bg-card border border-border hover:shadow-sm transition-shadow cursor-pointer"
+            onClick={() => {
+              if (record.clientId) {
+                navigate(`/clientes/${record.clientId}`);
+              }
+            }}
+          >
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                 <FileText className="w-4 h-4 text-primary" />
