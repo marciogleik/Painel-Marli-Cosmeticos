@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { DBClient } from "@/hooks/useClinicData";
 import type { SortBy } from "./ClientFilters";
 
-const isIncomplete = (c: { email?: string | null; birth_date?: string | null }) =>
-  !c.email || !c.birth_date;
+const isIncomplete = (c: { cpf?: string | null; address?: string | null; city?: string | null }) =>
+  !c.cpf && !c.address && !c.city;
 
 const getInitials = (name: string) => {
   const parts = name.split(' ').filter(Boolean);

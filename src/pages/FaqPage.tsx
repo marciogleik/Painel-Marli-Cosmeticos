@@ -50,7 +50,7 @@ const faqItems = [
       },
       {
         q: "O que é o alerta de 'Cadastro Incompleto'?",
-        a: "Clientes sem e-mail ou data de nascimento são sinalizados com uma tag azul 'CADASTRO INCOMPLETO', facilitando a identificação de perfis que precisam ser atualizados.",
+        a: "Clientes sem CPF, sem endereço e sem cidade são sinalizados com uma tag azul 'CADASTRO INCOMPLETO', facilitando a identificação de perfis que precisam ser atualizados.",
       },
       {
         q: "O que posso ver no perfil do cliente?",
