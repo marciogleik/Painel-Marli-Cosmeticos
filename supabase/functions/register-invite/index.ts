@@ -62,6 +62,18 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: roleError.message }), { status: 500, headers: corsHeaders });
   }
 
+  // Link professional record if professional_id is set on the invitation
+  if (invite.professional_id) {
+    const { error: linkError } = await supabaseAdmin
+      .from("professionals")
+      .update({ user_id: userId })
+      .eq("id", invite.professional_id);
+
+    if (linkError) {
+      console.error("Error linking professional:", linkError.message);
+    }
+  }
+
   // Mark invitation as used
   await supabaseAdmin
     .from("invitations")
