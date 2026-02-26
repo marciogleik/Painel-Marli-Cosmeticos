@@ -718,13 +718,16 @@ function ProfColumn({
 
 function getStatusBg(status: string): string {
   const map: Record<string, string> = {
-    agendado: "#22c55e",
-    confirmado: "#3b82f6",
-    cancelado: "#fb7185",
-    atendido: "#f97316",
-    espera: "#fbbf24",
+    agendado: "#4285F4",
+    confirmado: "#1a237e",
+    espera: "#FF9800",
+    atendendo: "#E040FB",
+    atendido: "#4CAF50",
+    cancelado: "#9E9E9E",
+    atrasado: "#CDDC39",
+    falta: "#8B0000",
   };
-  return map[status] || "#22c55e";
+  return map[status] || "#4285F4";
 }
 
 export default AgendaPage;
