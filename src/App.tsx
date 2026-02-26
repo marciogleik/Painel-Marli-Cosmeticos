@@ -14,6 +14,8 @@ import PlaceholderPage from "./pages/PlaceholderPage";
 import ClientDetailPage from "./pages/ClientDetailPage";
 import ConfiguracoesPage from "./pages/ConfiguracoesPage";
 import FinanceiroPage from "./pages/FinanceiroPage";
+import ProfissionaisPage from "./pages/ProfissionaisPage";
+import ProfissionalDetailPage from "./pages/ProfissionalDetailPage";
 import LoginPage from "./pages/LoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import FaqPage from "./pages/FaqPage";
@@ -52,6 +54,8 @@ const App = () => (
               <Route path="/clientes/:id" element={<ClientDetailPage />} />
               <Route path="/prontuarios" element={<Navigate to="/clientes" replace />} />
               <Route path="/financeiro" element={<FinanceiroPage />} />
+              <Route path="/profissionais" element={<ProfissionaisPage />} />
+              <Route path="/profissionais/:id" element={<ProfissionalDetailPage />} />
               <Route path="/notificacoes" element={<PlaceholderPage title="Notificações" />} />
               <Route path="/faq" element={<FaqPage />} />
               <Route path="/configuracoes" element={<ConfiguracoesPage />} />
