@@ -7,10 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Camera, Loader2 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ArrowLeft, Camera, HelpCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRef, useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { format } from "date-fns";
 
 const ProfissionalDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -178,12 +180,26 @@ const ProfissionalDetailPage = () => {
   const avatarUrl = linkedProfile?.avatar_url;
 
   const ToggleButton = ({ 
-    label, value, onChange, yesLabel = "SIM", noLabel = "NÃO" 
+    label, value, onChange, yesLabel = "SIM", noLabel = "NÃO", tooltip 
   }: { 
-    label: string; value: boolean; onChange: (v: boolean) => void; yesLabel?: string; noLabel?: string;
+    label: string; value: boolean; onChange: (v: boolean) => void; yesLabel?: string; noLabel?: string; tooltip?: string;
   }) => (
     <div className="space-y-1.5">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <Label className="text-xs text-muted-foreground flex items-center gap-1">
+        {label}
+        {tooltip && (
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/60 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[220px] text-xs">
+                {tooltip}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </Label>
       <div className="flex gap-0.5">
         <button
           onClick={() => onChange(true)}
@@ -316,7 +332,7 @@ const ProfissionalDetailPage = () => {
 
             {/* Toggle options */}
             <Card>
-              <CardContent className="flex flex-wrap gap-6 p-4">
+              <CardContent className="flex flex-wrap gap-6 p-4 items-end">
                 <ToggleButton
                   label="Status"
                   value={form.is_active}
@@ -328,22 +344,34 @@ const ProfissionalDetailPage = () => {
                   label="Receber Agendamento?"
                   value={form.can_receive_appointments}
                   onChange={v => setForm(f => ({ ...f, can_receive_appointments: v }))}
+                  tooltip="Indica se o nome deste Profissional aparecerá na Agenda."
                 />
                 <ToggleButton
                   label="Ver todas Agendas?"
                   value={form.can_view_all_agendas}
                   onChange={v => setForm(f => ({ ...f, can_view_all_agendas: v }))}
+                  tooltip="Permite que este Profissional visualize as agendas de todos os outros profissionais."
                 />
                 <ToggleButton
                   label="Receber E-mail do Agendamento?"
                   value={form.can_receive_email_appointments}
                   onChange={v => setForm(f => ({ ...f, can_receive_email_appointments: v }))}
+                  tooltip="Todos agendamentos que este Profissional receber, o sistema enviará um e-mail alertando."
                 />
                 <ToggleButton
                   label="Permite alternar entre os Caixas?"
                   value={form.can_switch_registers}
                   onChange={v => setForm(f => ({ ...f, can_switch_registers: v }))}
+                  tooltip="Utilizado quando há mais de uma recepcionista e deseja centralizar os Caixas."
                 />
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Último Acesso</Label>
+                  <Input
+                    value={professional.updated_at ? format(new Date(professional.updated_at), "dd/MM/yyyy HH:mm") : "—"}
+                    disabled
+                    className="opacity-60 w-40"
+                  />
+                </div>
               </CardContent>
             </Card>
 
