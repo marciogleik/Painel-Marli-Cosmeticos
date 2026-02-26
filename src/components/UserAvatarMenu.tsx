@@ -27,20 +27,25 @@ const UserAvatarMenu = () => {
 
   const [stableProfile, setStableProfile] = useState<{ full_name: string; avatar_url: string | null } | null>(null);
   const [imgError, setImgError] = useState(false);
+  const [imgRetries, setImgRetries] = useState(0);
 
   useEffect(() => {
     if (profile) {
       setStableProfile(profile);
       setImgError(false);
+      setImgRetries(0);
     }
   }, [profile]);
 
   useEffect(() => {
     setImgError(false);
+    setImgRetries(0);
   }, [location.pathname]);
 
   const displayName = stableProfile?.full_name || user?.email?.split("@")[0] || "Usuário";
-  const displayAvatarUrl = stableProfile?.avatar_url || null;
+  const displayAvatarUrl = stableProfile?.avatar_url
+    ? `${stableProfile.avatar_url.split('?')[0]}?t=${imgRetries || Date.now()}`
+    : null;
   const initials = displayName.slice(0, 2).toUpperCase();
 
   const { data: myProfessionalId } = useQuery({
@@ -67,7 +72,13 @@ const UserAvatarMenu = () => {
             src={displayAvatarUrl}
             alt={displayName}
             className="w-full h-full object-cover"
-            onError={() => setImgError(true)}
+            onError={() => {
+              if (imgRetries < 2) {
+                setImgRetries(prev => prev + 1);
+              } else {
+                setImgError(true);
+              }
+            }}
           />
         ) : (
           <span className="text-xs font-bold text-primary">{initials}</span>
