@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, ArrowLeft, User, Lock } from "lucide-react";
 import marbleBg from "@/assets/marble-bg.jpg";
-import marliLogo from "@/assets/marli-logo.jpg";
+import marliLogo from "@/assets/marli-login-logo.png";
 import placeLogo from "@/assets/place-logo.png";
 
 const LoginPage = () => {
