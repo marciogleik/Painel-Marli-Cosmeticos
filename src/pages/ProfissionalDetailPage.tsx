@@ -339,35 +339,48 @@ const ProfissionalDetailPage = () => {
                   onChange={v => setForm(f => ({ ...f, is_active: v }))}
                   yesLabel="ATIVO"
                   noLabel="INATIVO"
+                  tooltip="ATIVO: acessa o sistema e aparece no Calendário. INATIVO: sem acesso e não aparece no Calendário."
                 />
                 <ToggleButton
                   label="Receber Agendamento?"
                   value={form.can_receive_appointments}
                   onChange={v => setForm(f => ({ ...f, can_receive_appointments: v }))}
-                  tooltip="Indica se o nome deste Profissional aparecerá na Agenda."
+                  tooltip="Se SIM, o nome deste Profissional aparecerá no Calendário para receber agendamentos."
                 />
                 <ToggleButton
                   label="Ver todas Agendas?"
                   value={form.can_view_all_agendas}
                   onChange={v => setForm(f => ({ ...f, can_view_all_agendas: v }))}
-                  tooltip="Permite que este Profissional visualize as agendas de todos os outros profissionais."
+                  tooltip="Se SIM, o profissional consegue ver a agenda de todos. Se NÃO, vê somente a própria agenda."
                 />
                 <ToggleButton
                   label="Receber E-mail do Agendamento?"
                   value={form.can_receive_email_appointments}
                   onChange={v => setForm(f => ({ ...f, can_receive_email_appointments: v }))}
-                  tooltip="Todos agendamentos que este Profissional receber, o sistema enviará um e-mail alertando."
+                  tooltip="Se SIM, o profissional receberá e-mail avisando os agendamentos dos clientes, seja pela Agenda Online ou pelo Calendário."
                 />
                 <ToggleButton
                   label="Permite alternar entre os Caixas?"
                   value={form.can_switch_registers}
                   onChange={v => setForm(f => ({ ...f, can_switch_registers: v }))}
-                  tooltip="Utilizado quando há mais de uma recepcionista e deseja centralizar os Caixas."
+                  tooltip="Utilizado quando há mais de uma recepcionista. Se SIM, as duas podem trabalhar com o mesmo caixa."
                 />
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Último Acesso</Label>
+                  <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                    Último Acesso
+                    <TooltipProvider delayDuration={200}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/60 cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-[220px] text-xs">
+                          Data e hora do último acesso ao sistema. Quando 00:00 indica que ainda não acessou.
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </Label>
                   <Input
-                    value={professional.updated_at ? format(new Date(professional.updated_at), "dd/MM/yyyy HH:mm") : "—"}
+                    value={professional.last_login_at ? format(new Date(professional.last_login_at), "dd/MM/yyyy HH:mm") : "00:00:00"}
                     disabled
                     className="opacity-60 w-40"
                   />
