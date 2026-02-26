@@ -41,20 +41,33 @@ interface AppointmentDetailDialogProps {
 const statusActions: Record<string, { label: string; icon: React.ReactNode; next: string }[]> = {
   agendado: [
     { label: "Confirmar", icon: <CalendarCheck className="w-4 h-4" />, next: "confirmado" },
-    { label: "Atender", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendido" },
+    { label: "Atendendo", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendendo" },
     { label: "Cancelar", icon: <XCircle className="w-4 h-4" />, next: "cancelado" },
+    { label: "Faltou", icon: <XCircle className="w-4 h-4" />, next: "falta" },
   ],
   confirmado: [
-    { label: "Atender", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendido" },
+    { label: "Atendendo", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendendo" },
     { label: "Cancelar", icon: <XCircle className="w-4 h-4" />, next: "cancelado" },
+    { label: "Faltou", icon: <XCircle className="w-4 h-4" />, next: "falta" },
   ],
   espera: [
     { label: "Confirmar", icon: <CalendarCheck className="w-4 h-4" />, next: "confirmado" },
-    { label: "Atender", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendido" },
+    { label: "Atendendo", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendendo" },
     { label: "Cancelar", icon: <XCircle className="w-4 h-4" />, next: "cancelado" },
+  ],
+  atendendo: [
+    { label: "Atendido", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendido" },
   ],
   atendido: [],
   cancelado: [
+    { label: "Reagendar", icon: <CalendarCheck className="w-4 h-4" />, next: "agendado" },
+  ],
+  atrasado: [
+    { label: "Atendendo", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendendo" },
+    { label: "Cancelar", icon: <XCircle className="w-4 h-4" />, next: "cancelado" },
+    { label: "Faltou", icon: <XCircle className="w-4 h-4" />, next: "falta" },
+  ],
+  falta: [
     { label: "Reagendar", icon: <CalendarCheck className="w-4 h-4" />, next: "agendado" },
   ],
 };
@@ -62,9 +75,12 @@ const statusActions: Record<string, { label: string; icon: React.ReactNode; next
 const statusLabel: Record<string, string> = {
   agendado: "Agendado",
   confirmado: "Confirmado",
+  espera: "Em Espera",
+  atendendo: "Atendendo",
   atendido: "Atendido",
   cancelado: "Cancelado",
-  espera: "Em Espera",
+  atrasado: "Atrasado",
+  falta: "Faltou",
 };
 
 const AppointmentDetailDialog = ({
