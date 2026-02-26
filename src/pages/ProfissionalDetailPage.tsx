@@ -31,6 +31,8 @@ const ProfissionalDetailPage = () => {
     can_receive_email_appointments: false,
     can_switch_registers: false,
   });
+  const [selectedRole, setSelectedRole] = useState<string | null>(null);
+  const [savingRole, setSavingRole] = useState(false);
 
   const { data: professional, isLoading } = useQuery({
     queryKey: ["professional-detail", id],
@@ -75,6 +77,10 @@ const ProfissionalDetailPage = () => {
     },
     enabled: !!professional?.user_id,
   });
+
+  useEffect(() => {
+    if (userRole) setSelectedRole(userRole);
+  }, [userRole]);
 
   useEffect(() => {
     if (professional) {
@@ -258,7 +264,43 @@ const ProfissionalDetailPage = () => {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Grupo de Acesso</Label>
-                <Input value={userRole === "gestor" ? "Administrador" : userRole === "profissional" ? "Profissional" : "Sem conta vinculada"} disabled className="opacity-60" />
+                {professional.user_id ? (
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={selectedRole || ""}
+                      onValueChange={async (value) => {
+                        if (!professional.user_id) return;
+                        setSavingRole(true);
+                        setSelectedRole(value);
+                        try {
+                          const { error } = await supabase
+                            .from("user_roles")
+                            .update({ role: value as "gestor" | "profissional" })
+                            .eq("user_id", professional.user_id);
+                          if (error) throw error;
+                          queryClient.invalidateQueries({ queryKey: ["professional-role", professional.user_id] });
+                          toast.success("Grupo de acesso atualizado!");
+                        } catch (err: any) {
+                          toast.error("Erro: " + err.message);
+                          setSelectedRole(userRole || null);
+                        } finally {
+                          setSavingRole(false);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="gestor">Administrador</SelectItem>
+                        <SelectItem value="profissional">Profissional</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {savingRole && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+                  </div>
+                ) : (
+                  <Input value="Sem conta vinculada" disabled className="opacity-60" />
+                )}
               </div>
             </div>
 
