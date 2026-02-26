@@ -11,7 +11,7 @@ const PainelLayout = () => {
           src={marliLogo}
           alt=""
           aria-hidden="true"
-          className="pointer-events-none select-none absolute bottom-6 right-6 w-48 opacity-10"
+          className="pointer-events-none select-none absolute bottom-6 right-6 w-48 opacity-[0.08]"
         />
         <Outlet />
       </main>
