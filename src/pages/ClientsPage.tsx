@@ -10,8 +10,8 @@ import ClientList from "@/components/client/ClientList";
 import ClientPagination from "@/components/client/ClientPagination";
 import { toast } from "sonner";
 
-const isIncomplete = (c: { email?: string | null; birth_date?: string | null }) =>
-  !c.email || !c.birth_date;
+const isIncomplete = (c: { cpf?: string | null; address?: string | null; city?: string | null }) =>
+  !c.cpf && !c.address && !c.city;
 
 const ClientsPage = () => {
   const [search, setSearch] = useState('');
