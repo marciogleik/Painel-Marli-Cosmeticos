@@ -9,7 +9,7 @@ import PainelLayout from "./layouts/PainelLayout";
 import DashboardPage from "./pages/DashboardPage";
 import AgendaPage from "./pages/AgendaPage";
 import ClientsPage from "./pages/ClientsPage";
-import ProntuariosPage from "./pages/ProntuariosPage";
+
 import PlaceholderPage from "./pages/PlaceholderPage";
 import ClientDetailPage from "./pages/ClientDetailPage";
 import ConfiguracoesPage from "./pages/ConfiguracoesPage";
@@ -50,7 +50,7 @@ const App = () => (
               <Route path="/agenda" element={<AgendaPage />} />
               <Route path="/clientes" element={<ClientsPage />} />
               <Route path="/clientes/:id" element={<ClientDetailPage />} />
-              <Route path="/prontuarios" element={<ProntuariosPage />} />
+              <Route path="/prontuarios" element={<Navigate to="/clientes" replace />} />
               <Route path="/financeiro" element={<FinanceiroPage />} />
               <Route path="/notificacoes" element={<PlaceholderPage title="Notificações" />} />
               <Route path="/faq" element={<FaqPage />} />
