@@ -2,8 +2,6 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Loader2, ArrowLeft, User, Lock } from "lucide-react";
 import marbleBg from "@/assets/marble-bg.jpg";
 import marliLogo from "@/assets/marli-login-logo.png";
@@ -59,29 +57,27 @@ const LoginPage = () => {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center px-4 relative overflow-hidden"
+      className="min-h-screen flex flex-col items-center justify-center px-4 overflow-hidden bg-black"
       style={{
         backgroundImage: `url(${marbleBg})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}
     >
-      {/* Overlay for depth */}
-      <div className="absolute inset-0 bg-black/30" />
+      {/* Logo - uses screen blend to make black bg transparent */}
+      <div
+        className="w-80 h-auto mb-8"
+        style={{ mixBlendMode: "screen" }}
+      >
+        <img
+          src={marliLogo}
+          alt="Marli Cosméticos"
+          className="w-full h-auto"
+        />
+      </div>
 
-      {/* Content */}
-      <div className="relative z-10 flex flex-col items-center w-full max-w-md">
-        {/* Logo */}
-        <div className="mb-10 flex flex-col items-center relative">
-          {/* Golden glow behind logo */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full bg-[#c9a55a]/15 blur-3xl" />
-          <img
-            src={marliLogo}
-            alt="Marli Cosméticos"
-            className="w-72 h-auto relative z-10 drop-shadow-[0_0_30px_rgba(201,165,90,0.3)]"
-          />
-        </div>
-
+      {/* Form */}
+      <div className="w-full max-w-md">
         {forgotMode ? (
           forgotSent ? (
             <div className="w-full space-y-4 text-center">
@@ -131,7 +127,6 @@ const LoginPage = () => {
           )
         ) : (
           <form onSubmit={handleSubmit} className="w-full space-y-5">
-            {/* Email */}
             <div className="relative">
               <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c9a55a]/60" />
               <input
@@ -143,8 +138,6 @@ const LoginPage = () => {
                 className="w-full pl-12 pr-4 py-3.5 rounded-md bg-black/50 border border-[#c9a55a]/30 text-[#c9a55a] placeholder:text-[#c9a55a]/40 focus:outline-none focus:border-[#c9a55a]/70 transition-colors"
               />
             </div>
-
-            {/* Password */}
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#c9a55a]/60" />
               <input
@@ -156,10 +149,7 @@ const LoginPage = () => {
                 className="w-full pl-12 pr-4 py-3.5 rounded-md bg-black/50 border border-[#c9a55a]/30 text-[#c9a55a] placeholder:text-[#c9a55a]/40 focus:outline-none focus:border-[#c9a55a]/70 transition-colors"
               />
             </div>
-
             {error && <p className="text-sm text-red-400">{error}</p>}
-
-            {/* Submit */}
             <button
               type="submit"
               disabled={submitting}
@@ -170,8 +160,6 @@ const LoginPage = () => {
             >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Entrar"}
             </button>
-
-            {/* Forgot */}
             <div className="text-center">
               <button
                 type="button"
@@ -186,7 +174,7 @@ const LoginPage = () => {
       </div>
 
       {/* Powered by */}
-      <div className="absolute bottom-8 flex items-center gap-3 z-10">
+      <div className="absolute bottom-4 flex items-center gap-3">
         <span className="text-base font-medium text-[#c9a55a]/40">powered by</span>
         <img src={placeLogo} alt="Place" className="h-10 opacity-40" />
       </div>
