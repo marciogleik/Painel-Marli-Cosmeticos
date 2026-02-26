@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { FileText, Image, File, ChevronDown, ChevronUp, X } from "lucide-react";
+import { FileText, Image, File, ChevronDown, ChevronUp, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -114,22 +114,44 @@ const AnexosTab = ({ clientId }: AnexosTabProps) => {
                     )}
                   </div>
 
-                  {att.file_type === "image" && att.file_path.startsWith("uploads/") && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-xs shrink-0"
-                      onClick={async () => {
-                        const { data, error } = await supabase.storage
-                          .from("client-attachments")
-                          .createSignedUrl(att.file_path, 300);
-                        if (error || !data?.signedUrl) return;
-                        setPreviewUrl(data.signedUrl);
-                      }}
-                    >
-                      Visualizar
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {att.file_type === "image" && att.file_path.startsWith("uploads/") && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs"
+                        onClick={async () => {
+                          const { data, error } = await supabase.storage
+                            .from("client-attachments")
+                            .createSignedUrl(att.file_path, 300);
+                          if (error || !data?.signedUrl) return;
+                          setPreviewUrl(data.signedUrl);
+                        }}
+                      >
+                        Visualizar
+                      </Button>
+                    )}
+
+                    {att.file_path.startsWith("uploads/") && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs gap-1"
+                        onClick={async () => {
+                          const { data, error } = await supabase.storage
+                            .from("client-attachments")
+                            .createSignedUrl(att.file_path, 300, { download: true });
+                          if (error || !data?.signedUrl) return;
+                          const a = document.createElement("a");
+                          a.href = data.signedUrl;
+                          a.download = att.file_path.split("/").pop() || "anexo";
+                          a.click();
+                        }}
+                      >
+                        <Download className="w-3.5 h-3.5" /> Baixar
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
