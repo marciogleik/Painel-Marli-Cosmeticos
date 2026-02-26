@@ -3,7 +3,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const UserAvatarMenu = () => {
   const { user } = useAuth();
@@ -26,13 +25,18 @@ const UserAvatarMenu = () => {
   });
 
   const [stableProfile, setStableProfile] = useState<{ full_name: string; avatar_url: string | null } | null>(null);
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
-    if (profile) setStableProfile(profile);
+    if (profile) {
+      setStableProfile(profile);
+      setImgError(false);
+    }
   }, [profile]);
 
   const displayName = stableProfile?.full_name || user?.email?.split("@")[0] || "Usuário";
   const displayAvatarUrl = stableProfile?.avatar_url || null;
+  const initials = displayName.slice(0, 2).toUpperCase();
 
   const { data: myProfessionalId } = useQuery({
     queryKey: ["my-professional-id", user?.id],
@@ -52,12 +56,18 @@ const UserAvatarMenu = () => {
       }}
       className="flex items-center gap-3 rounded-lg hover:opacity-80 transition-opacity w-full"
     >
-      <Avatar className="w-11 h-11 shrink-0 ring-2 ring-sidebar-accent bg-sidebar-accent">
-        <AvatarImage src={displayAvatarUrl ?? ""} alt={displayName} className="object-cover" />
-        <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">
-          {displayName.slice(0, 2).toUpperCase()}
-        </AvatarFallback>
-      </Avatar>
+      <div className="w-11 h-11 shrink-0 rounded-full ring-2 ring-sidebar-accent bg-sidebar-accent overflow-hidden flex items-center justify-center">
+        {displayAvatarUrl && !imgError ? (
+          <img
+            src={displayAvatarUrl}
+            alt={displayName}
+            className="w-full h-full object-cover"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <span className="text-xs font-bold text-primary">{initials}</span>
+        )}
+      </div>
       <div className="min-w-0 text-left">
         <p className="text-xs font-bold text-sidebar-accent-foreground truncate">{displayName}</p>
         <p className="text-[9px] text-sidebar-foreground uppercase tracking-[0.15em]">Marli Cosméticos</p>
