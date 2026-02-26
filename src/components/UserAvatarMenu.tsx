@@ -45,7 +45,7 @@ const UserAvatarMenu = () => {
             {profile.full_name?.slice(0, 2).toUpperCase()}
           </AvatarFallback>
         </Avatar>
-        <div className="min-w-0">
+        <div className="min-w-0 text-left">
           <p className="text-xs font-bold text-sidebar-accent-foreground truncate">{profile.full_name}</p>
           <p className="text-[9px] text-primary uppercase tracking-[0.15em]">Marli Cosméticos</p>
         </div>
