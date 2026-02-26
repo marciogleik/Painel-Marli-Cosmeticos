@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import RoleGuard from "@/components/RoleGuard";
 import PainelLayout from "./layouts/PainelLayout";
 import DashboardPage from "./pages/DashboardPage";
 import AgendaPage from "./pages/AgendaPage";
@@ -54,11 +55,11 @@ const App = () => (
               <Route path="/clientes/:id" element={<ClientDetailPage />} />
               <Route path="/prontuarios" element={<Navigate to="/clientes" replace />} />
               <Route path="/financeiro" element={<FinanceiroPage />} />
-              <Route path="/profissionais" element={<ProfissionaisPage />} />
-              <Route path="/profissionais/:id" element={<ProfissionalDetailPage />} />
+              <Route path="/profissionais" element={<RoleGuard denyRoles={["secretaria"]}><ProfissionaisPage /></RoleGuard>} />
+              <Route path="/profissionais/:id" element={<RoleGuard denyRoles={["secretaria"]}><ProfissionalDetailPage /></RoleGuard>} />
               <Route path="/notificacoes" element={<PlaceholderPage title="Notificações" />} />
               <Route path="/faq" element={<FaqPage />} />
-              <Route path="/configuracoes" element={<ConfiguracoesPage />} />
+              <Route path="/configuracoes" element={<RoleGuard denyRoles={["secretaria"]}><ConfiguracoesPage /></RoleGuard>} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
