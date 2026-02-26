@@ -68,6 +68,7 @@ const LoginPage = () => {
       <img
         src={marliLogo}
         alt="Marli Cosméticos"
+        className="w-64 h-auto mb-6"
       />
 
       {/* Form */}
