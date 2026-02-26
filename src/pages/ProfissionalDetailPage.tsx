@@ -348,7 +348,7 @@ const ProfissionalDetailPage = () => {
                         try {
                           const { error } = await supabase
                             .from("user_roles")
-                            .update({ role: value as "gestor" | "profissional" })
+                            .update({ role: value as "gestor" | "profissional" | "secretaria" })
                             .eq("user_id", professional.user_id);
                           if (error) throw error;
                           queryClient.invalidateQueries({ queryKey: ["professional-role", professional.user_id] });
@@ -366,6 +366,7 @@ const ProfissionalDetailPage = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="gestor">Administrador</SelectItem>
+                        <SelectItem value="secretaria">Secretária(o)</SelectItem>
                         <SelectItem value="profissional">Profissional</SelectItem>
                       </SelectContent>
                     </Select>
