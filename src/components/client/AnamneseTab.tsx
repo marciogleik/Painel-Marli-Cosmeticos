@@ -98,8 +98,17 @@ const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
   });
 
   const getFieldsFromContent = (record: PatientRecord): { label: string; value: string }[] => {
-    const content = record.content as Record<string, unknown> | null;
+    let content = record.content as any;
     if (!content) return [];
+
+    // Content might be stored as a JSON string — parse it
+    if (typeof content === "string") {
+      try {
+        content = JSON.parse(content);
+      } catch {
+        return [];
+      }
+    }
 
     // Handle imported records: content is an array of {label, value}
     if (Array.isArray(content)) {
