@@ -39,18 +39,37 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "Apenas gestores podem gerar convites" }), { status: 403, headers: corsHeaders });
   }
 
-  const { role } = await req.json();
+  const { role, professional_id } = await req.json();
   const validRoles = ["gestor", "profissional"];
   if (!validRoles.includes(role)) {
     return new Response(JSON.stringify({ error: "Função inválida" }), { status: 400, headers: corsHeaders });
   }
 
+  // If professional_id provided, check it exists and has no user_id yet
+  if (professional_id) {
+    const { data: prof } = await supabaseAdmin
+      .from("professionals")
+      .select("id, user_id")
+      .eq("id", professional_id)
+      .single();
+
+    if (!prof) {
+      return new Response(JSON.stringify({ error: "Profissional não encontrado" }), { status: 404, headers: corsHeaders });
+    }
+    if (prof.user_id) {
+      return new Response(JSON.stringify({ error: "Esta profissional já possui uma conta vinculada" }), { status: 400, headers: corsHeaders });
+    }
+  }
+
   // Create invitation (expires in 1 hour)
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
+  const insertData: Record<string, unknown> = { role, expires_at: expiresAt, created_by: user.id };
+  if (professional_id) insertData.professional_id = professional_id;
+
   const { data, error } = await supabaseAdmin
     .from("invitations")
-    .insert({ role, expires_at: expiresAt, created_by: user.id })
+    .insert(insertData)
     .select("token")
     .single();
 
