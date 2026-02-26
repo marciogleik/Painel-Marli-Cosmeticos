@@ -521,7 +521,12 @@ export type Database = {
       }
       professionals: {
         Row: {
+          agenda_order: number | null
           avatar_initials: string | null
+          can_receive_appointments: boolean
+          can_receive_email_appointments: boolean
+          can_switch_registers: boolean
+          can_view_all_agendas: boolean
           created_at: string
           id: string
           is_active: boolean
@@ -531,7 +536,12 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          agenda_order?: number | null
           avatar_initials?: string | null
+          can_receive_appointments?: boolean
+          can_receive_email_appointments?: boolean
+          can_switch_registers?: boolean
+          can_view_all_agendas?: boolean
           created_at?: string
           id?: string
           is_active?: boolean
@@ -541,7 +551,12 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          agenda_order?: number | null
           avatar_initials?: string | null
+          can_receive_appointments?: boolean
+          can_receive_email_appointments?: boolean
+          can_switch_registers?: boolean
+          can_view_all_agendas?: boolean
           created_at?: string
           id?: string
           is_active?: boolean
