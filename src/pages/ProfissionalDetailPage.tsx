@@ -8,7 +8,8 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ArrowLeft, Camera, HelpCircle, Loader2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { ArrowLeft, Camera, HelpCircle, Loader2, Trash2, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { useRef, useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,6 +23,9 @@ const ProfissionalDetailPage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deletingPhoto, setDeletingPhoto] = useState(false);
+  const [confirmDeletePhoto, setConfirmDeletePhoto] = useState(false);
+  const [sendingReset, setSendingReset] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -161,6 +165,46 @@ const ProfissionalDetailPage = () => {
     }
   };
 
+  const handleDeletePhoto = async () => {
+    if (!professional.user_id) return;
+    setDeletingPhoto(true);
+    try {
+      // List files in the user's avatar folder
+      const { data: files } = await supabase.storage.from("avatars").list(professional.user_id);
+      if (files && files.length > 0) {
+        const paths = files.map(f => `${professional.user_id}/${f.name}`);
+        await supabase.storage.from("avatars").remove(paths);
+      }
+      await supabase.from("profiles").update({ avatar_url: null }).eq("user_id", professional.user_id);
+      queryClient.invalidateQueries({ queryKey: ["professional-profile"] });
+      queryClient.invalidateQueries({ queryKey: ["profile-avatars"] });
+      queryClient.invalidateQueries({ queryKey: ["my-profile"] });
+      toast.success("Foto removida!");
+    } catch (err: any) {
+      toast.error("Erro: " + err.message);
+    } finally {
+      setDeletingPhoto(false);
+      setConfirmDeletePhoto(false);
+    }
+  };
+
+  const handleSendPasswordReset = async () => {
+    const email = linkedProfile?.email;
+    if (!email) { toast.error("Profissional sem e-mail vinculado"); return; }
+    setSendingReset(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success(`E-mail de redefinição enviado para ${email}`);
+    } catch (err: any) {
+      toast.error("Erro: " + err.message);
+    } finally {
+      setSendingReset(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-full">
@@ -259,6 +303,18 @@ const ProfissionalDetailPage = () => {
             </div>
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={uploading} />
             <p className="text-[10px] text-muted-foreground">JPG, PNG — máx. 2 MB</p>
+            {avatarUrl && professional.user_id && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-xs text-destructive hover:text-destructive"
+                onClick={() => setConfirmDeletePhoto(true)}
+                disabled={deletingPhoto}
+              >
+                {deletingPhoto ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                Excluir Foto
+              </Button>
+            )}
           </div>
 
           {/* Fields column */}
@@ -321,11 +377,24 @@ const ProfissionalDetailPage = () => {
               </div>
             </div>
 
-            {professional.user_id && (
+            {professional.user_id && linkedProfile?.email && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs">E-mail</Label>
-                  <Input value={linkedProfile?.email || "—"} disabled className="opacity-60" />
+                  <Input value={linkedProfile.email} disabled className="opacity-60" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Senha</Label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 w-full"
+                    onClick={handleSendPasswordReset}
+                    disabled={sendingReset}
+                  >
+                    {sendingReset ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                    Enviar E-mail de Redefinição
+                  </Button>
                 </div>
               </div>
             )}
@@ -395,6 +464,24 @@ const ProfissionalDetailPage = () => {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={confirmDeletePhoto} onOpenChange={setConfirmDeletePhoto}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir foto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A foto de perfil de <strong>{professional.name}</strong> será removida permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeletePhoto} disabled={deletingPhoto}>
+              {deletingPhoto && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
