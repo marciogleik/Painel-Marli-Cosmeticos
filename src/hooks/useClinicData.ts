@@ -10,6 +10,11 @@ export interface DBProfessional {
   avatar_initials: string | null;
   is_active: boolean;
   user_id: string | null;
+  agenda_order: number | null;
+  can_receive_appointments: boolean;
+  can_view_all_agendas: boolean;
+  can_receive_email_appointments: boolean;
+  can_switch_registers: boolean;
 }
 
 export const useProfessionals = (includeInactive = false) => {
