@@ -64,17 +64,16 @@ const LoginPage = () => {
         backgroundPosition: "center",
       }}
     >
-      {/* Logo - uses screen blend to make black bg transparent */}
-      <div
-        className="w-80 h-auto mb-8"
-        style={{ mixBlendMode: "screen" }}
-      >
-        <img
-          src={marliLogo}
-          alt="Marli Cosméticos"
-          className="w-full h-auto"
-        />
-      </div>
+      {/* Logo */}
+      <img
+        src={marliLogo}
+        alt="Marli Cosméticos"
+        className="w-96 h-auto mb-6"
+        style={{
+          maskImage: "radial-gradient(ellipse 70% 60% at 50% 45%, black 40%, transparent 100%)",
+          WebkitMaskImage: "radial-gradient(ellipse 70% 60% at 50% 45%, black 40%, transparent 100%)",
+        }}
+      />
 
       {/* Form */}
       <div className="w-full max-w-md">
