@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 const UserAvatarMenu = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const { data: profile } = useQuery({
     queryKey: ["my-profile", user?.id],
@@ -33,6 +34,10 @@ const UserAvatarMenu = () => {
       setImgError(false);
     }
   }, [profile]);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [location.pathname]);
 
   const displayName = stableProfile?.full_name || user?.email?.split("@")[0] || "Usuário";
   const displayAvatarUrl = stableProfile?.avatar_url || null;
