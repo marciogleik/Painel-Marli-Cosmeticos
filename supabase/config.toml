@@ -1,1 +1,13 @@
 project_id = "lvditcapoeiqtrmpaama"
+
+[functions.whatsapp-professionals]
+verify_jwt = false
+
+[functions.whatsapp-services]
+verify_jwt = false
+
+[functions.whatsapp-availability]
+verify_jwt = false
+
+[functions.whatsapp-booking]
+verify_jwt = false
