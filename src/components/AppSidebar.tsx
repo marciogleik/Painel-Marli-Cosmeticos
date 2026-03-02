@@ -15,6 +15,7 @@ import {
   Menu,
   X,
   HelpCircle,
+  Database,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,6 +31,7 @@ const allNavItems = [
   { label: "Notificações", href: "/notificacoes", icon: Bell, hideFor: [] as string[] },
   { label: "FAQ", href: "/faq", icon: HelpCircle, hideFor: [] as string[] },
   { label: "Configurações", href: "/configuracoes", icon: Settings, hideFor: ["secretaria"] },
+  { label: "Exportar Dados", href: "/exportar", icon: Database, hideFor: ["secretaria", "profissional"] },
 ];
 
 const AppSidebar = () => {
