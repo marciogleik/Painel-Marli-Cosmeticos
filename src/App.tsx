@@ -26,6 +26,7 @@ import ImportPage from "./pages/ImportPage";
 import ImportFichasPage from "./pages/ImportFichasPage";
 import ImportClientesPage from "./pages/ImportClientesPage";
 import ImportAnexosPage from "./pages/ImportAnexosPage";
+import ExportDataPage from "./pages/ExportDataPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -60,6 +61,7 @@ const App = () => (
               <Route path="/notificacoes" element={<PlaceholderPage title="Notificações" />} />
               <Route path="/faq" element={<FaqPage />} />
               <Route path="/configuracoes" element={<RoleGuard denyRoles={["secretaria"]}><ConfiguracoesPage /></RoleGuard>} />
+              <Route path="/exportar" element={<RoleGuard denyRoles={["secretaria", "profissional"]}><ExportDataPage /></RoleGuard>} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
