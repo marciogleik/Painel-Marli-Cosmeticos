@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, Loader2, CheckCircle2, Database } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
+
+type ExportFormat = "xlsx" | "csv";
 
 interface TableConfig {
   key: string;
@@ -35,6 +38,7 @@ const ExportDataPage = () => {
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [exported, setExported] = useState<Record<string, boolean>>({});
   const [exportingAll, setExportingAll] = useState(false);
+  const [format, setFormat] = useState<ExportFormat>("xlsx");
   const { toast } = useToast();
 
   const fetchAllRows = async (tableName: string) => {
@@ -59,6 +63,25 @@ const ExportDataPage = () => {
     return all;
   };
 
+  const downloadFile = (data: Record<string, unknown>[], fileName: string, sheetName: string) => {
+    if (format === "xlsx") {
+      const ws = XLSX.utils.json_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
+      XLSX.writeFile(wb, `${fileName}.xlsx`);
+    } else {
+      const ws = XLSX.utils.json_to_sheet(data);
+      const csv = XLSX.utils.sheet_to_csv(ws);
+      const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${fileName}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  };
+
   const exportTable = async (config: TableConfig) => {
     setLoading(prev => ({ ...prev, [config.key]: true }));
     try {
@@ -69,10 +92,8 @@ const ExportDataPage = () => {
         return;
       }
 
-      const ws = XLSX.utils.json_to_sheet(data);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, config.label.substring(0, 31));
-      XLSX.writeFile(wb, `${config.table}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+      const fileName = `${config.table}_${new Date().toISOString().slice(0, 10)}`;
+      downloadFile(data, fileName, config.label);
 
       setExported(prev => ({ ...prev, [config.key]: true }));
       toast({ title: "Exportado!", description: `${config.label}: ${data.length} registros exportados.` });
@@ -107,9 +128,30 @@ const ExportDataPage = () => {
         }
       }
 
-      if (totalRecords > 0) {
-        XLSX.writeFile(wb, `backup_completo_${new Date().toISOString().slice(0, 10)}.xlsx`);
-        toast({ title: "Backup completo!", description: `${totalRecords} registros exportados em ${wb.SheetNames.length} tabelas.` });
+      if (format === "xlsx") {
+        if (totalRecords > 0) {
+          XLSX.writeFile(wb, `backup_completo_${new Date().toISOString().slice(0, 10)}.xlsx`);
+          toast({ title: "Backup completo!", description: `${totalRecords} registros exportados em ${wb.SheetNames.length} tabelas.` });
+        }
+      } else {
+        // CSV: export each table as separate file
+        for (const config of tables) {
+          try {
+            const data = await fetchAllRows(config.table);
+            if (data.length > 0) {
+              const ws = XLSX.utils.json_to_sheet(data);
+              const csv = XLSX.utils.sheet_to_csv(ws);
+              const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `${config.table}_${new Date().toISOString().slice(0, 10)}.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+            }
+          } catch { /* skip */ }
+        }
+        toast({ title: "Backup completo!", description: "Arquivos CSV gerados para cada tabela." });
       }
     } finally {
       setExportingAll(false);
@@ -125,13 +167,24 @@ const ExportDataPage = () => {
             Exportar Dados
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Exporte suas tabelas em formato Excel (.xlsx) para backup ou análise.
+            Exporte suas tabelas em formato Excel ou CSV para backup ou análise.
           </p>
         </div>
-        <Button onClick={exportAll} disabled={exportingAll} className="shrink-0">
-          {exportingAll ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
-          {exportingAll ? "Exportando..." : "Exportar Tudo"}
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <Select value={format} onValueChange={(v) => setFormat(v as ExportFormat)}>
+            <SelectTrigger className="w-[110px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="xlsx">Excel (.xlsx)</SelectItem>
+              <SelectItem value="csv">CSV (.csv)</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button onClick={exportAll} disabled={exportingAll}>
+            {exportingAll ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+            {exportingAll ? "Exportando..." : "Exportar Tudo"}
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-3">
