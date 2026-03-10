@@ -1,56 +1,56 @@
-# Marli Cosméticos - Management and Automated Scheduling System
+# Marli Cosméticos - Sistema de Gestão e Agendamento Automatizado
 
-A full-stack enterprise solution developed to streamline clinical operations for Marli Cosméticos. The system integrates a high-performance administrative dashboard with an automated AI-driven receptionist capable of managing complex scheduling logic via WhatsApp.
+Uma solução enterprise full-stack desenvolvida para otimizar as operações clínicas da Marli Cosméticos. O sistema integra um dashboard administrativo de alta performance com uma recepcionista virtual orientada a IA, capaz de gerenciar lógicas complexas de agendamento via WhatsApp.
 
-## System Architecture
+## Arquitetura do Sistema
 
-The ecosystem is built upon a distributed architecture to ensure scalability, data integrity, and real-time synchronization:
+O ecossistema foi construído sobre uma arquitetura distribuída para garantir escalabilidade, integridade de dados e sincronização em tempo real:
 
 1.  **Frontend (React & TypeScript)**:
-    *   Developed with Vite for optimized build performance.
-    *   Features a comprehensive administrative dashboard for real-time agenda management.
-    *   Implements complex UI state management for professional availability, service mapping, and visual scheduling blocks.
-    *   Utilizes Tailwind CSS and shadcn/ui for a highly responsive and professional interface.
+    *   Desenvolvido com Vite para otimização de performance de build.
+    *   Dashboard administrativo completo para gestão de agenda em tempo real.
+    *   Implementação de gerenciamento de estado complexo para disponibilidade profissional, mapeamento de serviços e bloqueios visuais de agenda.
+    *   Utiliza Tailwind CSS e shadcn/ui para uma interface responsiva e de alto padrão estético.
 
-2.  **Backend & Persistence (Supabase)**:
-    *   **PostgreSQL**: Serves as the single source of truth for all clinical data, including appointments, client profiles, and professional configurations.
-    *   **Real-time Capabilities**: Leverages Supabase real-time subscriptions to keep the administrative dashboard synchronized across multiple sessions.
-    *   **Security**: Implements Row Level Security (RLS) to ensure data isolation and secure access.
+2.  **Backend & Persistência (Supabase)**:
+    *   **PostgreSQL**: Atua como fonte única de verdade para todos os dados clínicos, incluindo agendamentos, perfis de clientes e configurações profissionais.
+    *   **Recursos em Tempo Real**: Utiliza subscrições real-time do Supabase para manter o dashboard sincronizado entre múltiplas sessões.
+    *   **Segurança**: Implementa Row Level Security (RLS) para garantir isolamento de dados e acesso seguro.
 
-3.  **Automation & AI Integration (n8n & LangChain)**:
-    *   **Automated Scheduling**: An n8n-hosted workflow acts as the bridge between WhatsApp and the database.
-    *   **AI Agent (Marcia)**: Built using LangChain, the agent processes natural language intent to perform CRUD operations on the appointment table.
-    *   **Business Logic**: The system enforces strict scheduling rules, including professional-specific blocking, time-zone anchoring (Brasília), and multi-specialist availability checks.
+3.  **Automação & Integração de IA (n8n & LangChain)**:
+    *   **Agendamento Automatizado**: Um workflow hospedado no n8n atua como ponte entre o WhatsApp e o banco de dados.
+    *   **Agente de IA (Marcia)**: Desenvolvido com LangChain, o agente processa intenções em linguagem natural para realizar operações de CRUD na tabela de agendamentos.
+    *   **Regras de Negócio**: O sistema impõe regras estritas, incluindo bloqueios específicos por profissional, ancoragem de fuso horário (Brasília) e verificação de disponibilidade multi-especialista.
 
-## Key Technical Features
+## Diferenciais Técnicos
 
-*   **Conflict Resolution Engine**: A custom-built utility that validates overlapping appointments and respects predefined professional unavailability blocks.
-*   **Dynamic Service-Professional Mapping**: Intelligent logic that identifies the correct professional based on service requirements and real-time availability.
-*   **Data Integrity**: Transitioned from third-party calendar dependencies to a centralized database-first approach to eliminate synchronization latency.
-*   **User Experience**: Optimized for high-traffic environments with intuitive status tracking (Confirmed, In-Progress, Cancelled, etc.).
+*   **Motor de Resolução de Conflitos**: Utilitário customizado para validação de sobreposição de horários, respeitando bloqueios de indisponibilidade fixa.
+*   **Mapeamento Dinâmico Serviço-Profissional**: Lógica inteligente que identifica o profissional adequado com base nos requisitos do serviço e disponibilidade em tempo real.
+*   **Integridade de Dados**: Transição de dependências de calendários externos para uma abordagem centralizada em banco de dados, eliminando latência de sincronização.
+*   **Experiência do Usuário**: Otimizado para ambientes de alto fluxo, com rastreamento intuitivo de status (Confirmado, Em Atendimento, Cancelado, etc.).
 
-## Technology Stack
+## Stack Tecnológica
 
-*   **Languages**: TypeScript, JavaScript.
+*   **Linguagens**: TypeScript, JavaScript.
 *   **Frameworks**: React 18, Vite.
-*   **Styles**: Tailwind CSS, PostCSS.
-*   **Database**: Supabase / PostgreSQL.
-*   **Automation**: n8n, LangChain, WhatsApp API integration.
+*   **Estilização**: Tailwind CSS, PostCSS.
+*   **Banco de Dados**: Supabase / PostgreSQL.
+*   **Automação**: n8n, LangChain, Integração com API do WhatsApp.
 
-## Local Development
+## Desenvolvimento Local
 
-1.  Install dependencies:
+1.  Instalar dependências:
     ```bash
     npm install
     ```
-2.  Launch development server:
+2.  Iniciar servidor de desenvolvimento:
     ```bash
     npm run dev
     ```
 
-## Environment Configuration
+## Configuração de Ambiente
 
-The application requires environment variables for Supabase integration (`VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`). Ensure these are correctly set in a `.env` file for full functionality.
+A aplicação requer variáveis de ambiente para integração com o Supabase (`VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`). Certifique-se de configurar estas chaves em um arquivo `.env` para garantir a funcionalidade completa.
 
 ---
-*Proprietary project developed for clinical orchestration and automated customer engagement.*
+*Projeto proprietário desenvolvido para orquestração clínica e engajamento automatizado de clientes.*
