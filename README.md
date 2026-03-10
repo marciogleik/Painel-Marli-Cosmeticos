@@ -1,73 +1,50 @@
-# Welcome to your Lovable project
+# Painel Marli Cosméticos - Sistema de Gestão de Agenda
 
-## Project info
+Este projeto é uma plataforma personalizada para a clínica **Marli Cosméticos**, integrando um painel administrativo para gestão de consultas e uma IA recepcionista (Marcia) que atende via WhatsApp.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## 🚀 Arquitetura do Sistema
 
-## How can I edit this code?
+O ecossistema é composto por três pilares principais:
 
-There are several ways of editing your application.
+1.  **Frontend (React + Vite)**:
+    *   Painel administrativo para visualização da agenda em tempo real.
+    *   Gestão de profissionais, serviços e bloqueios de horário.
+    *   Interface premium com design focado em experiência do usuário.
+2.  **Backend & Banco de Dados (Supabase)**:
+    *   **PostgreSQL**: Armazenamento central de agendamentos, clientes e configurações.
+    *   **Edge Functions & Auth**: Segurança e lógica de servidor.
+3.  **Automação & IA (n8n + Marcia)**:
+    *   Fluxo de atendimento automático via WhatsApp.
+    *   A IA **Marcia** consulta a disponibilidade diretamente no Supabase e realiza os agendamentos sem intervenção humana.
 
-**Use Lovable**
+## 🛠️ Tecnologias Utilizadas
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+*   **Core**: React 18, TypeScript, Vite.
+*   **Styling**: Tailwind CSS, shadcn/ui.
+*   **Banco de Dados**: Supabase (PostreSQL).
+*   **IA/Automação**: n8n, LangChain (Agente de Calendário).
 
-Changes made via Lovable will be committed automatically to this repo.
+## 📅 Funcionalidades Principais
 
-**Use your preferred IDE**
+*   **Agenda Dinâmica**: Visualização por dia/semana com status coloridos.
+*   **Bloqueios de Agenda**: Sistema de ausência profissional (exibido em preto) que impede agendamentos indevidos.
+*   **IA Recepcionista**: Atendimento humano, validação de horários passados e priorização de especialistas.
+*   **Gestão de Clientes**: Histórico de consultas e base de dados integrada.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 💻 Desenvolvimento Local
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1.  Instale as dependências:
+    ```sh
+    npm install
+    ```
+2.  Inicie o servidor de desenvolvimento:
+    ```sh
+    npm run dev
+    ```
 
-Follow these steps:
+## 🔒 Segurança
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+O projeto utiliza variáveis de ambiente para conexão com o Supabase. Certifique-se de configurar o arquivo `.env` com suas credenciais para que o painel funcione corretamente.
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+---
+*Projeto proprietário desenvolvido para Marli Cosméticos.*
