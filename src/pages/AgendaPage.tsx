@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback } from "react";
-import { useProfessionals, useAppointments, statusConfig, DBAppointment } from "@/hooks/useClinicData";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { useProfessionals, useAppointments, statusConfig, DBAppointment, WEEKLY_BLOCKS } from "@/hooks/useClinicData";
 import { cn } from "@/lib/utils";
 import { format, addDays, subDays, startOfWeek, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -60,6 +60,34 @@ const AgendaPage = () => {
   const [isRescheduling, setIsRescheduling] = useState(false);
 
   const queryClient = useQueryClient();
+
+  // Realtime subscription
+  useEffect(() => {
+    const appointmentsChannel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'appointments' },
+        () => {
+          console.log("Realtime update: appointments");
+          queryClient.invalidateQueries({ queryKey: ["appointments"] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'blocked_slots' },
+        () => {
+          console.log("Realtime update: blocked_slots");
+          queryClient.invalidateQueries({ queryKey: ["blocked_slots"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(appointmentsChannel);
+    };
+  }, [queryClient]);
+
   const hours = Array.from({ length: 30 }, (_, i) => {
     const h = Math.floor(i / 2) + 7;
     const m = (i % 2) * 30;
@@ -119,15 +147,30 @@ const AgendaPage = () => {
   };
 
   const getBlockedForColumn = (dayStr: string, profId?: string) => {
-    return blockedSlots.filter((b) => {
+    const dynamicBlocks = blockedSlots.filter((b) => {
       const matchDay = b.date === dayStr;
       if (viewMode === "day" && profId) return matchDay && b.professional_id === profId;
       const matchProf = selectedFilter === "all" || b.professional_id === selectedFilter;
       return matchDay && matchProf;
     });
+
+    const weeklyBlocks = WEEKLY_BLOCKS.filter((wb) => {
+      if (viewMode === "day" && profId) return wb.professionalId === profId;
+      return selectedFilter === "all" || wb.professionalId === selectedFilter;
+    }).map(wb => ({
+      id: `weekly-${wb.professionalId}-${wb.startTime}`,
+      professional_id: wb.professionalId,
+      date: dayStr,
+      start_time: wb.startTime.length === 5 ? `${wb.startTime}:00` : wb.startTime,
+      end_time: wb.endTime.length === 5 ? `${wb.endTime}:00` : wb.endTime,
+      reason: wb.reason,
+      isWeekly: true
+    }));
+
+    return [...dynamicBlocks, ...weeklyBlocks];
   };
 
-  const renderBlockedBlock = (block: typeof blockedSlots[0]) => {
+  const renderBlockedBlock = (block: any) => {
     const timeParts = block.start_time.split(":").map(Number);
     const endParts = block.end_time.split(":").map(Number);
     const startMinutes = timeParts[0] * 60 + timeParts[1];
@@ -140,26 +183,33 @@ const AgendaPage = () => {
     return (
       <div
         key={block.id}
-        className="absolute left-1 right-1 rounded-md overflow-hidden border border-destructive/30 bg-destructive/10 z-10 group cursor-default"
+        className={cn(
+          "absolute left-1 right-1 rounded-md overflow-hidden border z-10 group cursor-default shadow-sm",
+          block.isWeekly
+            ? "border-black bg-black text-white"
+            : "border-destructive/30 bg-destructive/10 text-destructive"
+        )}
         style={{ top: `${top}px`, height: `${height}px` }}
       >
         <div className="h-full px-2 py-1 flex flex-col justify-start relative">
           <div className="flex items-center gap-1">
-            <Ban className="w-3 h-3 shrink-0 text-destructive/70" />
-            <span className="text-[10px] font-semibold text-destructive/70">{timeRange}</span>
+            <Ban className={cn("w-3 h-3 shrink-0", block.isWeekly ? "text-white/80" : "text-destructive/70")} />
+            <span className={cn("text-[10px] font-semibold", block.isWeekly ? "text-white/90" : "text-destructive/70")}>{timeRange}</span>
           </div>
-          {height >= 40 && (
-            <span className="text-[10px] text-destructive/60 truncate">
+          {height >= 32 && (
+            <span className={cn("text-[10px] font-bold leading-tight mt-1 whitespace-pre-wrap", block.isWeekly ? "text-white" : "text-destructive/60")}>
               {block.reason || "Bloqueado"}
             </span>
           )}
-          <button
-            onClick={(e) => { e.stopPropagation(); deleteBlockedSlot(block.id); }}
-            className="absolute top-1 right-1 p-0.5 rounded hover:bg-destructive/20 opacity-0 group-hover:opacity-100 transition-opacity"
-            title="Remover bloqueio"
-          >
-            <Trash2 className="w-3 h-3 text-destructive" />
-          </button>
+          {!block.isWeekly && (
+            <button
+              onClick={(e) => { e.stopPropagation(); deleteBlockedSlot(block.id); }}
+              className="absolute top-1 right-1 p-0.5 rounded hover:bg-destructive/20 opacity-0 group-hover:opacity-100 transition-opacity"
+              title="Remover bloqueio"
+            >
+              <Trash2 className="w-3 h-3 text-destructive" />
+            </button>
+          )}
         </div>
       </div>
     );

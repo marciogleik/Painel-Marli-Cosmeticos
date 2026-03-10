@@ -3,9 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Loader2, CheckCircle2, Database } from "lucide-react";
+import { Download, Loader2, CheckCircle2, Database as DatabaseIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
+import type { Database } from "@/integrations/supabase/types";
+
+type TableName = Extract<keyof Database["public"]["Tables"], string>;
 
 type ExportFormat = "xlsx" | "csv";
 
@@ -13,7 +16,7 @@ interface TableConfig {
   key: string;
   label: string;
   description: string;
-  table: string;
+  table: TableName;
 }
 
 const tables: TableConfig[] = [
@@ -41,14 +44,13 @@ const ExportDataPage = () => {
   const [format, setFormat] = useState<ExportFormat>("xlsx");
   const { toast } = useToast();
 
-  const fetchAllRows = async (tableName: string) => {
-    const all: Record<string, unknown>[] = [];
+  const fetchAllRows = async (tableName: TableName) => {
+    const all: any[] = [];
     const pageSize = 1000;
     let from = 0;
 
     while (true) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from(tableName)
         .select("*")
         .range(from, from + pageSize - 1);
@@ -163,7 +165,7 @@ const ExportDataPage = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Database className="w-6 h-6 text-primary" />
+            <DatabaseIcon className="w-6 h-6 text-primary" />
             Exportar Dados
           </h1>
           <p className="text-sm text-muted-foreground mt-1">

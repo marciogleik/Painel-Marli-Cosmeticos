@@ -26,18 +26,13 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
 import type { AnamnesisTemplate, TemplateField } from "@/components/settings/AnamnesesTab";
+import type { Database } from "@/integrations/supabase/types";
+
+type Tables = Database["public"]["Tables"];
+export type PatientRecord = Tables["patient_records"]["Row"];
 import AnamneseFillDialog from "./AnamneseFillDialog";
 
-interface PatientRecord {
-  id: string;
-  client_id: string;
-  professional_id: string | null;
-  record_type: string;
-  title: string | null;
-  content: Record<string, unknown> | null;
-  created_at: string;
-  updated_at: string;
-}
+// PatientRecord is now imported from types
 
 interface AnamneseTabProps {
   clientId: string;
@@ -68,7 +63,7 @@ const usePatientRecords = (clientId: string) =>
         .eq("client_id", clientId)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as unknown as PatientRecord[];
+      return (data ?? []) as PatientRecord[];
     },
     enabled: !!clientId,
   });
@@ -221,7 +216,7 @@ const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
   });
 
   const getFieldsFromContent = (record: PatientRecord): { label: string; value: string }[] => {
-    let content = record.content as any;
+    let content = record.content;
     if (!content) return [];
 
     // Content might be stored as a JSON string — parse it
@@ -233,9 +228,11 @@ const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
       }
     }
 
+    const contentObj = content as any;
+
     // Handle imported records: content is an array of {label, value}
-    if (Array.isArray(content)) {
-      return content
+    if (Array.isArray(contentObj)) {
+      return contentObj
         .filter((item: any) => item.label || item.value)
         .map((item: any) => ({
           label: item.label ?? "",
@@ -244,8 +241,8 @@ const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
     }
 
     // Handle template-based records: content has templateFields + answers
-    const templateFields = (content.templateFields as TemplateField[]) ?? [];
-    const answers = (content.answers as Record<string, string>) ?? {};
+    const templateFields = (contentObj.templateFields as TemplateField[]) ?? [];
+    const answers = (contentObj.answers as Record<string, string>) ?? {};
 
     return templateFields
       .filter((f) => f.isActive)

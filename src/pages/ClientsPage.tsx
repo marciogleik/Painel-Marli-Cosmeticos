@@ -24,7 +24,19 @@ const ClientsPage = () => {
   const [filterCity, setFilterCity] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
-  const { data: clients = [], isLoading } = useClients(search);
+
+  // New optimized hook usage
+  const { data: clientsData, isLoading } = useClients({
+    search,
+    page: currentPage,
+    pageSize,
+    sortBy,
+    is_active: !showInactive
+  });
+
+  const clients = clientsData?.data ?? [];
+  const totalItems = clientsData?.count ?? 0;
+
   const { data: inactiveClients = [] } = useInactiveClients();
   const queryClient = useQueryClient();
   const listRef = useRef<HTMLDivElement>(null);
@@ -39,44 +51,11 @@ const ClientsPage = () => {
     setCurrentPage(1);
   };
 
-  // Fetch appointment stats per client
-  const { data: appointmentStats = {} } = useQuery({
-    queryKey: ["client_appointment_stats"],
-    queryFn: async () => {
-      const stats: Record<string, { lastVisit: string | null; totalVisits: number }> = {};
-      const batchSize = 1000;
-      let from = 0;
-      while (true) {
-        const { data, error } = await supabase
-          .from("appointments")
-          .select("client_id, date")
-          .not("client_id", "is", null)
-          .order("date", { ascending: false })
-          .range(from, from + batchSize - 1);
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        for (const row of data) {
-          if (!row.client_id) continue;
-          if (!stats[row.client_id]) {
-            stats[row.client_id] = { lastVisit: row.date, totalVisits: 0 };
-          }
-          stats[row.client_id].totalVisits++;
-          if (!stats[row.client_id].lastVisit || row.date > stats[row.client_id].lastVisit!) {
-            stats[row.client_id].lastVisit = row.date;
-          }
-        }
-        if (data.length < batchSize) break;
-        from += batchSize;
-      }
-      return stats;
-    },
-  });
-
   const reactivateMutation = useMutation({
     mutationFn: async (clientId: string) => {
       const { error } = await supabase
         .from("clients")
-        .update({ is_active: true } as any)
+        .update({ is_active: true })
         .eq("id", clientId);
       if (error) throw error;
     },
@@ -85,7 +64,7 @@ const ClientsPage = () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       queryClient.invalidateQueries({ queryKey: ["clients_inactive"] });
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error(err.message ?? "Erro ao reativar cliente");
     },
   });
@@ -98,26 +77,23 @@ const ClientsPage = () => {
     return Array.from(cities).sort();
   }, [clients]);
 
+  // Simplified display logic (filters still applied on the paginated result if needed, 
+  // but ideally we should move more filters to the server if they are frequent)
   const displayClients = useMemo(() => {
-    let list = clients.length > 0 ? [...clients] : [];
+    let list = [...clients];
 
     if (filterIncomplete) list = list.filter(c => isIncomplete(c));
     if (filterCity) list = list.filter(c => c.city === filterCity);
     if (filterDateFrom) list = list.filter(c => c.created_at >= filterDateFrom);
     if (filterDateTo) list = list.filter(c => c.created_at <= filterDateTo + 'T23:59:59');
 
-    if (sortBy === 'last_visit') {
-      list.sort((a, b) => (appointmentStats[b.id]?.lastVisit ?? '').localeCompare(appointmentStats[a.id]?.lastVisit ?? ''));
-    } else if (sortBy === 'total_visits') {
-      list.sort((a, b) => (appointmentStats[b.id]?.totalVisits ?? 0) - (appointmentStats[a.id]?.totalVisits ?? 0));
-    }
     return list;
-  }, [clients, sortBy, appointmentStats, filterIncomplete, filterCity, filterDateFrom, filterDateTo]);
+  }, [clients, filterIncomplete, filterCity, filterDateFrom, filterDateTo]);
 
-  const totalPages = Math.max(1, Math.ceil(displayClients.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const safePage = Math.min(currentPage, totalPages);
   const startIndex = (safePage - 1) * pageSize;
-  const paginatedClients = displayClients.slice(startIndex, startIndex + pageSize);
+  const paginatedClients = displayClients; // Already limited by server
 
   const handleSearchChange = (value: string) => { setSearch(value); setCurrentPage(1); };
   const handlePageSizeChange = (size: number) => { setPageSize(size); setCurrentPage(1); };
@@ -170,7 +146,6 @@ const ClientsPage = () => {
         isEmpty={displayClients.length === 0}
         search={search}
         sortBy={sortBy}
-        appointmentStats={appointmentStats}
         inactiveClients={inactiveClients}
         showInactive={showInactive}
         onShowInactiveChange={setShowInactive}

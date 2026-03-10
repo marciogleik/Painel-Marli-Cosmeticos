@@ -15,6 +15,12 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { maskPhone, maskCPF } from "@/utils/masks";
 import type { DBClient } from "@/hooks/useClinicData";
+import type { Database } from "@/integrations/supabase/types";
+
+type Tables = Database["public"]["Tables"];
+type TablesUpdate = Tables["clients"]["Update"];
+
+type ClientForm = z.infer<typeof clientSchema>;
 
 const clientSchema = z.object({
   full_name: z.string().trim().min(2, "Nome deve ter ao menos 2 caracteres").max(120),
@@ -27,8 +33,6 @@ const clientSchema = z.object({
   city: z.string().trim().max(100).optional().or(z.literal("")),
   notes: z.string().trim().max(1000).optional().or(z.literal("")),
 });
-
-type ClientForm = z.infer<typeof clientSchema>;
 
 interface Props {
   open: boolean;
@@ -60,8 +64,8 @@ const EditClientDialog = ({ open, onOpenChange, client }: Props) => {
         email: client.email ?? "",
         cpf: client.cpf ?? "",
         birth_date: client.birth_date ?? "",
-        address: (client as any).address ?? "",
-        city: (client as any).city ?? "",
+        address: client.address ?? "",
+        city: client.city ?? "",
         notes: client.notes ?? "",
       });
       setErrors({});
@@ -70,7 +74,7 @@ const EditClientDialog = ({ open, onOpenChange, client }: Props) => {
 
   const mutation = useMutation({
     mutationFn: async (data: ClientForm) => {
-      const payload: Record<string, unknown> = {
+      const payload: TablesUpdate = {
         full_name: data.full_name.trim(),
         phone: data.phone?.trim() || null,
         phone2: data.phone2?.trim() || null,
@@ -84,7 +88,7 @@ const EditClientDialog = ({ open, onOpenChange, client }: Props) => {
 
       const { error } = await supabase
         .from("clients")
-        .update(payload as any)
+        .update(payload)
         .eq("id", client.id);
       if (error) throw error;
     },
@@ -94,7 +98,7 @@ const EditClientDialog = ({ open, onOpenChange, client }: Props) => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       onOpenChange(false);
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error(err.message ?? "Erro ao atualizar cliente");
     },
   });

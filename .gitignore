@@ -22,3 +22,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment
+.env
+.env.local
+
+# Data dumps and scripts
+*.csv
+create_view.sql
+generate_view_sql.py
+supabase/.temp/

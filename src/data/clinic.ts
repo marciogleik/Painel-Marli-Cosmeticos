@@ -5,6 +5,45 @@ export interface Professional {
   avatar: string;
 }
 
+export interface WeeklyBlock {
+  professionalId: string;
+  professionalName: string;
+  startTime: string;
+  endTime: string;
+  reason: string;
+}
+
+export const WEEKLY_BLOCKS: WeeklyBlock[] = [
+  // Dhionara Sbrussi (...01)
+  { professionalId: '1', professionalName: 'Dhionara Sbrussi', startTime: '07:00', endTime: '09:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA Dhionara' },
+  { professionalId: '1', professionalName: 'Dhionara Sbrussi', startTime: '10:15', endTime: '11:30', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+  { professionalId: '1', professionalName: 'Dhionara Sbrussi', startTime: '11:45', endTime: '13:30', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+  { professionalId: '1', professionalName: 'Dhionara Sbrussi', startTime: '18:30', endTime: '23:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+  
+  // Dhiani Sbrussi (...02)
+  { professionalId: '2', professionalName: 'Dhiani Sbrussi', startTime: '11:15', endTime: '13:30', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+  { professionalId: '2', professionalName: 'Dhiani Sbrussi', startTime: '17:00', endTime: '23:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+  
+  // Luciane Castanheira (...03)
+  { professionalId: '3', professionalName: 'Luciane Castanheira', startTime: '10:45', endTime: '14:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+  { professionalId: '3', professionalName: 'Luciane Castanheira', startTime: '19:00', endTime: '23:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+  
+  // Tais Pires (...04)
+  { professionalId: '4', professionalName: 'Tais Pires', startTime: '11:45', endTime: '14:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+  { professionalId: '4', professionalName: 'Tais Pires', startTime: '18:30', endTime: '23:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+  
+  // Bruna Castanheira (...05)
+  { professionalId: '5', professionalName: 'Bruna Castanheira', startTime: '07:00', endTime: '14:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+  { professionalId: '5', professionalName: 'Bruna Castanheira', startTime: '19:00', endTime: '23:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+  
+  // Michele Quintana (...06)
+  { professionalId: '6', professionalName: 'Michele Quiana', startTime: '11:30', endTime: '13:30', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+  { professionalId: '6', professionalName: 'Michele Quiana', startTime: '18:00', endTime: '23:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+  
+  // Patricia Amanda (...07)
+  { professionalId: '7', professionalName: 'Patricia Amanda', startTime: '09:30', endTime: '14:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+];
+
 export interface Service {
   id: string;
   name: string;

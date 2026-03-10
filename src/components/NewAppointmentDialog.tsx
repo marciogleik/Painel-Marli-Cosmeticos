@@ -67,28 +67,30 @@ const NewAppointmentDialog = ({ open, onOpenChange, defaultDate }: NewAppointmen
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [notes, setNotes] = useState("");
+  const [serviceSearch, setServiceSearch] = useState("");
 
   const services = useServicesForProfessional(professionalId);
-  const { data: clients = [] } = useClients(clientSearch);
+  const { data: clientsData, isLoading: isLoadingClients } = useClients({ search: clientSearch, pageSize: 20 });
+  const clients = clientsData?.data ?? [];
 
   const dateStr = date ? format(date, "yyyy-MM-dd") : undefined;
   const { getConflict } = useOccupiedSlots(professionalId || undefined, dateStr);
 
   const filteredClients = clientSearch.length >= 2
     ? clients.filter(c =>
-        c.full_name.toLowerCase().includes(clientSearch.toLowerCase()) ||
-        (c.phone && c.phone.includes(clientSearch))
-      )
+      c.full_name.toLowerCase().includes(clientSearch.toLowerCase()) ||
+      (c.phone && c.phone.includes(clientSearch))
+    )
     : [];
 
   // Calculate total duration and end time
   const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration_minutes, 0);
   const endTime = startTime
     ? (() => {
-        const [h, m] = startTime.split(":").map(Number);
-        const endMin = h * 60 + m + totalDuration;
-        return `${Math.floor(endMin / 60).toString().padStart(2, "0")}:${(endMin % 60).toString().padStart(2, "0")}`;
-      })()
+      const [h, m] = startTime.split(":").map(Number);
+      const endMin = h * 60 + m + totalDuration;
+      return `${Math.floor(endMin / 60).toString().padStart(2, "0")}:${(endMin % 60).toString().padStart(2, "0")}`;
+    })()
     : "";
 
   const toggleService = (service: DBService) => {
@@ -213,24 +215,37 @@ const NewAppointmentDialog = ({ open, onOpenChange, defaultDate }: NewAppointmen
               {services.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Nenhum serviço vinculado a esta profissional.</p>
               ) : (
-                <div className="grid gap-2 max-h-40 overflow-y-auto border border-border rounded-lg p-3">
-                  {services.map((s) => {
-                    const checked = selectedServices.some((ss) => ss.id === s.id);
-                    return (
-                      <label key={s.id} className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 rounded-md px-2 py-1.5 -mx-1">
-                        <Checkbox checked={checked} onCheckedChange={() => toggleService(s)} />
-                        <div className="flex-1 min-w-0">
-                          <span className="text-sm font-medium">{s.name}</span>
-                          <span className="text-xs text-muted-foreground ml-2">{s.duration_minutes} min</span>
-                        </div>
-                        {s.base_price != null && (
-                          <span className="text-xs text-muted-foreground shrink-0">
-                            R$ {s.base_price.toFixed(2).replace(".", ",")}
-                          </span>
-                        )}
-                      </label>
-                    );
-                  })}
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="Pesquisar serviço..."
+                      value={serviceSearch}
+                      onChange={(e) => setServiceSearch(e.target.value)}
+                      className="pl-8 h-8 text-xs"
+                    />
+                  </div>
+                  <div className="grid gap-2 max-h-40 overflow-y-auto border border-border rounded-lg p-3">
+                    {services
+                      .filter(s => s.name.toLowerCase().includes(serviceSearch.toLowerCase()))
+                      .map((s) => {
+                        const checked = selectedServices.some((ss) => ss.id === s.id);
+                        return (
+                          <label key={s.id} className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 rounded-md px-2 py-1.5 -mx-1">
+                            <Checkbox checked={checked} onCheckedChange={() => toggleService(s)} />
+                            <div className="flex-1 min-w-0">
+                              <span className="text-sm font-medium">{s.name}</span>
+                              <span className="text-xs text-muted-foreground ml-2">{s.duration_minutes} min</span>
+                            </div>
+                            {s.base_price != null && (
+                              <span className="text-xs text-muted-foreground shrink-0">
+                                R$ {s.base_price.toFixed(2).replace(".", ",")}
+                              </span>
+                            )}
+                          </label>
+                        );
+                      })}
+                  </div>
                 </div>
               )}
             </div>
