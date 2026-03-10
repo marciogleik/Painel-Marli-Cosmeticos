@@ -17,9 +17,9 @@ O ecossistema foi construído sobre uma arquitetura distribuída para garantir e
     *   **Recursos em Tempo Real**: Utiliza subscrições real-time do Supabase para manter o dashboard sincronizado entre múltiplas sessões.
     *   **Segurança**: Implementa Row Level Security (RLS) para garantir isolamento de dados e acesso seguro.
 
-3.  **Automação & Integração de IA (n8n & LangChain)**:
+3.  **Automação & Integração de IA (n8n)**:
     *   **Agendamento Automatizado**: Um workflow hospedado no n8n atua como ponte entre o WhatsApp e o banco de dados.
-    *   **Agente de IA (Marcia)**: Desenvolvido com LangChain, o agente processa intenções em linguagem natural para realizar operações de CRUD na tabela de agendamentos.
+    *   **Agente de IA (Marcia)**: Hospedado em uma VPS dedicada e orquestrado via n8n, responsável por processar intenções em linguagem natural recebidas pelo WhatsApp e executar operações de agendamento no Supabase.
     *   **Regras de Negócio**: O sistema impõe regras estritas, incluindo bloqueios específicos por profissional, ancoragem de fuso horário (Brasília) e verificação de disponibilidade multi-especialista.
 
 ## Diferenciais Técnicos
@@ -50,7 +50,7 @@ O ecossistema foi construído sobre uma arquitetura distribuída para garantir e
 
 ## Configuração de Ambiente
 
-A aplicação requer variáveis de ambiente para integração com o Supabase (`VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`). Certifique-se de configurar estas chaves em um arquivo `.env` para garantir a funcionalidade completa.
+A aplicação requer variáveis de ambiente para integração com o Supabase (`VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`). Certifique-se de configurar estas chaves em um arquivo `.env` pra garantir a funcionalidade completa.
 
 ---
-*Projeto proprietário desenvolvido para orquestração clínica e engajamento automatizado de clientes.*
+Sistema desenvolvido para automação de gestão clínica, agendamento inteligente e atendimento automatizado via WhatsApp.
