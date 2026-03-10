@@ -186,28 +186,32 @@ const AgendaPage = () => {
         className={cn(
           "absolute left-1 right-1 rounded-md overflow-hidden border z-10 group cursor-default shadow-sm",
           block.isWeekly
-            ? "border-black bg-black text-white"
+            ? "border-black bg-neutral-800 text-white"
             : "border-destructive/30 bg-destructive/10 text-destructive"
         )}
         style={{ top: `${top}px`, height: `${height}px` }}
       >
-        <div className="h-full px-2 py-1 flex flex-col justify-start relative">
-          <div className="flex items-center gap-1">
-            <Ban className={cn("w-3 h-3 shrink-0", block.isWeekly ? "text-white/80" : "text-destructive/70")} />
-            <span className={cn("text-[10px] font-semibold", block.isWeekly ? "text-white/90" : "text-destructive/70")}>{timeRange}</span>
-          </div>
-          {height >= 32 && (
-            <span className={cn("text-[10px] font-bold leading-tight mt-1 whitespace-pre-wrap", block.isWeekly ? "text-white" : "text-destructive/60")}>
-              {block.reason || "Bloqueado"}
+        <div className="h-full px-2 py-1.5 flex flex-col justify-start relative leading-tight">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <Ban className={cn("w-3 h-3 shrink-0", block.isWeekly ? "text-white/70" : "text-destructive/70")} />
+            <span className={cn("text-[10px] font-bold uppercase tracking-tight", block.isWeekly ? "text-white/80" : "text-destructive/80")}>
+              {timeRange}
             </span>
-          )}
+          </div>
+          <span className={cn(
+            "text-[11px] font-black uppercase leading-[1.1] tracking-tight line-clamp-4",
+            block.isWeekly ? "text-white" : "text-destructive"
+          )}>
+            {block.reason || "AUSÊNCIA DO PROFISSIONAL"}
+          </span>
+
           {!block.isWeekly && (
             <button
               onClick={(e) => { e.stopPropagation(); deleteBlockedSlot(block.id); }}
               className="absolute top-1 right-1 p-0.5 rounded hover:bg-destructive/20 opacity-0 group-hover:opacity-100 transition-opacity"
               title="Remover bloqueio"
             >
-              <Trash2 className="w-3 h-3 text-destructive" />
+              <Trash2 className="w-3.5 h-3.5 text-destructive" />
             </button>
           )}
         </div>
@@ -434,15 +438,13 @@ const AgendaPage = () => {
     const isLarge = height >= 140;
 
     const displayTop = isDragging ? dragPreviewTop : top;
-
-    // Format full date and time for footer (e.g. 11/03/2026 - 08h00 às 10h00)
-    const fullDateTimeStr = `${format(new Date(appt.date + "T00:00:00"), "dd/MM/yyyy")} - ${appt.start_time?.slice(0, 5).replace(":", "h")} às ${appt.end_time?.slice(0, 5).replace(":", "h")}`;
+    const serviceSummary = serviceName || appt.notes || "Sem serviço";
 
     return (
       <div
         key={appt.id}
         className={cn(
-          "absolute left-1 right-1 rounded-md shadow-sm overflow-hidden border-l-[3.5px] transition-shadow select-none",
+          "absolute left-1 right-1 rounded-md shadow-sm overflow-hidden border-l-[4px] transition-shadow select-none",
           cfg.color.replace("bg-", "border-l-"),
           isCancelled ? "opacity-60" : "",
           isDraggable ? "cursor-grab hover:shadow-md" : "cursor-pointer",
@@ -465,34 +467,32 @@ const AgendaPage = () => {
         }}
       >
         <div
-          className="h-full px-2 py-1.5 flex flex-col justify-start overflow-hidden gap-0.5"
-          style={!isCancelled ? { backgroundColor: `color-mix(in srgb, ${getStatusBg(appt.status)} 35%, white)` } : undefined}
+          className="h-full px-2 py-1.5 flex flex-col justify-start overflow-hidden leading-tight gap-0.5"
+          style={!isCancelled ? { backgroundColor: `color-mix(in srgb, ${getStatusBg(appt.status)} 40%, white)` } : undefined}
         >
           {isCompact ? (
-            <div className="flex items-center gap-1 h-full">
+            <div className="flex items-center gap-1 h-full overflow-hidden">
               {isDraggable && <GripVertical className="w-2.5 h-2.5 shrink-0 text-muted-foreground/40" />}
-              {getStatusIcon(appt.status)}
-              <span className={cn("text-[10px] font-bold truncate text-foreground leading-none", isCancelled && "line-through")}>
+              <span className={cn("text-[10px] font-bold truncate text-foreground", isCancelled && "line-through")}>
                 {appt.client_name}
               </span>
-              <span className="text-[9px] font-medium opacity-60 shrink-0 ml-auto leading-none">
+              <span className="text-[9px] font-normal opacity-60 shrink-0 ml-auto mr-1">
                 {appt.start_time?.slice(0, 5)}
               </span>
             </div>
           ) : (
             <>
               {/* Header: Time Range */}
-              <div className="flex items-center gap-1 opacity-80">
+              <div className="flex items-center gap-1 opacity-70 mb-0.5">
                 {isDraggable && <GripVertical className="w-2.5 h-2.5 shrink-0 text-muted-foreground/40" />}
-                <span className="text-[9.5px] font-medium text-foreground/80">{timeRange}</span>
+                <span className="text-[10px] font-bold text-foreground/90 uppercase tracking-tight">{timeRange}</span>
               </div>
 
               {/* Client Name */}
               <div className="flex items-start gap-1">
                 {getStatusIcon(appt.status)}
                 <span className={cn(
-                  "text-[10.5px] font-bold text-foreground leading-tight overflow-hidden",
-                  isMedium ? "whitespace-normal line-clamp-2" : "truncate",
+                  "text-[11px] font-black text-foreground uppercase leading-[1.1] tracking-tight line-clamp-2",
                   isCancelled && "line-through opacity-70"
                 )}>
                   {appt.client_name}
@@ -500,33 +500,24 @@ const AgendaPage = () => {
               </div>
 
               {/* Service Names */}
-              {serviceName && (
-                <p className="text-[9.5px] text-foreground/90 font-medium truncate leading-tight mt-0.5">
-                  {serviceName}
+              {serviceSummary && (
+                <p className="text-[10.5px] text-foreground font-bold tracking-tight line-clamp-2 leading-[1.1] mt-0.5">
+                  {serviceSummary}
                 </p>
               )}
 
               {/* Professional & Status */}
               {prof && (
-                <p className="text-[9px] text-foreground/70 font-semibold truncate leading-tight">
+                <p className="text-[9.5px] text-foreground/80 font-bold uppercase tracking-tighter mt-1 truncate">
                   ({prof.name.split(" ")[0]}) - {cfg.label}
                 </p>
               )}
 
-              {/* Observations/Notes */}
-              {appt.notes && height >= 70 && (
-                <p className="text-[9px] text-foreground/75 italic truncate mt-0.5 leading-tight">
+              {/* Footer or More info if large enough */}
+              {appt.notes && serviceName && height >= 120 && (
+                <p className="text-[9px] text-foreground/70 italic line-clamp-2 mt-1 border-t border-foreground/10 pt-1">
                   Obs: {appt.notes}
                 </p>
-              )}
-
-              {/* Footer: Full Date and Time String */}
-              {isLarge && (
-                <div className="mt-auto border-t border-foreground/10 pt-1">
-                  <p className="text-[8.5px] font-medium text-foreground/60 leading-tight">
-                    {fullDateTimeStr}
-                  </p>
-                </div>
               )}
             </>
           )}
