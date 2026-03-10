@@ -203,6 +203,10 @@ const AgendaPage = () => {
             block.isWeekly ? "text-white" : "text-destructive"
           )}>
             {block.reason || "AUSÊNCIA DO PROFISSIONAL"}
+            {(() => {
+              const prof = professionals.find(p => p.id === block.professional_id);
+              return prof ? ` SEMANA ${prof.name.split(" ")[0]}` : "";
+            })()}
           </span>
 
           {!block.isWeekly && (
@@ -492,7 +496,7 @@ const AgendaPage = () => {
               <div className="flex items-start gap-1">
                 {getStatusIcon(appt.status)}
                 <span className={cn(
-                  "text-[11px] font-black text-foreground uppercase leading-[1.1] tracking-tight line-clamp-2",
+                  "text-[12px] font-black text-foreground uppercase leading-[1.1] tracking-tight line-clamp-2",
                   isCancelled && "line-through opacity-70"
                 )}>
                   {appt.client_name}
@@ -501,23 +505,32 @@ const AgendaPage = () => {
 
               {/* Service Names */}
               {serviceSummary && (
-                <p className="text-[10.5px] text-foreground font-bold tracking-tight line-clamp-2 leading-[1.1] mt-0.5">
+                <p className="text-[11px] text-foreground font-medium tracking-tight line-clamp-2 leading-[1.1] mt-0.5">
                   {serviceSummary}
                 </p>
               )}
 
               {/* Professional & Status */}
               {prof && (
-                <p className="text-[9.5px] text-foreground/80 font-bold uppercase tracking-tighter mt-1 truncate">
+                <p className="text-[10px] text-foreground/90 font-bold tracking-tight mt-0.5 truncate">
                   ({prof.name.split(" ")[0]}) - {cfg.label}
                 </p>
               )}
 
-              {/* Footer or More info if large enough */}
-              {appt.notes && serviceName && height >= 120 && (
-                <p className="text-[9px] text-foreground/70 italic line-clamp-2 mt-1 border-t border-foreground/10 pt-1">
+              {/* Observations */}
+              {appt.notes && (
+                <p className="text-[10px] text-foreground/80 font-medium line-clamp-1 mt-0.5">
                   Obs: {appt.notes}
                 </p>
+              )}
+
+              {/* Full Date & Time Footer (Show if height permits) */}
+              {height >= 110 && (
+                <div className="mt-auto border-t border-foreground/10 pt-1">
+                  <p className="text-[10px] font-bold text-foreground/90 truncate">
+                    {format(new Date(appt.date + "T12:00:00"), "dd/MM/yyyy")} - {appt.start_time.slice(0, 5)} às {appt.end_time.slice(0, 5)}
+                  </p>
+                </div>
               )}
             </>
           )}
