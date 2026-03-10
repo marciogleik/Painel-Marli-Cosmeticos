@@ -215,14 +215,14 @@ const AgendaPage = () => {
             </span>
           </div>
           <span className={cn(
-            "text-[10.5px] font-black uppercase leading-[1] tracking-tight line-clamp-4",
+            "text-[10.5px] font-display font-black uppercase leading-[1] tracking-tighter line-clamp-4",
             block.isWeekly ? "text-white" : "text-destructive"
           )}>
             {(() => {
               const prof = professionals.find(p => p.id === block.professional_id);
               const profName = prof ? prof.name.split(" ")[0] : "";
               const baseReason = block.reason || "AUSÊNCIA DO PROFISSIONAL";
-              if (baseReason.includes("SEMANA")) {
+              if (baseReason.toUpperCase().includes("SEMANA")) {
                 return `${baseReason} ${profName}`;
               }
               return `${baseReason} SEMANA ${profName}`;
@@ -507,8 +507,8 @@ const AgendaPage = () => {
             <div className="flex items-start gap-1">
               {height > 55 && getStatusIcon(appt.status)}
               <span className={cn(
-                "font-black uppercase tracking-tighter overflow-hidden leading-[0.9]",
-                height < 50 ? "text-[9px] truncate" : "text-[10px] line-clamp-2",
+                "font-display font-black uppercase tracking-tighter overflow-hidden leading-[0.9]",
+                height < 50 ? "text-[9px] truncate" : "text-[10.5px] line-clamp-2",
                 isCancelled && "line-through opacity-70"
               )}>
                 {appt.client_name}
@@ -531,11 +531,20 @@ const AgendaPage = () => {
               </div>
             )}
 
-            {/* Observations: High density fallback */}
-            {appt.notes && height >= 90 && (
-              <p className="text-[8.5px] font-medium line-clamp-1 opacity-70 mt-0.5 leading-tight">
-                Obs: {appt.notes}
-              </p>
+            {/* Executed By or Observations: High density fallback */}
+            {(appt.executed_by || appt.notes) && height >= 85 && (
+              <div className="flex flex-col gap-0 mt-0.5 opacity-70 leading-none">
+                {appt.executed_by && (
+                  <p className="text-[8px] font-bold truncate">
+                    Exec: {appt.executed_by}
+                  </p>
+                )}
+                {appt.notes && height >= 100 && (
+                  <p className="text-[8px] font-medium line-clamp-1">
+                    Obs: {appt.notes}
+                  </p>
+                )}
+              </div>
             )}
 
             {/* Footer with Full Date: Luxurious if space permits */}
