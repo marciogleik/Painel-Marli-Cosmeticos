@@ -471,69 +471,62 @@ const AgendaPage = () => {
         }}
       >
         <div
-          className="h-full px-2 py-1.5 flex flex-col justify-start overflow-hidden leading-tight gap-0.5"
+          className="h-full flex flex-col justify-start overflow-hidden leading-[1.1] gap-0 text-foreground"
           style={!isCancelled ? { backgroundColor: `color-mix(in srgb, ${getStatusBg(appt.status)} 40%, white)` } : undefined}
         >
-          {isCompact ? (
-            <div className="flex items-center gap-1 h-full overflow-hidden">
-              {isDraggable && <GripVertical className="w-2.5 h-2.5 shrink-0 text-muted-foreground/40" />}
-              <span className={cn("text-[10px] font-bold truncate text-foreground", isCancelled && "line-through")}>
+          {/* Header: Time Content (Always visible if height > 30) */}
+          {height >= 30 && (
+            <div className="flex items-center gap-1 opacity-80 px-1.5 py-0.5 shrink-0">
+              {isDraggable && height > 40 && <GripVertical className="w-2.5 h-2.5 shrink-0 text-muted-foreground/40" />}
+              <span className="text-[9px] font-bold uppercase tracking-tight whitespace-nowrap">{timeRange}</span>
+            </div>
+          )}
+
+          <div className="px-1.5 pb-1 flex flex-col gap-0.5 overflow-hidden">
+            {/* Client Name: Crucial */}
+            <div className="flex items-start gap-1">
+              {height > 50 && getStatusIcon(appt.status)}
+              <span className={cn(
+                "font-black uppercase tracking-tight leading-[1] overflow-hidden",
+                height < 50 ? "text-[10px] truncate" : "text-[11px] line-clamp-2",
+                isCancelled && "line-through opacity-70"
+              )}>
                 {appt.client_name}
               </span>
-              <span className="text-[9px] font-normal opacity-60 shrink-0 ml-auto mr-1">
-                {appt.start_time?.slice(0, 5)}
-              </span>
             </div>
-          ) : (
-            <>
-              {/* Header: Time Range */}
-              <div className="flex items-center gap-1 opacity-70 mb-0.5">
-                {isDraggable && <GripVertical className="w-2.5 h-2.5 shrink-0 text-muted-foreground/40" />}
-                <span className="text-[10px] font-bold text-foreground/90 uppercase tracking-tight">{timeRange}</span>
-              </div>
 
-              {/* Client Name */}
-              <div className="flex items-start gap-1">
-                {getStatusIcon(appt.status)}
-                <span className={cn(
-                  "text-[12px] font-black text-foreground uppercase leading-[1.1] tracking-tight line-clamp-2",
-                  isCancelled && "line-through opacity-70"
-                )}>
-                  {appt.client_name}
-                </span>
-              </div>
-
-              {/* Service Names */}
-              {serviceSummary && (
-                <p className="text-[11px] text-foreground font-medium tracking-tight line-clamp-2 leading-[1.1] mt-0.5">
-                  {serviceSummary}
-                </p>
-              )}
-
-              {/* Professional & Status */}
-              {prof && (
-                <p className="text-[10px] text-foreground/90 font-bold tracking-tight mt-0.5 truncate">
-                  ({prof.name.split(" ")[0]}) - {cfg.label}
-                </p>
-              )}
-
-              {/* Observations */}
-              {appt.notes && (
-                <p className="text-[10px] text-foreground/80 font-medium line-clamp-1 mt-0.5">
-                  Obs: {appt.notes}
-                </p>
-              )}
-
-              {/* Full Date & Time Footer (Show if height permits) */}
-              {height >= 110 && (
-                <div className="mt-auto border-t border-foreground/10 pt-1">
-                  <p className="text-[10px] font-bold text-foreground/90 truncate">
-                    {format(new Date(appt.date + "T12:00:00"), "dd/MM/yyyy")} - {appt.start_time.slice(0, 5)} às {appt.end_time.slice(0, 5)}
+            {/* Service & Professional: Only if there's space */}
+            {height >= 60 && (
+              <div className="flex flex-col gap-0.5">
+                {serviceSummary && (
+                  <p className="text-[10px] font-bold tracking-tight line-clamp-1 opacity-90">
+                    {serviceSummary}
                   </p>
-                </div>
-              )}
-            </>
-          )}
+                )}
+                {prof && (
+                  <p className="text-[9px] font-bold tracking-tighter truncate opacity-80">
+                    ({prof.name.split(" ")[0]}) - {cfg.label}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Observations: High density fallback */}
+            {appt.notes && height >= 100 && (
+              <p className="text-[9px] font-medium line-clamp-1 opacity-70 mt-0.5">
+                Obs: {appt.notes}
+              </p>
+            )}
+
+            {/* Footer with Full Date: Luxurious if space permits */}
+            {height >= 120 && (
+              <div className="mt-1 border-t border-foreground/10 pt-1 shrink-0">
+                <p className="text-[9px] font-bold opacity-90 truncate">
+                  {format(new Date(appt.date + "T12:00:00"), "dd/MM/yyyy")}
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
