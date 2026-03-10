@@ -1,50 +1,56 @@
-# Painel Marli Cosméticos - Sistema de Gestão de Agenda
+# Marli Cosméticos - Management and Automated Scheduling System
 
-Este projeto é uma plataforma personalizada para a clínica **Marli Cosméticos**, integrando um painel administrativo para gestão de consultas e uma IA recepcionista (Marcia) que atende via WhatsApp.
+A full-stack enterprise solution developed to streamline clinical operations for Marli Cosméticos. The system integrates a high-performance administrative dashboard with an automated AI-driven receptionist capable of managing complex scheduling logic via WhatsApp.
 
-## 🚀 Arquitetura do Sistema
+## System Architecture
 
-O ecossistema é composto por três pilares principais:
+The ecosystem is built upon a distributed architecture to ensure scalability, data integrity, and real-time synchronization:
 
-1.  **Frontend (React + Vite)**:
-    *   Painel administrativo para visualização da agenda em tempo real.
-    *   Gestão de profissionais, serviços e bloqueios de horário.
-    *   Interface premium com design focado em experiência do usuário.
-2.  **Backend & Banco de Dados (Supabase)**:
-    *   **PostgreSQL**: Armazenamento central de agendamentos, clientes e configurações.
-    *   **Edge Functions & Auth**: Segurança e lógica de servidor.
-3.  **Automação & IA (n8n + Marcia)**:
-    *   Fluxo de atendimento automático via WhatsApp.
-    *   A IA **Marcia** consulta a disponibilidade diretamente no Supabase e realiza os agendamentos sem intervenção humana.
+1.  **Frontend (React & TypeScript)**:
+    *   Developed with Vite for optimized build performance.
+    *   Features a comprehensive administrative dashboard for real-time agenda management.
+    *   Implements complex UI state management for professional availability, service mapping, and visual scheduling blocks.
+    *   Utilizes Tailwind CSS and shadcn/ui for a highly responsive and professional interface.
 
-## 🛠️ Tecnologias Utilizadas
+2.  **Backend & Persistence (Supabase)**:
+    *   **PostgreSQL**: Serves as the single source of truth for all clinical data, including appointments, client profiles, and professional configurations.
+    *   **Real-time Capabilities**: Leverages Supabase real-time subscriptions to keep the administrative dashboard synchronized across multiple sessions.
+    *   **Security**: Implements Row Level Security (RLS) to ensure data isolation and secure access.
 
-*   **Core**: React 18, TypeScript, Vite.
-*   **Styling**: Tailwind CSS, shadcn/ui.
-*   **Banco de Dados**: Supabase (PostreSQL).
-*   **IA/Automação**: n8n, LangChain (Agente de Calendário).
+3.  **Automation & AI Integration (n8n & LangChain)**:
+    *   **Automated Scheduling**: An n8n-hosted workflow acts as the bridge between WhatsApp and the database.
+    *   **AI Agent (Marcia)**: Built using LangChain, the agent processes natural language intent to perform CRUD operations on the appointment table.
+    *   **Business Logic**: The system enforces strict scheduling rules, including professional-specific blocking, time-zone anchoring (Brasília), and multi-specialist availability checks.
 
-## 📅 Funcionalidades Principais
+## Key Technical Features
 
-*   **Agenda Dinâmica**: Visualização por dia/semana com status coloridos.
-*   **Bloqueios de Agenda**: Sistema de ausência profissional (exibido em preto) que impede agendamentos indevidos.
-*   **IA Recepcionista**: Atendimento humano, validação de horários passados e priorização de especialistas.
-*   **Gestão de Clientes**: Histórico de consultas e base de dados integrada.
+*   **Conflict Resolution Engine**: A custom-built utility that validates overlapping appointments and respects predefined professional unavailability blocks.
+*   **Dynamic Service-Professional Mapping**: Intelligent logic that identifies the correct professional based on service requirements and real-time availability.
+*   **Data Integrity**: Transitioned from third-party calendar dependencies to a centralized database-first approach to eliminate synchronization latency.
+*   **User Experience**: Optimized for high-traffic environments with intuitive status tracking (Confirmed, In-Progress, Cancelled, etc.).
 
-## 💻 Desenvolvimento Local
+## Technology Stack
 
-1.  Instale as dependências:
-    ```sh
+*   **Languages**: TypeScript, JavaScript.
+*   **Frameworks**: React 18, Vite.
+*   **Styles**: Tailwind CSS, PostCSS.
+*   **Database**: Supabase / PostgreSQL.
+*   **Automation**: n8n, LangChain, WhatsApp API integration.
+
+## Local Development
+
+1.  Install dependencies:
+    ```bash
     npm install
     ```
-2.  Inicie o servidor de desenvolvimento:
-    ```sh
+2.  Launch development server:
+    ```bash
     npm run dev
     ```
 
-## 🔒 Segurança
+## Environment Configuration
 
-O projeto utiliza variáveis de ambiente para conexão com o Supabase. Certifique-se de configurar o arquivo `.env` com suas credenciais para que o painel funcione corretamente.
+The application requires environment variables for Supabase integration (`VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`). Ensure these are correctly set in a `.env` file for full functionality.
 
 ---
-*Projeto proprietário desenvolvido para Marli Cosméticos.*
+*Proprietary project developed for clinical orchestration and automated customer engagement.*
