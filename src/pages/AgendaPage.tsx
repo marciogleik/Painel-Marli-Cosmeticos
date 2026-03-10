@@ -190,22 +190,42 @@ const AgendaPage = () => {
             : "border-destructive/30 bg-destructive/10 text-destructive"
         )}
         style={{ top: `${top}px`, height: `${height}px` }}
+        onClick={() => {
+          if (!block.isWeekly) {
+            setBlockDefaults({
+              profId: block.professional_id,
+              date: new Date(block.date + "T12:00:00"),
+              time: block.start_time.slice(0, 5),
+            });
+            // We can't set the reason directly in setBlockDefaults because of the TS type
+            // but the dialog handles it if we pass the right props or update the state correctly.
+            // Let's ensure the type is respected.
+            setBlockDialogOpen(true);
+          }
+        }}
       >
-        <div className="h-full px-2 py-1.5 flex flex-col justify-start relative leading-tight">
-          <div className="flex items-center gap-1.5 mb-0.5">
-            <Ban className={cn("w-3 h-3 shrink-0", block.isWeekly ? "text-white/70" : "text-destructive/70")} />
-            <span className={cn("text-[10px] font-bold uppercase tracking-tight", block.isWeekly ? "text-white/80" : "text-destructive/80")}>
+        <div className={cn(
+          "h-full px-1.5 py-1 flex flex-col justify-start relative leading-[1]",
+          !block.isWeekly && "cursor-pointer hover:bg-destructive/20"
+        )}>
+          <div className="flex items-center gap-1 mb-0.5 shrink-0">
+            <Ban className={cn("w-2.5 h-2.5 shrink-0", block.isWeekly ? "text-white/70" : "text-destructive/70")} />
+            <span className={cn("text-[9px] font-bold uppercase tracking-tight", block.isWeekly ? "text-white/80" : "text-destructive/80")}>
               {timeRange}
             </span>
           </div>
           <span className={cn(
-            "text-[11px] font-black uppercase leading-[1.1] tracking-tight line-clamp-4",
+            "text-[10.5px] font-black uppercase leading-[1] tracking-tight line-clamp-4",
             block.isWeekly ? "text-white" : "text-destructive"
           )}>
-            {block.reason || "AUSÊNCIA DO PROFISSIONAL"}
             {(() => {
               const prof = professionals.find(p => p.id === block.professional_id);
-              return prof ? ` SEMANA ${prof.name.split(" ")[0]}` : "";
+              const profName = prof ? prof.name.split(" ")[0] : "";
+              const baseReason = block.reason || "AUSÊNCIA DO PROFISSIONAL";
+              if (baseReason.includes("SEMANA")) {
+                return `${baseReason} ${profName}`;
+              }
+              return `${baseReason} SEMANA ${profName}`;
             })()}
           </span>
 
@@ -476,19 +496,19 @@ const AgendaPage = () => {
         >
           {/* Header: Time Content (Always visible if height > 30) */}
           {height >= 30 && (
-            <div className="flex items-center gap-1 opacity-80 px-1.5 py-0.5 shrink-0">
+            <div className="flex items-center gap-1 opacity-80 px-1.5 py-0.5 shrink-0 leading-none">
               {isDraggable && height > 40 && <GripVertical className="w-2.5 h-2.5 shrink-0 text-muted-foreground/40" />}
-              <span className="text-[9px] font-bold uppercase tracking-tight whitespace-nowrap">{timeRange}</span>
+              <span className="text-[8.5px] font-bold uppercase tracking-tighter whitespace-nowrap">{timeRange}</span>
             </div>
           )}
 
-          <div className="px-1.5 pb-1 flex flex-col gap-0.5 overflow-hidden">
+          <div className="px-1 py-0.5 flex flex-col gap-0 overflow-hidden leading-none">
             {/* Client Name: Crucial */}
             <div className="flex items-start gap-1">
-              {height > 50 && getStatusIcon(appt.status)}
+              {height > 55 && getStatusIcon(appt.status)}
               <span className={cn(
-                "font-black uppercase tracking-tight leading-[1] overflow-hidden",
-                height < 50 ? "text-[10px] truncate" : "text-[11px] line-clamp-2",
+                "font-black uppercase tracking-tighter overflow-hidden leading-[0.9]",
+                height < 50 ? "text-[9px] truncate" : "text-[10px] line-clamp-2",
                 isCancelled && "line-through opacity-70"
               )}>
                 {appt.client_name}
@@ -496,32 +516,32 @@ const AgendaPage = () => {
             </div>
 
             {/* Service & Professional: Only if there's space */}
-            {height >= 60 && (
-              <div className="flex flex-col gap-0.5">
+            {height >= 45 && (
+              <div className="flex flex-col gap-0 mt-0.5">
                 {serviceSummary && (
-                  <p className="text-[10px] font-bold tracking-tight line-clamp-1 opacity-90">
+                  <p className="text-[8.5px] font-bold tracking-tighter line-clamp-1 opacity-90 leading-none">
                     {serviceSummary}
                   </p>
                 )}
                 {prof && (
-                  <p className="text-[9px] font-bold tracking-tighter truncate opacity-80">
-                    ({prof.name.split(" ")[0]}) - {cfg.label}
+                  <p className="text-[7.5px] font-bold tracking-tighter truncate opacity-80 leading-none">
+                    ({prof.name.split(" ")[0]})
                   </p>
                 )}
               </div>
             )}
 
             {/* Observations: High density fallback */}
-            {appt.notes && height >= 100 && (
-              <p className="text-[9px] font-medium line-clamp-1 opacity-70 mt-0.5">
+            {appt.notes && height >= 90 && (
+              <p className="text-[8.5px] font-medium line-clamp-1 opacity-70 mt-0.5 leading-tight">
                 Obs: {appt.notes}
               </p>
             )}
 
             {/* Footer with Full Date: Luxurious if space permits */}
-            {height >= 120 && (
-              <div className="mt-1 border-t border-foreground/10 pt-1 shrink-0">
-                <p className="text-[9px] font-bold opacity-90 truncate">
+            {height >= 110 && (
+              <div className="mt-0.5 border-t border-foreground/10 pt-0.5 shrink-0">
+                <p className="text-[8.5px] font-bold opacity-90 truncate leading-tight">
                   {format(new Date(appt.date + "T12:00:00"), "dd/MM/yyyy")}
                 </p>
               </div>
