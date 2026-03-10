@@ -15,33 +15,33 @@ export interface WeeklyBlock {
 
 export const WEEKLY_BLOCKS: WeeklyBlock[] = [
   // Dhionara Sbrussi (...01)
-  { professionalId: '1', professionalName: 'Dhionara Sbrussi', startTime: '07:00', endTime: '09:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA Dhionara' },
-  { professionalId: '1', professionalName: 'Dhionara Sbrussi', startTime: '10:15', endTime: '11:30', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
-  { professionalId: '1', professionalName: 'Dhionara Sbrussi', startTime: '11:45', endTime: '13:30', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
-  { professionalId: '1', professionalName: 'Dhionara Sbrussi', startTime: '18:30', endTime: '23:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
-  
+  { professionalId: '00000000-0000-0000-0000-000000000001', professionalName: 'Dhionara Sbrussi', startTime: '07:00', endTime: '09:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+  { professionalId: '00000000-0000-0000-0000-000000000001', professionalName: 'Dhionara Sbrussi', startTime: '10:15', endTime: '11:30', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+  { professionalId: '00000000-0000-0000-0000-000000000001', professionalName: 'Dhionara Sbrussi', startTime: '11:45', endTime: '13:30', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+  { professionalId: '00000000-0000-0000-0000-000000000001', professionalName: 'Dhionara Sbrussi', startTime: '18:30', endTime: '23:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+
   // Dhiani Sbrussi (...02)
-  { professionalId: '2', professionalName: 'Dhiani Sbrussi', startTime: '11:15', endTime: '13:30', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
-  { professionalId: '2', professionalName: 'Dhiani Sbrussi', startTime: '17:00', endTime: '23:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
-  
+  { professionalId: '00000000-0000-0000-0000-000000000002', professionalName: 'Dhiani Sbrussi', startTime: '11:15', endTime: '13:30', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+  { professionalId: '00000000-0000-0000-0000-000000000002', professionalName: 'Dhiani Sbrussi', startTime: '17:00', endTime: '23:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+
   // Luciane Castanheira (...03)
-  { professionalId: '3', professionalName: 'Luciane Castanheira', startTime: '10:45', endTime: '14:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
-  { professionalId: '3', professionalName: 'Luciane Castanheira', startTime: '19:00', endTime: '23:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
-  
+  { professionalId: '00000000-0000-0000-0000-000000000003', professionalName: 'Luciane Castanheira', startTime: '10:45', endTime: '14:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+  { professionalId: '00000000-0000-0000-0000-000000000003', professionalName: 'Luciane Castanheira', startTime: '19:00', endTime: '23:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+
   // Tais Pires (...04)
-  { professionalId: '4', professionalName: 'Tais Pires', startTime: '11:45', endTime: '14:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
-  { professionalId: '4', professionalName: 'Tais Pires', startTime: '18:30', endTime: '23:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
-  
+  { professionalId: '00000000-0000-0000-0000-000000000004', professionalName: 'Tais Pires', startTime: '11:45', endTime: '14:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+  { professionalId: '00000000-0000-0000-0000-000000000004', professionalName: 'Tais Pires', startTime: '18:30', endTime: '23:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+
   // Bruna Castanheira (...05)
-  { professionalId: '5', professionalName: 'Bruna Castanheira', startTime: '07:00', endTime: '14:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
-  { professionalId: '5', professionalName: 'Bruna Castanheira', startTime: '19:00', endTime: '23:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
-  
+  { professionalId: '00000000-0000-0000-0000-000000000005', professionalName: 'Bruna Castanheira', startTime: '07:00', endTime: '14:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+  { professionalId: '00000000-0000-0000-0000-000000000005', professionalName: 'Bruna Castanheira', startTime: '19:00', endTime: '23:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+
   // Michele Quintana (...06)
-  { professionalId: '6', professionalName: 'Michele Quiana', startTime: '11:30', endTime: '13:30', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
-  { professionalId: '6', professionalName: 'Michele Quiana', startTime: '18:00', endTime: '23:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
-  
+  { professionalId: '00000000-0000-0000-0000-000000000006', professionalName: 'Michele Quiana', startTime: '11:30', endTime: '13:30', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+  { professionalId: '00000000-0000-0000-0000-000000000006', professionalName: 'Michele Quiana', startTime: '18:00', endTime: '23:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+
   // Patricia Amanda (...07)
-  { professionalId: '7', professionalName: 'Patricia Amanda', startTime: '09:30', endTime: '14:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+  { professionalId: '00000000-0000-0000-0000-000000000007', professionalName: 'Patricia Amanda', startTime: '09:30', endTime: '14:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
 ];
 
 export interface Service {
@@ -68,20 +68,27 @@ export interface Appointment {
 }
 
 export const professionals: Professional[] = [
-  { id: '1', name: 'Dhionara Sbrussi', role: 'Micropigmentação / Estética', avatar: 'DS' },
-  { id: '2', name: 'Dhiani Sbrussi', role: 'Corporal / Estética', avatar: 'DS' },
-  { id: '3', name: 'Luciane Castanheira', role: 'Manicure / Pedicure', avatar: 'LC' },
-  { id: '4', name: 'Tais Pires', role: 'Estética / Depilação', avatar: 'TP' },
-  { id: '5', name: 'Bruna Castanheira', role: 'Biomédica / Injetáveis', avatar: 'BC' },
-  { id: '6', name: 'Michele Quiana', role: 'Enfermeira / Injetáveis', avatar: 'MQ' },
-  { id: '7', name: 'Patricia Amanda', role: 'Nail Designer', avatar: 'PA' },
+  { id: '00000000-0000-0000-0000-000000000001', name: 'Dhionara Sbrussi', role: 'Micropigmentação / Estética', avatar: 'DS' },
+  { id: '00000000-0000-0000-0000-000000000002', name: 'Dhiani Sbrussi', role: 'Corporal / Estética', avatar: 'DS' },
+  { id: '00000000-0000-0000-0000-000000000003', name: 'Luciane Castanheira', role: 'Manicure / Pedicure', avatar: 'LC' },
+  { id: '00000000-0000-0000-0000-000000000004', name: 'Tais Pires', role: 'Estética / Depilação', avatar: 'TP' },
+  { id: '00000000-0000-0000-0000-000000000005', name: 'Bruna Castanheira', role: 'Biomédica / Injetáveis', avatar: 'BC' },
+  { id: '00000000-0000-0000-0000-000000000006', name: 'Michele Quiana', role: 'Enfermeira / Injetáveis', avatar: 'MQ' },
+  { id: '00000000-0000-0000-0000-000000000007', name: 'Patricia Amanda', role: 'Nail Designer', avatar: 'PA' },
 ];
 
 // Helper to find professional IDs by name fragments
 const findProfIds = (...names: string[]): string[] => {
   const map: Record<string, string> = {
-    dhionara: '1', dhiani: '2', luciane: '3', tais: '4',
-    bruna: '5', michele: '5', michel: '6', patricia: '7', todos: 'all',
+    dhionara: '00000000-0000-0000-0000-000000000001',
+    dhiani: '00000000-0000-0000-0000-000000000002',
+    luciane: '00000000-0000-0000-0000-000000000003',
+    tais: '00000000-0000-0000-0000-000000000004',
+    bruna: '00000000-0000-0000-0000-000000000005',
+    michele: '00000000-0000-0000-0000-000000000005',
+    michel: '00000000-0000-0000-0000-000000000006',
+    patricia: '00000000-0000-0000-0000-000000000007',
+    todos: 'all',
   };
   const ids: string[] = [];
   for (const n of names) {
@@ -297,12 +304,12 @@ export const sampleAppointments: Appointment[] = [
 ];
 
 export const statusConfig: Record<Appointment['status'], { color: string; label: string; bgClass: string }> = {
-  agendado:  { color: 'bg-[#4285F4]',  label: 'Agendado',   bgClass: 'bg-[#4285F4]/10 border-[#4285F4]/30 text-[#4285F4]' },
-  confirmado:{ color: 'bg-[#1a237e]',  label: 'Confirmado', bgClass: 'bg-[#1a237e]/10 border-[#1a237e]/30 text-[#1a237e]' },
-  espera:    { color: 'bg-[#FF9800]',  label: 'Espera',     bgClass: 'bg-[#FF9800]/10 border-[#FF9800]/30 text-[#FF9800]' },
-  atendendo: { color: 'bg-[#E040FB]',  label: 'Atendendo',  bgClass: 'bg-[#E040FB]/10 border-[#E040FB]/30 text-[#E040FB]' },
-  atendido:  { color: 'bg-[#4CAF50]',  label: 'Atendido',   bgClass: 'bg-[#4CAF50]/10 border-[#4CAF50]/30 text-[#4CAF50]' },
-  cancelado: { color: 'bg-[#9E9E9E]',  label: 'Cancelado',  bgClass: 'bg-[#9E9E9E]/10 border-[#9E9E9E]/30 text-[#9E9E9E]' },
-  atrasado:  { color: 'bg-[#CDDC39]',  label: 'Atrasado',   bgClass: 'bg-[#CDDC39]/10 border-[#CDDC39]/30 text-[#9E9D00]' },
-  falta:     { color: 'bg-[#8B0000]',  label: 'Faltou',     bgClass: 'bg-[#8B0000]/10 border-[#8B0000]/30 text-[#8B0000]' },
+  agendado: { color: 'bg-[#4285F4]', label: 'Agendado', bgClass: 'bg-[#4285F4]/10 border-[#4285F4]/30 text-[#4285F4]' },
+  confirmado: { color: 'bg-[#1a237e]', label: 'Confirmado', bgClass: 'bg-[#1a237e]/10 border-[#1a237e]/30 text-[#1a237e]' },
+  espera: { color: 'bg-[#FF9800]', label: 'Espera', bgClass: 'bg-[#FF9800]/10 border-[#FF9800]/30 text-[#FF9800]' },
+  atendendo: { color: 'bg-[#E040FB]', label: 'Atendendo', bgClass: 'bg-[#E040FB]/10 border-[#E040FB]/30 text-[#E040FB]' },
+  atendido: { color: 'bg-[#4CAF50]', label: 'Atendido', bgClass: 'bg-[#4CAF50]/10 border-[#4CAF50]/30 text-[#4CAF50]' },
+  cancelado: { color: 'bg-[#9E9E9E]', label: 'Cancelado', bgClass: 'bg-[#9E9E9E]/10 border-[#9E9E9E]/30 text-[#9E9E9E]' },
+  atrasado: { color: 'bg-[#CDDC39]', label: 'Atrasado', bgClass: 'bg-[#CDDC39]/10 border-[#CDDC39]/30 text-[#9E9D00]' },
+  falta: { color: 'bg-[#8B0000]', label: 'Faltou', bgClass: 'bg-[#8B0000]/10 border-[#8B0000]/30 text-[#8B0000]' },
 };
