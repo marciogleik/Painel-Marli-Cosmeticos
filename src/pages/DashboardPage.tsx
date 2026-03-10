@@ -1,6 +1,6 @@
 import { useProfessionals, useAppointments, statusConfig } from "@/hooks/useClinicData";
 import { useAuth } from "@/hooks/useAuth";
-import { Calendar, Clock, User, Cake } from "lucide-react";
+import { Calendar, Clock, User, Cake, UserCog } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -60,6 +60,27 @@ const DashboardPage = () => {
       });
     },
   });
+
+  const appointmentIds = appointments.map((a) => a.id);
+  const { data: appointmentServices = [] } = useQuery({
+    queryKey: ["appointment_services_today", appointmentIds],
+    queryFn: async () => {
+      if (appointmentIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("appointment_services")
+        .select("appointment_id, service_name")
+        .in("appointment_id", appointmentIds);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: appointmentIds.length > 0,
+  });
+
+  const getServiceNames = (appointmentId: string): string => {
+    const services = appointmentServices.filter((s) => s.appointment_id === appointmentId);
+    if (services.length === 0) return "";
+    return services.map((s) => s.service_name).join(", ");
+  };
 
   const todayAppointments = appointments.filter((a) => a.date === today);
   const confirmed = todayAppointments.filter((a) => a.status === "confirmado").length;
@@ -153,16 +174,18 @@ const DashboardPage = () => {
                             {cfg.label}
                           </span>
                         </div>
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <User className="w-3 h-3" />
-                          <span>{appt.client_name}</span>
+                        <div className="flex flex-col gap-0.5 mt-1">
+                          <p className="text-sm font-medium leading-tight">{appt.client_name}</p>
+                          <p className="text-xs text-primary font-medium">
+                            {getServiceNames(appt.id) || appt.notes || "Sem serviço registrado"}
+                          </p>
                           {isGestor && prof && (
-                            <span className="ml-1">· com {prof.name}</span>
+                            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                              <UserCog className="w-2.5 h-2.5" />
+                              {prof.name}
+                            </p>
                           )}
                         </div>
-                        {appt.notes && (
-                          <p className="text-[10px] text-muted-foreground italic">{appt.notes}</p>
-                        )}
                       </div>
                     </div>
                   </div>

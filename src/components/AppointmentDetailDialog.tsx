@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfessionals, statusConfig, type DBAppointment } from "@/hooks/useClinicData";
@@ -24,10 +25,12 @@ import {
   Loader2,
   CheckCircle2,
   XCircle,
+  Trash2,
   CalendarCheck,
   AlertCircle,
   Scissors,
   Pencil,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import AppointmentEditForm from "@/components/AppointmentEditForm";
@@ -81,6 +84,7 @@ const statusLabel: Record<string, string> = {
   cancelado: "Cancelado",
   atrasado: "Atrasado",
   falta: "Faltou",
+  removido: "Removido",
 };
 
 const AppointmentDetailDialog = ({
@@ -88,6 +92,7 @@ const AppointmentDetailDialog = ({
   open,
   onOpenChange,
 }: AppointmentDetailDialogProps) => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: professionals = [] } = useProfessionals();
   const [cancellationReason, setCancellationReason] = useState("");
@@ -218,154 +223,196 @@ const AppointmentDetailDialog = ({
             onCancel={() => setEditing(false)}
           />
         ) : (
-        <div className="space-y-4 pt-1">
-          {/* Status Badge */}
-          <div className="flex items-center gap-2">
-            <Badge
-              className={cn(
-                "text-xs font-semibold px-3 py-1",
-                cfg.color,
-                appointment.status !== "cancelado" && "text-white"
-              )}
-            >
-              {statusLabel[appointment.status] || appointment.status}
-            </Badge>
-          </div>
-
-          {/* Client info */}
-          <div className="space-y-2.5">
-            <div className="flex items-center gap-2.5">
-              <User className="w-4 h-4 text-muted-foreground shrink-0" />
-              <span className="text-sm font-medium">{appointment.client_name || "Sem nome"}</span>
+          <div className="space-y-4 pt-1">
+            {/* Status Badge */}
+            <div className="flex items-center gap-2">
+              <Badge
+                className={cn(
+                  "text-xs font-semibold px-3 py-1",
+                  cfg.color,
+                  appointment.status !== "cancelado" && "text-white"
+                )}
+              >
+                {statusLabel[appointment.status] || appointment.status}
+              </Badge>
             </div>
-            {appointment.client_phone && (
+
+            {/* Client info */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2.5">
+                  <User className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm font-medium">{appointment.client_name || "Sem nome"}</span>
+                </div>
+                {appointment.client_id && (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-xs text-primary"
+                    onClick={() => {
+                      onOpenChange(false);
+                      navigate(`/clientes/${appointment.client_id}`);
+                    }}
+                  >
+                    Ver Perfil
+                    <ExternalLink className="w-3 h-3 ml-1" />
+                  </Button>
+                )}
+              </div>
+              {appointment.client_phone && (
+                <div className="flex items-center gap-2.5">
+                  <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm text-muted-foreground">{appointment.client_phone}</span>
+                </div>
+              )}
               <div className="flex items-center gap-2.5">
-                <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span className="text-sm text-muted-foreground">{appointment.client_phone}</span>
+                <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="text-sm text-muted-foreground capitalize">
+                  {dateFormatted} — {appointment.start_time?.slice(0, 5)} até {appointment.end_time?.slice(0, 5)}
+                </span>
+              </div>
+              {professional && (
+                <div className="flex items-center gap-2.5">
+                  <User className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm text-muted-foreground">
+                    {professional.name} — {professional.role_description}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Services */}
+            {appointmentServices.length > 0 ? (
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2.5">
+                  <Scissors className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm font-medium">Serviços</span>
+                </div>
+                <div className="ml-6.5 space-y-1">
+                  {appointmentServices.map((svc) => (
+                    <div key={svc.id} className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">{svc.service_name} <span className="text-xs">({svc.duration_minutes} min)</span></span>
+                      {svc.price != null && (
+                        <span className="text-xs text-muted-foreground">R$ {Number(svc.price).toFixed(2).replace(".", ",")}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2.5">
+                  <Scissors className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm font-medium text-primary">Serviço</span>
+                </div>
+                <div className="ml-6.5">
+                  <span className="text-sm text-muted-foreground">{appointment.notes || "Sem serviço registrado"}</span>
+                </div>
               </div>
             )}
-            <div className="flex items-center gap-2.5">
-              <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
-              <span className="text-sm text-muted-foreground capitalize">
-                {dateFormatted} — {appointment.start_time?.slice(0, 5)} até {appointment.end_time?.slice(0, 5)}
-              </span>
-            </div>
-            {professional && (
+
+            {appointment.notes && (
+              <div className="flex items-start gap-2.5">
+                <FileText className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                <span className="text-sm text-muted-foreground">{appointment.notes}</span>
+              </div>
+            )}
+
+            {/* Executed by */}
+            {appointment.executed_by && (
               <div className="flex items-center gap-2.5">
-                <User className="w-4 h-4 text-muted-foreground shrink-0" />
+                <CheckCircle2 className="w-4 h-4 text-muted-foreground shrink-0" />
                 <span className="text-sm text-muted-foreground">
-                  {professional.name} — {professional.role_description}
+                  Atendido por: {appointment.executed_by}
                 </span>
               </div>
             )}
-          </div>
 
-          {/* Services */}
-          {appointmentServices.length > 0 && (
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2.5">
-                <Scissors className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span className="text-sm font-medium">Serviços</span>
+            {/* Cancellation reason */}
+            {appointment.status === "cancelado" && appointment.cancellation_reason && (
+              <div className="flex items-start gap-2.5 p-3 bg-muted rounded-lg">
+                <AlertCircle className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                <span className="text-sm text-muted-foreground">
+                  Motivo: {appointment.cancellation_reason}
+                </span>
               </div>
-              <div className="ml-6.5 space-y-1">
-                {appointmentServices.map((svc) => (
-                  <div key={svc.id} className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">{svc.service_name} <span className="text-xs">({svc.duration_minutes} min)</span></span>
-                    {svc.price != null && (
-                      <span className="text-xs text-muted-foreground">R$ {Number(svc.price).toFixed(2).replace(".", ",")}</span>
-                    )}
+            )}
+
+            {/* Actions */}
+            {actions.length > 0 && (
+              <>
+                <Separator />
+
+                {showCancelForm ? (
+                  <div className="space-y-3">
+                    <Label>Motivo do cancelamento (opcional)</Label>
+                    <Textarea
+                      value={cancellationReason}
+                      onChange={(e) => setCancellationReason(e.target.value)}
+                      placeholder="Ex: cliente não compareceu, remarcou..."
+                      rows={2}
+                      maxLength={300}
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        variant="destructive"
+                        className="flex-1"
+                        onClick={handleConfirmCancel}
+                        disabled={statusMutation.isPending}
+                      >
+                        {statusMutation.isPending && (
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        )}
+                        Confirmar Cancelamento
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowCancelForm(false)}
+                      >
+                        Voltar
+                      </Button>
+                    </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {actions.map((action) => (
+                      <Button
+                        key={action.next}
+                        variant={action.next === "cancelado" ? "destructive" : "outline"}
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() => handleStatusChange(action.next)}
+                        disabled={statusMutation.isPending}
+                      >
+                        {statusMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          action.icon
+                        )}
+                        {action.label}
+                      </Button>
+                    ))}
 
-          {appointment.notes && (
-            <div className="flex items-start gap-2.5">
-              <FileText className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
-              <span className="text-sm text-muted-foreground">{appointment.notes}</span>
-            </div>
-          )}
-
-          {/* Executed by */}
-          {appointment.executed_by && (
-            <div className="flex items-center gap-2.5">
-              <CheckCircle2 className="w-4 h-4 text-muted-foreground shrink-0" />
-              <span className="text-sm text-muted-foreground">
-                Atendido por: {appointment.executed_by}
-              </span>
-            </div>
-          )}
-
-          {/* Cancellation reason */}
-          {appointment.status === "cancelado" && appointment.cancellation_reason && (
-            <div className="flex items-start gap-2.5 p-3 bg-muted rounded-lg">
-              <AlertCircle className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
-              <span className="text-sm text-muted-foreground">
-                Motivo: {appointment.cancellation_reason}
-              </span>
-            </div>
-          )}
-
-          {/* Actions */}
-          {actions.length > 0 && (
-            <>
-              <Separator />
-
-              {showCancelForm ? (
-                <div className="space-y-3">
-                  <Label>Motivo do cancelamento (opcional)</Label>
-                  <Textarea
-                    value={cancellationReason}
-                    onChange={(e) => setCancellationReason(e.target.value)}
-                    placeholder="Ex: cliente não compareceu, remarcou..."
-                    rows={2}
-                    maxLength={300}
-                  />
-                  <div className="flex gap-2">
+                    <Separator className="my-2 w-full" />
                     <Button
-                      variant="destructive"
-                      className="flex-1"
-                      onClick={handleConfirmCancel}
-                      disabled={statusMutation.isPending}
-                    >
-                      {statusMutation.isPending && (
-                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      )}
-                      Confirmar Cancelamento
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowCancelForm(false)}
-                    >
-                      Voltar
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {actions.map((action) => (
-                    <Button
-                      key={action.next}
-                      variant={action.next === "cancelado" ? "destructive" : "outline"}
+                      variant="ghost"
                       size="sm"
-                      className="gap-1.5"
-                      onClick={() => handleStatusChange(action.next)}
+                      className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => {
+                        if (confirm("Tem certeza que deseja excluir este agendamento da visão da agenda? Ele continuará no histórico bancário, mas não aparecerá mais aqui.")) {
+                          statusMutation.mutate({ id: appointment.id, newStatus: "removido" });
+                        }
+                      }}
                       disabled={statusMutation.isPending}
                     >
-                      {statusMutation.isPending ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        action.icon
-                      )}
-                      {action.label}
+                      <Trash2 className="w-4 h-4" />
+                      Excluir da Agenda
                     </Button>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         )}
       </DialogContent>
     </Dialog>

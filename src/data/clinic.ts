@@ -37,11 +37,11 @@ export const WEEKLY_BLOCKS: WeeklyBlock[] = [
   { professionalId: '00000000-0000-0000-0000-000000000005', professionalName: 'Bruna Castanheira', startTime: '19:00', endTime: '23:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
 
   // Michele Quintana (...06)
-  { professionalId: '00000000-0000-0000-0000-000000000006', professionalName: 'Michele Quiana', startTime: '11:30', endTime: '13:30', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
-  { professionalId: '00000000-0000-0000-0000-000000000006', professionalName: 'Michele Quiana', startTime: '18:00', endTime: '23:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+  { professionalId: '00000000-0000-0000-0000-000000000006', professionalName: 'Michele Quintana', startTime: '11:30', endTime: '13:30', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+  { professionalId: '00000000-0000-0000-0000-000000000006', professionalName: 'Michele Quintana', startTime: '18:00', endTime: '23:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
 
-  // Patricia Amanda (...07)
-  { professionalId: '00000000-0000-0000-0000-000000000007', professionalName: 'Patricia Amanda', startTime: '09:30', endTime: '14:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
+  // Patricia Armanda (...07)
+  { professionalId: '00000000-0000-0000-0000-000000000007', professionalName: 'Patricia Armanda', startTime: '09:30', endTime: '14:00', reason: 'AUSÊNCIA DO PROFISSIONAL SEMANA' },
 ];
 
 export interface Service {
@@ -73,8 +73,8 @@ export const professionals: Professional[] = [
   { id: '00000000-0000-0000-0000-000000000003', name: 'Luciane Castanheira', role: 'Manicure / Pedicure', avatar: 'LC' },
   { id: '00000000-0000-0000-0000-000000000004', name: 'Tais Pires', role: 'Estética / Depilação', avatar: 'TP' },
   { id: '00000000-0000-0000-0000-000000000005', name: 'Bruna Castanheira', role: 'Biomédica / Injetáveis', avatar: 'BC' },
-  { id: '00000000-0000-0000-0000-000000000006', name: 'Michele Quiana', role: 'Enfermeira / Injetáveis', avatar: 'MQ' },
-  { id: '00000000-0000-0000-0000-000000000007', name: 'Patricia Amanda', role: 'Nail Designer', avatar: 'PA' },
+  { id: '00000000-0000-0000-0000-000000000006', name: 'Michele Quintana', role: 'Enfermeira / Injetáveis', avatar: 'MQ' },
+  { id: '00000000-0000-0000-0000-000000000007', name: 'Patricia Armanda', role: 'Nail Designer', avatar: 'PA' },
 ];
 
 // Helper to find professional IDs by name fragments
@@ -85,7 +85,7 @@ const findProfIds = (...names: string[]): string[] => {
     luciane: '00000000-0000-0000-0000-000000000003',
     tais: '00000000-0000-0000-0000-000000000004',
     bruna: '00000000-0000-0000-0000-000000000005',
-    michele: '00000000-0000-0000-0000-000000000005',
+    michele: '00000000-0000-0000-0000-000000000006',
     michel: '00000000-0000-0000-0000-000000000006',
     patricia: '00000000-0000-0000-0000-000000000007',
     todos: 'all',
