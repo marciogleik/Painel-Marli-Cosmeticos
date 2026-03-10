@@ -61,9 +61,11 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
   const [clientName, setClientName] = useState(appointment.client_name || "");
   const [clientPhone, setClientPhone] = useState(appointment.client_phone || "");
   const [notes, setNotes] = useState(appointment.notes || "");
+  const [serviceSearch, setServiceSearch] = useState("");
 
   const availableServices = useServicesForProfessional(professionalId);
-  const { data: clients = [] } = useClients(clientSearch);
+  const { data: clientsData } = useClients({ search: clientSearch, pageSize: 20 });
+  const clients = clientsData?.data ?? [];
 
   const dateStr = date ? format(date, "yyyy-MM-dd") : undefined;
   const { getConflict } = useOccupiedSlots(professionalId || undefined, dateStr, appointment.id);
@@ -81,18 +83,18 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
 
   const filteredClients = clientSearch.length >= 2
     ? clients.filter(c =>
-        c.full_name.toLowerCase().includes(clientSearch.toLowerCase()) ||
-        (c.phone && c.phone.includes(clientSearch))
-      )
+      c.full_name.toLowerCase().includes(clientSearch.toLowerCase()) ||
+      (c.phone && c.phone.includes(clientSearch))
+    )
     : [];
 
   const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration_minutes, 0);
   const endTime = startTime
     ? (() => {
-        const [h, m] = startTime.split(":").map(Number);
-        const endMin = h * 60 + m + totalDuration;
-        return `${Math.floor(endMin / 60).toString().padStart(2, "0")}:${(endMin % 60).toString().padStart(2, "0")}`;
-      })()
+      const [h, m] = startTime.split(":").map(Number);
+      const endMin = h * 60 + m + totalDuration;
+      return `${Math.floor(endMin / 60).toString().padStart(2, "0")}:${(endMin % 60).toString().padStart(2, "0")}`;
+    })()
     : "";
 
   const toggleService = (service: DBService) => {
@@ -208,22 +210,35 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
           {availableServices.length === 0 ? (
             <p className="text-sm text-muted-foreground">Nenhum serviço vinculado.</p>
           ) : (
-            <div className="grid gap-1.5 max-h-36 overflow-y-auto border border-border rounded-lg p-2">
-              {availableServices.map(s => {
-                const checked = selectedServices.some(ss => ss.id === s.id);
-                return (
-                  <label key={s.id} className="flex items-center gap-2.5 cursor-pointer hover:bg-muted/50 rounded-md px-2 py-1 -mx-1">
-                    <Checkbox checked={checked} onCheckedChange={() => toggleService(s)} />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-sm">{s.name}</span>
-                      <span className="text-xs text-muted-foreground ml-1.5">{s.duration_minutes} min</span>
-                    </div>
-                    {s.base_price != null && (
-                      <span className="text-xs text-muted-foreground shrink-0">R$ {s.base_price.toFixed(2).replace(".", ",")}</span>
-                    )}
-                  </label>
-                );
-              })}
+            <div className="space-y-1.5">
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+                <Input
+                  placeholder="Pesquisar..."
+                  value={serviceSearch}
+                  onChange={(e) => setServiceSearch(e.target.value)}
+                  className="pl-7 h-7 text-[10px]"
+                />
+              </div>
+              <div className="grid gap-1.5 max-h-36 overflow-y-auto border border-border rounded-lg p-2">
+                {availableServices
+                  .filter(s => s.name.toLowerCase().includes(serviceSearch.toLowerCase()))
+                  .map(s => {
+                    const checked = selectedServices.some(ss => ss.id === s.id);
+                    return (
+                      <label key={s.id} className="flex items-center gap-2.5 cursor-pointer hover:bg-muted/50 rounded-md px-2 py-1 -mx-1">
+                        <Checkbox checked={checked} onCheckedChange={() => toggleService(s)} />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm">{s.name}</span>
+                          <span className="text-xs text-muted-foreground ml-1.5">{s.duration_minutes} min</span>
+                        </div>
+                        {s.base_price != null && (
+                          <span className="text-xs text-muted-foreground shrink-0">R$ {s.base_price.toFixed(2).replace(".", ",")}</span>
+                        )}
+                      </label>
+                    );
+                  })}
+              </div>
             </div>
           )}
         </div>

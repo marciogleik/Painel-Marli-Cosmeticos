@@ -3,7 +3,7 @@ import { Phone, Mail, ChevronRight, ChevronDown, CalendarDays, Hash, RotateCcw }
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DBClient } from "@/hooks/useClinicData";
+import { DBClient, DBClientDetail } from "@/hooks/useClinicData";
 import type { SortBy } from "./ClientFilters";
 
 const isIncomplete = (c: { cpf?: string | null; address?: string | null; city?: string | null }) =>
@@ -16,12 +16,11 @@ const getInitials = (name: string) => {
 };
 
 interface ClientListProps {
-  clients: DBClient[];
+  clients: DBClientDetail[];
   isLoading: boolean;
   isEmpty: boolean;
   search: string;
   sortBy: SortBy;
-  appointmentStats: Record<string, { lastVisit: string | null; totalVisits: number }>;
   inactiveClients: DBClient[];
   showInactive: boolean;
   onShowInactiveChange: (value: boolean) => void;
@@ -36,7 +35,6 @@ const ClientList = ({
   isEmpty,
   search,
   sortBy,
-  appointmentStats,
   inactiveClients,
   showInactive,
   onShowInactiveChange,
@@ -53,7 +51,7 @@ const ClientList = ({
       )}
       {!isLoading && isEmpty && (
         <p className="text-sm text-muted-foreground text-center py-8">
-          {search ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado. Faça login para ver os dados.'}
+          {search ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado.'}
         </p>
       )}
       {!isLoading && clients.length > 0 && (
@@ -86,16 +84,16 @@ const ClientList = ({
                 </div>
               </div>
               <div className="flex items-center gap-3 shrink-0">
-                {sortBy === 'last_visit' && appointmentStats[client.id]?.lastVisit && (
+                {sortBy === 'last_visit' && client.last_visit && (
                   <span className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
                     <CalendarDays className="w-3 h-3" />
-                    {new Date(appointmentStats[client.id].lastVisit + 'T00:00:00').toLocaleDateString('pt-BR')}
+                    {new Date(client.last_visit + 'T00:00:00').toLocaleDateString('pt-BR')}
                   </span>
                 )}
-                {sortBy === 'total_visits' && (appointmentStats[client.id]?.totalVisits ?? 0) > 0 && (
+                {sortBy === 'total_visits' && (client.total_visits ?? 0) > 0 && (
                   <span className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
                     <Hash className="w-3 h-3" />
-                    {appointmentStats[client.id].totalVisits} visita{appointmentStats[client.id].totalVisits !== 1 ? 's' : ''}
+                    {client.total_visits} visita{client.total_visits !== 1 ? 's' : ''}
                   </span>
                 )}
                 <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />

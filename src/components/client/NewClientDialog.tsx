@@ -14,6 +14,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { z } from "zod";
 import { maskPhone, maskCPF } from "@/utils/masks";
+import type { Database } from "@/integrations/supabase/types";
+
+type TablesInsert = Database["public"]["Tables"]["clients"]["Insert"];
 
 const clientSchema = z.object({
   full_name: z.string().trim().min(2, "Nome deve ter ao menos 2 caracteres").max(120),
@@ -53,7 +56,7 @@ const NewClientDialog = ({ open, onOpenChange }: Props) => {
 
   const mutation = useMutation({
     mutationFn: async (data: ClientForm) => {
-      const payload: Record<string, unknown> = {
+      const payload: TablesInsert = {
         full_name: data.full_name.trim(),
       };
       if (data.phone) payload.phone = data.phone.trim();
@@ -65,7 +68,7 @@ const NewClientDialog = ({ open, onOpenChange }: Props) => {
       if (data.city) payload.city = data.city.trim();
       if (data.notes) payload.notes = data.notes.trim();
 
-      const { error } = await supabase.from("clients").insert([payload as any]);
+      const { error } = await supabase.from("clients").insert([payload]);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -75,7 +78,7 @@ const NewClientDialog = ({ open, onOpenChange }: Props) => {
       setErrors({});
       onOpenChange(false);
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error(err.message ?? "Erro ao cadastrar cliente");
     },
   });

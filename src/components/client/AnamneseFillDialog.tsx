@@ -10,17 +10,9 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import type { AnamnesisTemplate, TemplateField } from "@/components/settings/AnamnesesTab";
+import type { PatientRecord } from "./AnamneseTab";
 
-interface PatientRecord {
-  id: string;
-  client_id: string;
-  professional_id: string | null;
-  record_type: string;
-  title: string | null;
-  content: Record<string, unknown> | null;
-  created_at: string;
-  updated_at: string;
-}
+// PatientRecord is now imported from AnamneseTab
 
 interface AnamneseFillDialogProps {
   template: AnamnesisTemplate | null;
@@ -42,7 +34,7 @@ const AnamneseFillDialog = ({
 
   // Derive fields from template or existing record
   const fields: TemplateField[] = isEditing
-    ? ((existingRecord.content as Record<string, unknown>)?.templateFields as TemplateField[]) ?? []
+    ? ((existingRecord.content as any)?.templateFields as TemplateField[]) ?? []
     : (template?.fields ?? []).filter((f) => f.isActive);
 
   const title = isEditing
@@ -51,7 +43,7 @@ const AnamneseFillDialog = ({
 
   useEffect(() => {
     if (isEditing && existingRecord.content) {
-      const content = existingRecord.content as Record<string, unknown>;
+      const content = existingRecord.content as any;
       setAnswers((content.answers as Record<string, string>) ?? {});
     } else {
       setAnswers({});
@@ -64,7 +56,7 @@ const AnamneseFillDialog = ({
         templateFields: fields,
         answers,
         templateId: isEditing
-          ? (existingRecord.content as Record<string, unknown>)?.templateId
+          ? (existingRecord.content as any)?.templateId
           : template?.id,
       };
 

@@ -24,6 +24,10 @@ import type { DBClient } from "@/hooks/useClinicData";
 import AnamneseTab from "@/components/client/AnamneseTab";
 import EditClientDialog from "@/components/client/EditClientDialog";
 import AnexosTab from "@/components/client/AnexosTab";
+import type { Database } from "@/integrations/supabase/types";
+
+type Tables = Database["public"]["Tables"];
+type TablesUpdate = Tables["clients"]["Update"];
 const useClient = (id: string) =>
   useQuery({
     queryKey: ["client", id],
@@ -87,7 +91,7 @@ const ClientDetailPage = () => {
     mutationFn: async () => {
       const { error } = await supabase
         .from("clients")
-        .update({ is_active: false } as any)
+        .update({ is_active: false })
         .eq("id", id!);
       if (error) throw error;
     },
@@ -96,7 +100,7 @@ const ClientDetailPage = () => {
       queryClient.invalidateQueries({ queryKey: ["clients"] });
       navigate("/clientes");
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error(err.message ?? "Erro ao desativar cliente");
     },
   });
@@ -269,16 +273,16 @@ const ClientDetailPage = () => {
                     <p className="text-sm font-medium">{client.phone2}</p>
                   </div>
                 )}
-                {(client as any).address && (
+                {client.address && (
                   <div>
                     <p className="text-xs text-muted-foreground">Endereço</p>
-                    <p className="text-sm font-medium">{(client as any).address}</p>
+                    <p className="text-sm font-medium">{client.address}</p>
                   </div>
                 )}
-                {(client as any).city && (
+                {client.city && (
                   <div>
                     <p className="text-xs text-muted-foreground">Cidade</p>
-                    <p className="text-sm font-medium">{(client as any).city}</p>
+                    <p className="text-sm font-medium">{client.city}</p>
                   </div>
                 )}
               </div>
@@ -288,7 +292,7 @@ const ClientDetailPage = () => {
                   <p className="text-sm mt-0.5 whitespace-pre-wrap">{client.notes}</p>
                 </div>
               )}
-              {!client.cpf && !client.phone2 && !client.notes && !(client as any).address && !(client as any).city && (
+              {!client.cpf && !client.phone2 && !client.notes && !client.address && !client.city && (
                 <p className="text-sm text-muted-foreground py-4">
                   Nenhuma informação adicional cadastrada.
                 </p>
@@ -318,15 +322,14 @@ const ClientDetailPage = () => {
                     falta: "bg-amber-100 text-amber-800",
                     espera: "bg-amber-100 text-amber-800",
                   };
-                  const services = (apt as any).appointment_services as any[] | undefined;
+                  const services = (apt as any).appointment_services as Tables["appointment_services"]["Row"][] | undefined;
                   const profName = professionals?.get(apt.professional_id) ?? "—";
 
                   return (
                     <div
                       key={apt.id}
-                      className={`flex items-center gap-4 p-3 rounded-lg border border-border ${
-                        apt.status === "cancelado" ? "opacity-60 line-through" : ""
-                      }`}
+                      className={`flex items-center gap-4 p-3 rounded-lg border border-border ${apt.status === "cancelado" ? "opacity-60 line-through" : ""
+                        }`}
                     >
                       <div className="text-center shrink-0 w-16">
                         <p className="text-xs text-muted-foreground">
@@ -352,9 +355,8 @@ const ClientDetailPage = () => {
 
                       <Badge
                         variant="secondary"
-                        className={`shrink-0 text-[10px] ${
-                          statusColors[apt.status] ?? ""
-                        }`}
+                        className={`shrink-0 text-[10px] ${statusColors[apt.status] ?? ""
+                          }`}
                       >
                         {apt.status}
                       </Badge>

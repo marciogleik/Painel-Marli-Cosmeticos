@@ -1,21 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { statusConfig } from "@/data/clinic";
+import type { Database } from "@/integrations/supabase/types";
+
+type Tables = Database["public"]["Tables"];
+type Views = Database["public"]["Views"];
 
 // ========== PROFESSIONALS ==========
-export interface DBProfessional {
-  id: string;
-  name: string;
-  role_description: string | null;
-  avatar_initials: string | null;
-  is_active: boolean;
-  user_id: string | null;
-  agenda_order: number | null;
-  can_receive_appointments: boolean;
-  can_view_all_agendas: boolean;
-  can_receive_email_appointments: boolean;
-  can_switch_registers: boolean;
-}
+export type DBProfessional = Tables["professionals"]["Row"];
 
 export const useProfessionals = (includeInactive = false) => {
   return useQuery({
@@ -30,22 +22,13 @@ export const useProfessionals = (includeInactive = false) => {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data ?? []) as DBProfessional[];
+      return data ?? [];
     },
   });
 };
 
 // ========== SERVICES ==========
-export interface DBService {
-  id: string;
-  name: string;
-  duration_minutes: number;
-  base_price: number | null;
-  price_note: string | null;
-  category: string;
-  requires_evaluation: boolean;
-  is_active: boolean;
-}
+export type DBService = Tables["services"]["Row"];
 
 export const useServices = (includeInactive = false) => {
   return useQuery({
@@ -60,7 +43,7 @@ export const useServices = (includeInactive = false) => {
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data ?? []) as DBService[];
+      return data ?? [];
     },
   });
 };
@@ -141,58 +124,48 @@ export const useAppointments = (dateFrom?: string, dateTo?: string) => {
 };
 
 // ========== CLIENTS ==========
-export interface DBClient {
-  id: string;
-  full_name: string;
-  phone: string | null;
-  phone2: string | null;
-  email: string | null;
-  cpf: string | null;
-  birth_date: string | null;
-  notes: string | null;
-  city: string | null;
-  address: string | null;
-  is_active: boolean;
-  created_at: string;
-}
+export type DBClient = Views["client_details_view"]["Row"];
 
-export const useClients = (search?: string) => {
+export const useClients = (options: {
+  search?: string;
+  page?: number;
+  pageSize?: number;
+  sortBy?: string;
+  is_active?: boolean;
+} = {}) => {
+  const { search, page = 1, pageSize = 50, sortBy, is_active = true } = options;
+
   return useQuery({
-    queryKey: ["clients", search],
+    queryKey: ["clients", search, page, pageSize, sortBy, is_active],
     queryFn: async () => {
-      if (search && search.length > 0) {
-        // When searching, query with filter (limited results are fine)
-        const { data, error } = await supabase
-          .from("clients")
-          .select("*")
-          .eq("is_active", true)
-          .or(`full_name.ilike.%${search}%,phone.ilike.%${search}%`)
-          .order("full_name")
-          .limit(200);
+      let query = supabase
+        .from("client_details_view")
+        .select("*", { count: "exact" })
+        .eq("is_active", is_active);
 
-        if (error) throw error;
-        return (data ?? []) as DBClient[];
+      if (search && search.trim().length > 0) {
+        query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%,cpf.ilike.%${search}%`);
       }
 
-      // No search: fetch all clients in pages to bypass 1000-row limit
-      const all: DBClient[] = [];
-      const pageSize = 1000;
-      let from = 0;
-      while (true) {
-        const { data, error } = await supabase
-          .from("clients")
-          .select("*")
-          .eq("is_active", true)
-          .order("full_name")
-          .range(from, from + pageSize - 1);
-
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        all.push(...(data as DBClient[]));
-        if (data.length < pageSize) break;
-        from += pageSize;
+      if (sortBy === 'last_visit') {
+        query = query.order("last_visit", { ascending: false, nullsFirst: false });
+      } else if (sortBy === 'total_visits') {
+        query = query.order("total_visits", { ascending: false });
+      } else {
+        query = query.order("full_name", { ascending: true });
       }
-      return all;
+
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+
+      const { data, error, count } = await query.range(from, to);
+
+      if (error) throw error;
+
+      return {
+        data: data || [],
+        count: count || 0,
+      };
     },
   });
 };
@@ -213,5 +186,6 @@ export const useInactiveClients = () => {
   });
 };
 
-// Re-export statusConfig for convenience
+// Re-export statusConfig and WEEKLY_BLOCKS for convenience
 export { statusConfig };
+export { WEEKLY_BLOCKS } from "@/data/clinic";
