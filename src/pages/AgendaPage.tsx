@@ -387,11 +387,31 @@ const AgendaPage = () => {
 
   const days = viewMode === "week" ? Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)) : [selectedDay];
 
+  // Professional sorting map (using IDs for stability)
+  const professionalOrder = [
+    "00000000-0000-0000-0000-000000000001", // Dhionara Sbrussi
+    "00000000-0000-0000-0000-000000000002", // Dhiani Sbrussi
+    "00000000-0000-0000-0000-000000000003", // Luciane Castanheira
+    "00000000-0000-0000-0000-000000000004", // Tais Pires
+    "00000000-0000-0000-0000-000000000005", // Bruna Castanheira
+    "00000000-0000-0000-0000-000000000006", // Michele Quintana
+    "00000000-0000-0000-0000-000000000007", // Patricia Armanda
+  ];
+
+  const sortedProfessionals = [...professionals]
+    .filter((p) => professionalOrder.includes(p.id))
+    .sort((a, b) => {
+      const indexA = professionalOrder.indexOf(a.id);
+      const indexB = professionalOrder.indexOf(b.id);
+      return indexA - indexB;
+    });
+
   const filteredProfessionals =
-    selectedFilter === "all" ? professionals : professionals.filter((p) => p.id === selectedFilter);
+    selectedFilter === "all" ? sortedProfessionals : sortedProfessionals.filter((p) => p.id === selectedFilter);
 
   const getApptsForColumn = (dayStr: string, profId?: string) => {
     return appointments.filter((a) => {
+      if (a.status === "removido") return false;
       const matchDay = a.date === dayStr;
       if (viewMode === "day" && profId) return matchDay && a.professional_id === profId;
       const matchProf = selectedFilter === "all" || a.professional_id === selectedFilter;
@@ -409,15 +429,20 @@ const AgendaPage = () => {
     const prof = professionals.find((p) => p.id === appt.professional_id);
     const serviceName = getServiceNames(appt.id);
     const timeRange = `${appt.start_time?.slice(0, 5)} - ${appt.end_time?.slice(0, 5)}`;
-    const isCompact = height < 56;
+    const isCompact = height < 45;
+    const isMedium = height >= 90;
+    const isLarge = height >= 140;
 
     const displayTop = isDragging ? dragPreviewTop : top;
+
+    // Format full date and time for footer (e.g. 11/03/2026 - 08h00 às 10h00)
+    const fullDateTimeStr = `${format(new Date(appt.date + "T00:00:00"), "dd/MM/yyyy")} - ${appt.start_time?.slice(0, 5).replace(":", "h")} às ${appt.end_time?.slice(0, 5).replace(":", "h")}`;
 
     return (
       <div
         key={appt.id}
         className={cn(
-          "absolute left-1 right-1 rounded-md shadow-sm overflow-hidden border-l-[3px] transition-shadow select-none",
+          "absolute left-1 right-1 rounded-md shadow-sm overflow-hidden border-l-[3.5px] transition-shadow select-none",
           cfg.color.replace("bg-", "border-l-"),
           isCancelled ? "opacity-60" : "",
           isDraggable ? "cursor-grab hover:shadow-md" : "cursor-pointer",
@@ -440,38 +465,68 @@ const AgendaPage = () => {
         }}
       >
         <div
-          className="h-full px-2 py-1 flex flex-col justify-start"
-          style={!isCancelled ? { backgroundColor: `color-mix(in srgb, ${getStatusBg(appt.status)} 20%, white)` } : undefined}
+          className="h-full px-2 py-1.5 flex flex-col justify-start overflow-hidden gap-0.5"
+          style={!isCancelled ? { backgroundColor: `color-mix(in srgb, ${getStatusBg(appt.status)} 35%, white)` } : undefined}
         >
           {isCompact ? (
-            <div className="flex items-center gap-1">
-              {isDraggable && <GripVertical className="w-3 h-3 shrink-0 text-muted-foreground/50" />}
+            <div className="flex items-center gap-1 h-full">
+              {isDraggable && <GripVertical className="w-2.5 h-2.5 shrink-0 text-muted-foreground/40" />}
               {getStatusIcon(appt.status)}
-              <span className={cn("text-[10px] font-bold truncate", isCancelled && "line-through")}>
+              <span className={cn("text-[10px] font-bold truncate text-foreground leading-none", isCancelled && "line-through")}>
                 {appt.client_name}
               </span>
-              <span className="text-[9px] opacity-70 shrink-0">{appt.start_time?.slice(0, 5)}</span>
+              <span className="text-[9px] font-medium opacity-60 shrink-0 ml-auto leading-none">
+                {appt.start_time?.slice(0, 5)}
+              </span>
             </div>
           ) : (
             <>
-              <div className="flex items-center gap-1">
-                {isDraggable && <GripVertical className="w-3 h-3 shrink-0 text-muted-foreground/50" />}
-                <span className="text-[10px] font-semibold text-foreground/70">{timeRange}</span>
+              {/* Header: Time Range */}
+              <div className="flex items-center gap-1 opacity-80">
+                {isDraggable && <GripVertical className="w-2.5 h-2.5 shrink-0 text-muted-foreground/40" />}
+                <span className="text-[9.5px] font-medium text-foreground/80">{timeRange}</span>
               </div>
-              <div className="flex items-center gap-1">
+
+              {/* Client Name */}
+              <div className="flex items-start gap-1">
                 {getStatusIcon(appt.status)}
-                <span className={cn("text-[11px] font-bold truncate text-foreground", isCancelled && "line-through")}>
+                <span className={cn(
+                  "text-[10.5px] font-bold text-foreground leading-tight overflow-hidden",
+                  isMedium ? "whitespace-normal line-clamp-2" : "truncate",
+                  isCancelled && "line-through opacity-70"
+                )}>
                   {appt.client_name}
                 </span>
               </div>
-              {serviceName && <p className="text-[10px] text-foreground/60 truncate">{serviceName}</p>}
-              {showProfName && prof && height >= 72 && (
-                <p className="text-[9px] text-foreground/50 truncate">({prof.name.split(" ")[0]})</p>
+
+              {/* Service Names */}
+              {serviceName && (
+                <p className="text-[9.5px] text-foreground/90 font-medium truncate leading-tight mt-0.5">
+                  {serviceName}
+                </p>
               )}
-              {height >= 80 && (
-                <span className={cn("text-[9px] font-medium mt-auto", isCancelled ? "text-foreground/40" : "text-foreground/50")}>
-                  {cfg.label}
-                </span>
+
+              {/* Professional & Status */}
+              {prof && (
+                <p className="text-[9px] text-foreground/70 font-semibold truncate leading-tight">
+                  ({prof.name.split(" ")[0]}) - {cfg.label}
+                </p>
+              )}
+
+              {/* Observations/Notes */}
+              {appt.notes && height >= 70 && (
+                <p className="text-[9px] text-foreground/75 italic truncate mt-0.5 leading-tight">
+                  Obs: {appt.notes}
+                </p>
+              )}
+
+              {/* Footer: Full Date and Time String */}
+              {isLarge && (
+                <div className="mt-auto border-t border-foreground/10 pt-1">
+                  <p className="text-[8.5px] font-medium text-foreground/60 leading-tight">
+                    {fullDateTimeStr}
+                  </p>
+                </div>
               )}
             </>
           )}
@@ -552,7 +607,7 @@ const AgendaPage = () => {
           >
             Todos
           </button>
-          {professionals.map((p) => (
+          {sortedProfessionals.map((p) => (
             <button
               key={p.id}
               onClick={() => setSelectedFilter(p.id)}
@@ -578,7 +633,7 @@ const AgendaPage = () => {
       </div>
 
       {/* Calendar Grid */}
-      <div className="flex-1 overflow-auto mx-8 mb-4 border border-border rounded-lg">
+      <div className="flex-1 overflow-auto mx-8 mb-4 border border-border rounded-lg bg-[#fffdf5]">
         {viewMode === "week" ? (
           /* ============ WEEK VIEW ============ */
           <div className="flex min-w-[1200px]">
@@ -587,8 +642,8 @@ const AgendaPage = () => {
               {hours.map((time) => {
                 const isHalf = time.endsWith(":30");
                 return (
-                  <div key={time} className={cn("h-8 flex items-start justify-end pr-2 pt-0.5 border-t", isHalf ? "border-border/20" : "border-border/50")}>
-                    <span className={cn("text-[10px] font-medium", isHalf ? "text-muted-foreground/50" : "text-muted-foreground")}>{time}</span>
+                  <div key={time} className={cn("h-8 flex items-start justify-end pr-2 pt-0.5 border-t", isHalf ? "border-border/40" : "border-border/70")}>
+                    <span className={cn("text-[10px] font-medium", isHalf ? "text-muted-foreground/60" : "text-muted-foreground")}>{time}</span>
                   </div>
                 );
               })}
@@ -628,8 +683,8 @@ const AgendaPage = () => {
               {hours.map((time) => {
                 const isHalf = time.endsWith(":30");
                 return (
-                  <div key={time} className={cn("h-8 flex items-start justify-end pr-2 pt-0.5 border-t", isHalf ? "border-border/20" : "border-border/50")}>
-                    <span className={cn("text-[10px] font-medium", isHalf ? "text-muted-foreground/50" : "text-muted-foreground")}>{time}</span>
+                  <div key={time} className={cn("h-8 flex items-start justify-end pr-2 pt-0.5 border-t", isHalf ? "border-border/40" : "border-border/70")}>
+                    <span className={cn("text-[10px] font-medium", isHalf ? "text-muted-foreground/60" : "text-muted-foreground")}>{time}</span>
                   </div>
                 );
               })}
@@ -727,7 +782,7 @@ function DayColumn({
       </div>
       <div className="relative" ref={colRef}>
         {hours.map((time) => (
-          <div key={time} className={cn("h-8 border-t hover:bg-accent/30 transition-colors", time.endsWith(":30") ? "border-border/15" : "border-border/30")} />
+          <div key={time} className={cn("h-8 border-t hover:bg-accent/30 transition-colors", time.endsWith(":30") ? "border-border/30" : "border-border/60")} />
         ))}
         {blockedBlocks.map((block) => renderBlockedBlock(block))}
         {appts.map((appt) => renderBlock(appt, colRef.current))}
@@ -755,7 +810,7 @@ function ProfColumn({
         {hours.map((time) => (
           <div
             key={time}
-            className={cn("h-8 border-t hover:bg-accent/30 transition-colors cursor-pointer", time.endsWith(":30") ? "border-border/15" : "border-border/30")}
+            className={cn("h-8 border-t hover:bg-accent/30 transition-colors cursor-pointer", time.endsWith(":30") ? "border-border/30" : "border-border/60")}
             onDoubleClick={() => onSlotClick(time)}
           />
         ))}

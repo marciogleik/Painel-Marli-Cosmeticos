@@ -344,12 +344,12 @@ const ClientDetailPage = () => {
                         <p className="text-sm font-medium truncate">
                           {services && services.length > 0
                             ? services.map((s) => s.service_name).join(", ")
-                            : "Sem serviço registrado"}
+                            : apt.notes || "Sem serviço registrado"}
                         </p>
                         <p className="text-xs text-muted-foreground truncate">
                           {profName}
                           {apt.executed_by ? ` • Exec: ${apt.executed_by}` : ""}
-                          {apt.notes ? ` • ${apt.notes}` : ""}
+                          {apt.notes && services && services.length > 0 ? ` • ${apt.notes}` : ""}
                         </p>
                       </div>
 

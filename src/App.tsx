@@ -10,6 +10,7 @@ import PainelLayout from "./layouts/PainelLayout";
 import DashboardPage from "./pages/DashboardPage";
 import AgendaPage from "./pages/AgendaPage";
 import ClientsPage from "./pages/ClientsPage";
+import HistoricPage from "./pages/HistoricPage";
 
 import PlaceholderPage from "./pages/PlaceholderPage";
 import ClientDetailPage from "./pages/ClientDetailPage";
@@ -62,6 +63,7 @@ const App = () => (
               <Route path="/faq" element={<FaqPage />} />
               <Route path="/configuracoes" element={<RoleGuard denyRoles={["secretaria"]}><ConfiguracoesPage /></RoleGuard>} />
               <Route path="/exportar" element={<RoleGuard denyRoles={["secretaria", "profissional"]}><ExportDataPage /></RoleGuard>} />
+              <Route path="/historico" element={<HistoricPage />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />

@@ -25,7 +25,7 @@ export async function checkAppointmentConflict({
     .select("id, client_name, start_time, end_time")
     .eq("professional_id", professionalId)
     .eq("date", date)
-    .not("status", "in", '("cancelado","falta")')
+    .not("status", "in", '("cancelado","falta","removido")')
     .lt("start_time", endTime)
     .gt("end_time", startTime);
 
