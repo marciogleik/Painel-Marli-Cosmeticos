@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { matchesPhone } from "@/utils/phoneUtils";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -84,7 +85,7 @@ const NewAppointmentDialog = ({ open, onOpenChange, defaultDate }: NewAppointmen
   const filteredClients = clientSearch.length >= 2
     ? clients.filter(c =>
       c.full_name.toLowerCase().includes(clientSearch.toLowerCase()) ||
-      (c.phone && c.phone.includes(clientSearch))
+      matchesPhone(c.phone, clientSearch)
     )
     : [];
 

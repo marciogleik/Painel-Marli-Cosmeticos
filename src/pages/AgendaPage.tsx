@@ -454,15 +454,15 @@ const AgendaPage = () => {
       const matchDay = a.date === dayStr;
 
       // Search filter
-      const matchesSearch = searchTerm.trim() === "" ||
-        (a.client_name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (a.client_phone?.includes(searchTerm));
+      const matchesSearch = !searchTerm ||
+        a.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        matchesPhone(a.client_phone, searchTerm);
 
-      if (!matchesSearch) return false;
+      const matchesProfessional = viewMode === "day" && profId
+        ? a.professional_id === profId
+        : selectedFilter === "all" || a.professional_id === selectedFilter;
 
-      if (viewMode === "day" && profId) return matchDay && a.professional_id === profId;
-      const matchProf = selectedFilter === "all" || a.professional_id === selectedFilter;
-      return matchDay && matchProf;
+      return matchesProfessional && matchesSearch && matchDay;
     });
   };
 
