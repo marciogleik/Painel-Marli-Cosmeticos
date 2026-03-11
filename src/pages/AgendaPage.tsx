@@ -489,6 +489,7 @@ const AgendaPage = () => {
         className={cn(
           "absolute left-1 right-1 rounded-md shadow-sm overflow-hidden border-l-[4px] transition-shadow select-none",
           cfg.color.replace("bg-", "border-l-"),
+          "text-white",
           isDraggable ? "cursor-grab hover:shadow-md" : "cursor-pointer",
           isDragging && "opacity-80 shadow-lg ring-2 ring-primary/40 z-50"
         )}
@@ -509,13 +510,13 @@ const AgendaPage = () => {
         }}
       >
         <div
-          className="h-full flex flex-col justify-start overflow-hidden leading-[1.1] gap-0 text-foreground"
-          style={{ backgroundColor: `color-mix(in srgb, ${getStatusBg(appt.status)} 40%, white)` }}
+          className="h-full flex flex-col justify-start overflow-hidden leading-[1.1] gap-0 text-white"
+          style={{ backgroundColor: `color-mix(in srgb, ${getStatusBg(appt.status)} 70%, black)` }}
         >
           {/* Header: Time Content (Always visible if height > 30) */}
           {height >= 30 && (
-            <div className="flex items-center gap-1 opacity-80 px-1.5 py-0.5 shrink-0 leading-none">
-              {isDraggable && height > 40 && <GripVertical className="w-2.5 h-2.5 shrink-0 text-muted-foreground/40" />}
+            <div className="flex items-center gap-1 opacity-90 px-1.5 py-0.5 shrink-0 leading-none">
+              {isDraggable && height > 40 && <GripVertical className="w-2.5 h-2.5 shrink-0 text-white/40" />}
               <span className="text-[8.5px] font-bold uppercase tracking-tighter whitespace-nowrap">{timeRange}</span>
             </div>
           )}
@@ -903,7 +904,7 @@ function ProfColumn({
 function getStatusBg(status: string): string {
   const map: Record<string, string> = {
     agendado: "#4285F4",
-    confirmado: "#000080",
+    confirmado: "#9b87f5",
     espera: "#FF9800",
     atendendo: "#E040FB",
     atendido: "#4CAF50",
