@@ -58,6 +58,7 @@ const AgendaPage = () => {
   // Confirmation dialog
   const [pendingReschedule, setPendingReschedule] = useState<PendingReschedule | null>(null);
   const [isRescheduling, setIsRescheduling] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   const queryClient = useQueryClient();
 
@@ -87,6 +88,14 @@ const AgendaPage = () => {
       supabase.removeChannel(appointmentsChannel);
     };
   }, [queryClient]);
+
+  // Current time updater
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+    return () => clearInterval(timer);
+  }, []);
 
   const hours = Array.from({ length: 30 }, (_, i) => {
     const h = Math.floor(i / 2) + 7;
@@ -659,7 +668,33 @@ const AgendaPage = () => {
       </div>
 
       {/* Calendar Grid */}
-      <div className="flex-1 overflow-auto mx-8 mb-4 border border-border rounded-lg bg-[#fffdf5]">
+      <div className="flex-1 overflow-auto mx-8 mb-4 border border-border rounded-lg bg-[#fffdf5] relative">
+        {/* Real-time Indicator Component */}
+        {(() => {
+          const h = currentTime.getHours();
+          const m = currentTime.getMinutes();
+          if (h < 7 || h >= 22) return null; // Outside business hours
+
+          // Only show if the selected day is today
+          if (!isToday(viewMode === "week" ? new Date() : selectedDay)) {
+            // In week view, we might want to show it on the specific day column, 
+            // but for now let's keep it simple and only show if "today" is in view.
+            if (viewMode === "day" && !isToday(selectedDay)) return null;
+          }
+
+          const top = (h - 7) * 64 + (m / 60) * 64 + 48; // +48px for the day header offset
+
+          return (
+            <div
+              id="real-time-indicator"
+              className="absolute left-0 right-0 z-50 pointer-events-none flex items-center"
+              style={{ top: `${top}px` }}
+            >
+              <div className="w-2 h-2 rounded-full bg-destructive -ml-1 shadow-sm" />
+              <div className="h-[2px] flex-1 bg-destructive shadow-sm" />
+            </div>
+          );
+        })()}
         {viewMode === "week" ? (
           /* ============ WEEK VIEW ============ */
           <div className="flex min-w-[1200px]">
@@ -781,7 +816,7 @@ const AgendaPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </div >
   );
 };
 
