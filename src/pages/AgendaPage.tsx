@@ -536,7 +536,7 @@ const AgendaPage = () => {
             <div className="flex items-start gap-1">
               {height > 40 && getStatusIcon(appt.status)}
               <span className={cn(
-                "font-display font-black uppercase tracking-tight overflow-hidden leading-[0.85]",
+                "font-display font-normal uppercase tracking-tight overflow-hidden leading-[0.85]",
                 height < 40 ? "text-[8.5px] truncate" : "text-[10px] line-clamp-2",
                 isCancelled && "line-through opacity-70"
               )}>
