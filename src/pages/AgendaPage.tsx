@@ -197,8 +197,8 @@ const AgendaPage = () => {
         className={cn(
           "absolute left-1 right-1 rounded-md overflow-hidden border z-10 group cursor-default shadow-sm",
           block.isWeekly
-            ? "border-black bg-neutral-800 text-white"
-            : "border-destructive/30 bg-destructive/10 text-destructive"
+            ? "border-black bg-black text-white"
+            : "border-black bg-black text-white"
         )}
         style={{ top: `${top}px`, height: `${height}px` }}
         onClick={() => {
@@ -220,14 +220,14 @@ const AgendaPage = () => {
           !block.isWeekly && "cursor-pointer hover:bg-destructive/20"
         )}>
           <div className="flex items-center gap-1 mb-0.5 shrink-0">
-            <Ban className={cn("w-2.5 h-2.5 shrink-0", block.isWeekly ? "text-white/70" : "text-destructive/70")} />
-            <span className={cn("text-[9px] font-bold uppercase tracking-tight", block.isWeekly ? "text-white/80" : "text-destructive/80")}>
+            <Ban className={cn("w-2.5 h-2.5 shrink-0", "text-white/70")} />
+            <span className={cn("text-[9px] font-bold uppercase tracking-tight", "text-white/80")}>
               {timeRange}
             </span>
           </div>
           <span className={cn(
             "text-[10.5px] font-display font-black uppercase leading-[1] tracking-tighter line-clamp-4",
-            block.isWeekly ? "text-white" : "text-destructive"
+            "text-white"
           )}>
             {(() => {
               const prof = professionals.find(p => p.id === block.professional_id);
@@ -908,7 +908,7 @@ function getStatusBg(status: string): string {
     espera: "#FF9800",
     atendendo: "#E040FB",
     atendido: "#4CAF50",
-    cancelado: "#020617",
+    cancelado: "#9E9E9E",
     atrasado: "#CDDC39",
     falta: "#8B0000",
   };
