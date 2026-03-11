@@ -713,8 +713,8 @@ const AgendaPage = () => {
               {hours.map((time) => {
                 const isHalf = time.endsWith(":30");
                 return (
-                  <div key={time} className={cn("h-8 flex items-start justify-end pr-2 pt-0.5 border-t", isHalf ? "border-border/40" : "border-border/70")}>
-                    <span className={cn("text-[10px] font-medium", isHalf ? "text-muted-foreground/60" : "text-muted-foreground")}>{time}</span>
+                  <div key={time} className={cn("h-8 flex items-start justify-end pr-2 pt-0.5 border-t", isHalf ? "border-border/60" : "border-border/90")}>
+                    <span className={cn("text-[10px] font-medium", isHalf ? "text-muted-foreground/70" : "text-muted-foreground/90")}>{time}</span>
                   </div>
                 );
               })}
@@ -754,8 +754,8 @@ const AgendaPage = () => {
               {hours.map((time) => {
                 const isHalf = time.endsWith(":30");
                 return (
-                  <div key={time} className={cn("h-8 flex items-start justify-end pr-2 pt-0.5 border-t", isHalf ? "border-border/40" : "border-border/70")}>
-                    <span className={cn("text-[10px] font-medium", isHalf ? "text-muted-foreground/60" : "text-muted-foreground")}>{time}</span>
+                  <div key={time} className={cn("h-8 flex items-start justify-end pr-2 pt-0.5 border-t", isHalf ? "border-border/60" : "border-border/90")}>
+                    <span className={cn("text-[10px] font-medium", isHalf ? "text-muted-foreground/70" : "text-muted-foreground/90")}>{time}</span>
                   </div>
                 );
               })}
@@ -887,7 +887,7 @@ function ProfColumn({
         {hours.map((time) => (
           <div
             key={time}
-            className={cn("h-8 border-t hover:bg-accent/30 transition-colors cursor-pointer", time.endsWith(":30") ? "border-border/30" : "border-border/60")}
+            className={cn("h-8 border-t hover:bg-accent/30 transition-colors cursor-pointer", time.endsWith(":30") ? "border-border/50" : "border-border/80")}
             onDoubleClick={() => onSlotClick(time)}
           />
         ))}
