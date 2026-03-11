@@ -89,7 +89,7 @@ const UserAvatarMenu = () => {
       </div>
       <div className="min-w-0 text-left">
         <p className="text-xs font-bold text-sidebar-accent-foreground truncate">{displayName}</p>
-        <p className="text-[9px] text-sidebar-foreground uppercase tracking-[0.15em]">Sistema Marli Cosméticos</p>
+        <p className="text-[9px] text-sidebar-foreground uppercase tracking-[0.15em]">Marli Cosméticos</p>
       </div>
     </button>
   );
