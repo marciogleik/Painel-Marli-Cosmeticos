@@ -115,9 +115,9 @@ const AgendaPage = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const hours = Array.from({ length: 30 }, (_, i) => {
-    const h = Math.floor(i / 2) + 7;
-    const m = (i % 2) * 30;
+  const hours = Array.from({ length: 60 }, (_, i) => {
+    const h = Math.floor(i / 4) + 7;
+    const m = (i % 4) * 15;
     return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
   });
 
@@ -271,8 +271,8 @@ const AgendaPage = () => {
     const startMinutes = timeParts[0] * 60 + timeParts[1];
     const endMinutes = endParts[0] * 60 + endParts[1];
     const duration = endMinutes - startMinutes;
-    const top = (timeParts[0] - 7) * 64 + (timeParts[1] / 60) * 64;
-    const height = Math.max((duration / 60) * 64, 40);
+    const top = (timeParts[0] - 7) * 128 + (timeParts[1] / 60) * 128 + 48; // 48px header offset
+    const height = Math.max((duration / 60) * 128, 32);
     return { top, height };
   };
 
@@ -818,7 +818,7 @@ const AgendaPage = () => {
                     })}
                   </div>
 
-                  <div className="flex flex-1 relative h-[1000px]">
+                  <div className="flex flex-1 relative h-[1968px]">
                     {/* Real-time Indicator Component (Week) */}
                     {(() => {
                       const h = currentTime.getHours();
@@ -827,7 +827,7 @@ const AgendaPage = () => {
                       const todayIdx = days.findIndex(d => isToday(d));
                       if (todayIdx === -1) return null;
 
-                      const topOffset = (h - 7) * 64 + (m / 60) * 64 + 48;
+                      const topOffset = (h - 7) * 128 + (m / 60) * 128 + 48;
                       const colWidth = 100 / 7;
 
                       return (
@@ -887,7 +887,7 @@ const AgendaPage = () => {
                     })}
                   </div>
 
-                  <div className="flex flex-1 relative h-[1000px]">
+                  <div className="flex flex-1 relative h-[1968px]">
                     {/* Real-time Indicator Component (Day) */}
                     {(() => {
                       const h = currentTime.getHours();
@@ -895,7 +895,7 @@ const AgendaPage = () => {
                       if (h < 7 || h >= 22) return null;
                       if (!isToday(selectedDay)) return null;
 
-                      const topOffset = (h - 7) * 64 + (m / 60) * 64 + 48;
+                      const topOffset = (h - 7) * 128 + (m / 60) * 128 + 48;
 
                       return (
                         <div
