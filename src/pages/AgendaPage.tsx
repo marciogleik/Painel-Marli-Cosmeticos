@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { checkAppointmentConflict } from "@/utils/appointmentConflict";
 import { useNavigate } from "react-router-dom";
 import { normalizePhone, matchesPhone } from "@/utils/phoneUtils";
+import { resolveOverlaps, PositionedAppointment } from "@/utils/agendaLayout";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -451,7 +452,7 @@ const AgendaPage = () => {
     selectedFilter === "all" ? sortedProfessionals : sortedProfessionals.filter((p) => p.id === selectedFilter);
 
   const getApptsForColumn = (dayStr: string, profId?: string) => {
-    return appointments.filter((a) => {
+    const filtered = appointments.filter((a) => {
       if (a.status === "removido") return false;
       const matchDay = a.date === dayStr;
 
@@ -466,9 +467,12 @@ const AgendaPage = () => {
 
       return matchesProfessional && matchesSearch && matchDay;
     });
+
+    return resolveOverlaps(filtered);
   };
 
-  const renderAppointmentBlock = (appt: DBAppointment, showProfName: boolean, columnEl: HTMLDivElement | null) => {
+  const renderAppointmentBlock = (posAppt: PositionedAppointment<DBAppointment>, showProfName: boolean, columnEl: HTMLDivElement | null) => {
+    const { appt, overlapIndex, overlapCount } = posAppt;
     const { top, height } = getPosition(appt);
     const cfg = statusConfig[appt.status as keyof typeof statusConfig] || statusConfig.agendado;
     const isCancelled = appt.status === "cancelado";
@@ -489,15 +493,19 @@ const AgendaPage = () => {
       <div
         key={appt.id}
         className={cn(
-          "absolute left-1 right-1 rounded-md shadow-sm overflow-hidden border-l-[4px] transition-shadow select-none",
+          "absolute rounded-md overflow-hidden border z-10 group transition-all duration-200 shadow-sm",
+          cfg.bgClass,
           cfg.color.replace("bg-", "border-l-"),
-          "text-white",
           isDraggable ? "cursor-grab hover:shadow-md" : "cursor-pointer",
-          isDragging && "opacity-80 shadow-lg ring-2 ring-primary/40 z-50"
+          isDragging && "opacity-80 shadow-lg ring-2 ring-primary z-50",
+          isCancelled && "grayscale-[0.5] opacity-90",
+          isFalta && "opacity-70"
         )}
         style={{
-          top: `${displayTop}px`,
+          top: `${top}px`,
           height: `${height}px`,
+          width: `calc((100% - 8px) / ${overlapCount} - 2px)`,
+          left: `calc(4px + (${overlapIndex} * (100% - 8px) / ${overlapCount}))`,
           backgroundColor: isCancelled ? undefined : undefined, // Removed hardcoded muted bg
           transition: isDragging ? "none" : "box-shadow 0.15s",
         }}
@@ -747,7 +755,7 @@ const AgendaPage = () => {
                   hours={hours}
                   appts={dayAppts}
                   blockedBlocks={getBlockedForColumn(dayStr)}
-                  renderBlock={(appt, el) => renderAppointmentBlock(appt, selectedFilter === "all", el)}
+                  renderBlock={(posAppt, el) => renderAppointmentBlock(posAppt, selectedFilter === "all", el)}
                   renderBlockedBlock={renderBlockedBlock}
                   onDoubleClick={() => {
                     setSelectedDay(day);
@@ -784,7 +792,7 @@ const AgendaPage = () => {
                   hours={hours}
                   appts={profAppts}
                   blockedBlocks={getBlockedForColumn(dayStr, prof.id)}
-                  renderBlock={(appt, el) => renderAppointmentBlock(appt, false, el)}
+                  renderBlock={(posAppt, el) => renderAppointmentBlock(posAppt, false, el)}
                   renderBlockedBlock={renderBlockedBlock}
                   onSlotClick={(time) => {
                     setBlockDefaults({ profId: prof.id, date: selectedDay, time });
@@ -846,9 +854,9 @@ function DayColumn({
   dayStr, dayAbbr, dayNum, isToday: today, hours, appts, blockedBlocks, renderBlock, renderBlockedBlock, onDoubleClick,
 }: {
   dayStr: string; dayAbbr: string; dayNum: string; isToday: boolean;
-  hours: string[]; appts: DBAppointment[];
+  hours: string[]; appts: PositionedAppointment<DBAppointment>[];
   blockedBlocks: any[];
-  renderBlock: (appt: DBAppointment, el: HTMLDivElement | null) => React.ReactNode;
+  renderBlock: (posAppt: PositionedAppointment<DBAppointment>, el: HTMLDivElement | null) => React.ReactNode;
   renderBlockedBlock: (block: any) => React.ReactNode;
   onDoubleClick: () => void;
 }) {
@@ -876,9 +884,9 @@ function DayColumn({
 function ProfColumn({
   profId, profName, hours, appts, blockedBlocks, renderBlock, renderBlockedBlock, onSlotClick,
 }: {
-  profId: string; profName: string; hours: string[]; appts: DBAppointment[];
+  profId: string; profName: string; hours: string[]; appts: PositionedAppointment<DBAppointment>[];
   blockedBlocks: any[];
-  renderBlock: (appt: DBAppointment, el: HTMLDivElement | null) => React.ReactNode;
+  renderBlock: (posAppt: PositionedAppointment<DBAppointment>, el: HTMLDivElement | null) => React.ReactNode;
   renderBlockedBlock: (block: any) => React.ReactNode;
   onSlotClick: (time: string) => void;
 }) {
