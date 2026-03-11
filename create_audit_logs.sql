@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS public.activity_logs (
 ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 
 -- Allow authenticated users to read logs
+DROP POLICY IF EXISTS "Allow authenticated users to read activity logs" ON public.activity_logs;
 CREATE POLICY "Allow authenticated users to read activity logs"
 ON public.activity_logs FOR SELECT
 TO authenticated
