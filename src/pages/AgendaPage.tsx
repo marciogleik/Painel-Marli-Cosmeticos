@@ -221,17 +221,17 @@ const AgendaPage = () => {
           setDialogOpen(true);
         }}
       >
-        <div className="horario flex justify-between items-center" style={{ color: "#000000" }}>
-          <span style={{ color: "#000000" }}>{block.start_time.slice(0, 5)}</span>
+        <div className="horario flex justify-between items-center" style={{ color: "#ffffff" }}>
+          <span style={{ color: "#ffffff" }}>{block.start_time.slice(0, 5)}</span>
           {height >= 40 && (
-            <span className="text-[9px] uppercase font-bold tracking-widest" style={{ color: "#000000" }}>
+            <span className="text-[9px] uppercase font-bold tracking-widest opacity-80" style={{ color: "#ffffff" }}>
               {block.isWeekly ? "Semanal" : "Bloqueio"}
             </span>
           )}
         </div>
-        <div className="cliente font-medium flex items-center gap-1.5" style={{ fontSize: "11px", color: "#000000" }}>
-          <span style={{ color: "#000000" }}>🚫</span>
-          <span className="truncate uppercase tracking-tight" style={{ color: "#000000" }}>
+        <div className="cliente font-medium flex items-center gap-1.5" style={{ fontSize: "11px", color: "#ffffff" }}>
+          <span style={{ color: "#ffffff" }}>🚫</span>
+          <span className="truncate uppercase tracking-tight" style={{ color: "#ffffff" }}>
             {block.reason || "Horário Bloqueado"}
             {(() => {
               const prof = professionals.find(p => p.id === block.professional_id);
