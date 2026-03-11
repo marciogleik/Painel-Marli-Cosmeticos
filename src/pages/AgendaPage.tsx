@@ -66,6 +66,7 @@ const AgendaPage = () => {
   const [detailOpen, setDetailOpen] = useState(false);
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
   const [blockDefaults, setBlockDefaults] = useState<{ profId?: string; date?: Date; time?: string }>({});
+  const [apptDefaults, setApptDefaults] = useState<{ profId?: string; date?: Date; time?: string }>({});
 
   // Drag state
   const dragRef = useRef<DragState | null>(null);
@@ -210,27 +211,26 @@ const AgendaPage = () => {
           "modern-agenda-card absence-block evento-agenda"
         )}
         style={{ top: `${top}px`, height: `${height}px` }}
-        onClick={() => {
-          if (!block.isWeekly) {
-            setBlockDefaults({
-              profId: block.professional_id,
-              date: new Date(block.date + "T12:00:00"),
-              time: block.start_time.slice(0, 5),
-            });
-            setBlockDialogOpen(true);
-          }
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          setApptDefaults({
+            profId: block.professional_id,
+            date: new Date(block.date + "T12:00:00"),
+            time: block.start_time.slice(0, 5),
+          });
+          setDialogOpen(true);
         }}
       >
         <div className="horario flex justify-between items-center" style={{ color: "#000000" }}>
           <span style={{ color: "#000000" }}>{block.start_time.slice(0, 5)}</span>
           {height >= 40 && (
-            <span className="text-[9px] uppercase font-bold tracking-widest opacity-70" style={{ color: "#000000" }}>
+            <span className="text-[9px] uppercase font-bold tracking-widest" style={{ color: "#000000" }}>
               {block.isWeekly ? "Semanal" : "Bloqueio"}
             </span>
           )}
         </div>
         <div className="cliente font-medium flex items-center gap-1.5" style={{ fontSize: "11px", color: "#000000" }}>
-          <span className="opacity-70" style={{ color: "#000000" }}>🚫</span>
+          <span style={{ color: "#000000" }}>🚫</span>
           <span className="truncate uppercase tracking-tight" style={{ color: "#000000" }}>
             {block.reason || "Horário Bloqueado"}
             {(() => {
@@ -786,7 +786,13 @@ const AgendaPage = () => {
         )}
       </div>
 
-      <NewAppointmentDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <NewAppointmentDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        defaultDate={apptDefaults.date}
+        defaultProfessionalId={apptDefaults.profId}
+        defaultStartTime={apptDefaults.time}
+      />
       <BlockedSlotDialog
         open={blockDialogOpen}
         onOpenChange={setBlockDialogOpen}

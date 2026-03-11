@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { maskPhone } from "@/utils/masks";
 import { checkAppointmentConflict } from "@/utils/appointmentConflict";
 import { useOccupiedSlots } from "@/hooks/useOccupiedSlots";
@@ -46,6 +46,8 @@ interface NewAppointmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultDate?: Date;
+  defaultProfessionalId?: string;
+  defaultStartTime?: string;
 }
 
 const timeSlots = Array.from({ length: 180 }, (_, i) => {
@@ -58,15 +60,21 @@ const timeSlots = Array.from({ length: 180 }, (_, i) => {
   return h >= 7 && h < 22;
 });
 
-const NewAppointmentDialog = ({ open, onOpenChange, defaultDate }: NewAppointmentDialogProps) => {
+const NewAppointmentDialog = ({
+  open,
+  onOpenChange,
+  defaultDate,
+  defaultProfessionalId,
+  defaultStartTime
+}: NewAppointmentDialogProps) => {
   const queryClient = useQueryClient();
   const { data: professionals = [] } = useProfessionals();
 
   // Form state
-  const [professionalId, setProfessionalId] = useState("");
+  const [professionalId, setProfessionalId] = useState(defaultProfessionalId || "");
   const [selectedServices, setSelectedServices] = useState<DBService[]>([]);
   const [date, setDate] = useState<Date | undefined>(defaultDate || new Date());
-  const [startTime, setStartTime] = useState("");
+  const [startTime, setStartTime] = useState(defaultStartTime || "");
   const [clientSearch, setClientSearch] = useState("");
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [clientName, setClientName] = useState("");
@@ -74,6 +82,15 @@ const NewAppointmentDialog = ({ open, onOpenChange, defaultDate }: NewAppointmen
   const [notes, setNotes] = useState("");
   const [serviceSearch, setServiceSearch] = useState("");
   const [manualEndTime, setManualEndTime] = useState<string | null>(null);
+
+  // Update states when props change (sync)
+  useEffect(() => {
+    if (open) {
+      if (defaultProfessionalId) setProfessionalId(defaultProfessionalId);
+      if (defaultStartTime) setStartTime(defaultStartTime);
+      if (defaultDate) setDate(defaultDate);
+    }
+  }, [open, defaultProfessionalId, defaultStartTime, defaultDate]);
 
   const services = useServicesForProfessional(professionalId);
   const { data: clientsData, isLoading: isLoadingClients } = useClients({ search: clientSearch, pageSize: 20 });
