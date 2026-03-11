@@ -505,43 +505,43 @@ const AgendaPage = () => {
           <div className="px-1 py-0.5 flex flex-col gap-0 overflow-hidden leading-none">
             {/* Client Name: Crucial */}
             <div className="flex items-start gap-1">
-              {height > 55 && getStatusIcon(appt.status)}
+              {height > 40 && getStatusIcon(appt.status)}
               <span className={cn(
-                "font-display font-black uppercase tracking-tight overflow-hidden leading-[0.9]",
-                height < 50 ? "text-[9px] truncate" : "text-[10.5px] line-clamp-2",
+                "font-display font-black uppercase tracking-tight overflow-hidden leading-[0.85]",
+                height < 40 ? "text-[8.5px] truncate" : "text-[10px] line-clamp-2",
                 isCancelled && "line-through opacity-70"
               )}>
                 {appt.client_name}
               </span>
             </div>
 
-            {/* Service & Professional: Only if there's space */}
-            {height >= 45 && (
+            {/* Service & Professional: High density */}
+            {height >= 35 && (
               <div className="flex flex-col gap-0 mt-0.5">
                 {serviceSummary && (
-                  <p className="text-[8.5px] font-bold tracking-tighter line-clamp-1 opacity-90 leading-none">
+                  <p className="text-[8.5px] font-bold tracking-tighter line-clamp-1 opacity-95 leading-[0.9]">
                     {serviceSummary}
                   </p>
                 )}
-                {prof && (
-                  <p className="text-[7.5px] font-bold tracking-tighter truncate opacity-80 leading-none">
+                {prof && height >= 45 && (
+                  <p className="text-[7.5px] font-bold tracking-tighter truncate opacity-85 leading-none mt-0.5">
                     ({prof.name.split(" ")[0]})
                   </p>
                 )}
               </div>
             )}
 
-            {/* Executed By or Observations: High density fallback */}
-            {(appt.executed_by || appt.notes) && height >= 85 && (
-              <div className="flex flex-col gap-0 mt-0.5 opacity-70 leading-none">
-                {appt.executed_by && (
-                  <p className="text-[8px] font-bold truncate">
+            {/* Executed By or Observations: Explicit labels */}
+            {(appt.executed_by || appt.notes) && height >= 65 && (
+              <div className="flex flex-col gap-0 mt-0.5 opacity-80 leading-none">
+                {appt.executed_by && height >= 65 && (
+                  <p className="text-[7.5px] font-bold truncate">
                     Exec: {appt.executed_by}
                   </p>
                 )}
-                {appt.notes && height >= 100 && (
-                  <p className="text-[8px] font-medium line-clamp-1">
-                    Obs: {appt.notes}
+                {appt.notes && height >= 80 && (
+                  <p className="text-[7.5px] font-medium line-clamp-2 mt-0.5">
+                    <span className="font-bold">Obs:</span> {appt.notes}
                   </p>
                 )}
               </div>

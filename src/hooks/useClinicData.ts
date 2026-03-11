@@ -186,6 +186,32 @@ export const useInactiveClients = () => {
   });
 };
 
+// ========== NOTIFICATIONS ==========
+export type DBNotification = {
+  id: string;
+  type: string;
+  title: string;
+  content: string;
+  metadata: any;
+  is_read: boolean;
+  created_at: string;
+};
+
+export const useNotifications = () => {
+  return useQuery({
+    queryKey: ["notifications"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("notifications" as any)
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return (data as unknown as DBNotification[]) ?? [];
+    },
+  });
+};
+
 // Re-export statusConfig and WEEKLY_BLOCKS for convenience
 export { statusConfig };
 export { WEEKLY_BLOCKS } from "@/data/clinic";
