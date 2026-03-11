@@ -305,7 +305,7 @@ export const sampleAppointments: Appointment[] = [
 
 export const statusConfig: Record<Appointment['status'], { color: string; label: string; bgClass: string }> = {
   agendado: { color: 'bg-[#4285F4]', label: 'Agendado', bgClass: 'bg-[#4285F4]/10 border-[#4285F4]/30 text-[#4285F4]' },
-  confirmado: { color: 'bg-[#1a237e]', label: 'Confirmado', bgClass: 'bg-[#1a237e]/10 border-[#1a237e]/30 text-[#1a237e]' },
+  confirmado: { color: 'bg-[#0a1233]', label: 'Confirmado', bgClass: 'bg-[#0a1233]/10 border-[#0a1233]/30 text-[#0a1233]' },
   espera: { color: 'bg-[#FF9800]', label: 'Espera', bgClass: 'bg-[#FF9800]/10 border-[#FF9800]/30 text-[#FF9800]' },
   atendendo: { color: 'bg-[#E040FB]', label: 'Atendendo', bgClass: 'bg-[#E040FB]/10 border-[#E040FB]/30 text-[#E040FB]' },
   atendido: { color: 'bg-[#4CAF50]', label: 'Atendido', bgClass: 'bg-[#4CAF50]/10 border-[#4CAF50]/30 text-[#4CAF50]' },
