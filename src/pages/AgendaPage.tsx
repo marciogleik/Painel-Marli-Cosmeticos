@@ -905,14 +905,14 @@ function ProfColumn({
 
 function getStatusBg(status: string): string {
   const map: Record<string, string> = {
-    agendado: "#4579F1",
-    confirmado: "#040351",
-    espera: "#F29A28",
-    atendendo: "#DF33DC",
-    atendido: "#41BD46",
-    cancelado: "#99AAB3",
-    atrasado: "#D4CC2D",
-    falta: "#AB2612",
+    agendado: "#3481F5",
+    confirmado: "#000C52",
+    espera: "#FA920A",
+    atendendo: "#E82EDF",
+    atendido: "#11BD3C",
+    cancelado: "#96ABB3",
+    atrasado: "#D6C800",
+    falta: "#B30909",
   };
   return map[status] || "#4285F4";
 }

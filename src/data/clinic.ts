@@ -304,12 +304,12 @@ export const sampleAppointments: Appointment[] = [
 ];
 
 export const statusConfig: Record<Appointment['status'], { color: string; label: string; bgClass: string }> = {
-  agendado: { color: 'bg-[#4579F1]', label: 'Agendado', bgClass: 'bg-[#4579F1]/10 border-[#4579F1]/30 text-[#4579F1]' },
-  confirmado: { color: 'bg-[#040351]', label: 'Confirmado', bgClass: 'bg-[#040351]/10 border-[#040351]/30 text-[#040351]' },
-  espera: { color: 'bg-[#F29A28]', label: 'Espera', bgClass: 'bg-[#F29A28]/10 border-[#F29A28]/30 text-[#F29A28]' },
-  atendendo: { color: 'bg-[#DF33DC]', label: 'Atendendo', bgClass: 'bg-[#DF33DC]/10 border-[#DF33DC]/30 text-[#DF33DC]' },
-  atendido: { color: 'bg-[#41BD46]', label: 'Atendido', bgClass: 'bg-[#41BD46]/10 border-[#41BD46]/30 text-[#41BD46]' },
-  cancelado: { color: 'bg-[#99AAB3]', label: 'Cancelado', bgClass: 'bg-[#99AAB3]/10 border-[#99AAB3]/30 text-[#99AAB3]' },
-  atrasado: { color: 'bg-[#D4CC2D]', label: 'Atrasado', bgClass: 'bg-[#D4CC2D]/10 border-[#D4CC2D]/30 text-[#D4CC2D]' },
-  falta: { color: 'bg-[#AB2612]', label: 'Faltou', bgClass: 'bg-[#AB2612]/10 border-[#AB2612]/30 text-[#AB2612]' },
+  agendado: { color: 'bg-[#3481F5]', label: 'Agendado', bgClass: 'bg-[#3481F5]/10 border-[#3481F5]/30 text-[#3481F5]' },
+  confirmado: { color: 'bg-[#000C52]', label: 'Confirmado', bgClass: 'bg-[#000C52]/10 border-[#000C52]/30 text-[#000C52]' },
+  espera: { color: 'bg-[#FA920A]', label: 'Espera', bgClass: 'bg-[#FA920A]/10 border-[#FA920A]/30 text-[#FA920A]' },
+  atendendo: { color: 'bg-[#E82EDF]', label: 'Atendendo', bgClass: 'bg-[#E82EDF]/10 border-[#E82EDF]/30 text-[#E82EDF]' },
+  atendido: { color: 'bg-[#11BD3C]', label: 'Atendido', bgClass: 'bg-[#11BD3C]/10 border-[#11BD3C]/30 text-[#11BD3C]' },
+  cancelado: { color: 'bg-[#96ABB3]', label: 'Cancelado', bgClass: 'bg-[#96ABB3]/10 border-[#96ABB3]/30 text-[#96ABB3]' },
+  atrasado: { color: 'bg-[#D6C800]', label: 'Atrasado', bgClass: 'bg-[#D6C800]/10 border-[#D6C800]/30 text-[#D6C800]' },
+  falta: { color: 'bg-[#B30909]', label: 'Faltou', bgClass: 'bg-[#B30909]/10 border-[#B30909]/30 text-[#B30909]' },
 };
