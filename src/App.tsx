@@ -11,6 +11,7 @@ import DashboardPage from "./pages/DashboardPage";
 import AgendaPage from "./pages/AgendaPage";
 import ClientsPage from "./pages/ClientsPage";
 import HistoricPage from "./pages/HistoricPage";
+import NotificationsPage from "./pages/NotificationsPage";
 
 import PlaceholderPage from "./pages/PlaceholderPage";
 import ClientDetailPage from "./pages/ClientDetailPage";
