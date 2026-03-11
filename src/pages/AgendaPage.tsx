@@ -506,20 +506,22 @@ const AgendaPage = () => {
         key={appt.id}
         className={cn(
           "absolute overflow-hidden z-10 transition-all duration-200",
-          "evento-agenda",
+          "modern-agenda-card evento-agenda",
           isDraggable ? "cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-white/20" : "cursor-pointer",
-          isDragging && "opacity-80 shadow-2xl scale-[1.02] z-50",
-          isCancelled && "opacity-60 grayscale-[0.3]",
-          isFalta && "opacity-75 grayscale-[0.5]",
-          appt.status === "bloqueado" && "absence-block font-medium"
+          isDragging && "opacity-80 shadow-2xl scale-[1.01] z-50",
+          isCancelled && "opacity-50 grayscale-[0.2]",
+          isFalta && "opacity-70 grayscale-[0.4]",
+          appt.status === "bloqueado" && "absence-block"
         )}
         style={{
           top: `${top}px`,
           height: `${height}px`,
-          width: `calc((100% - 8px) / ${overlapCount} - 2px)`,
-          left: `calc(4px + (${overlapIndex} * (100% - 8px) / ${overlapCount}))`,
+          width: `calc((100% - 8px) / ${overlapCount} - 4px)`, // 4px total gap per slot
+          left: `calc(4px + (${overlapIndex} * (100% - 8px) / ${overlapCount}) + 2px)`, // 2px start gap
           backgroundColor: appt.status === "bloqueado" ? undefined : getStatusBg(appt.status),
-          color: appt.status === "bloqueado" ? "#374151" : "white",
+          color: appt.status === "bloqueado"
+            ? "#4b5563"
+            : (["atrasado", "espera"].includes(appt.status) ? "#1f2937" : "white"),
         }}
         onMouseDown={(e) => {
           if (isDraggable) handleDragStart(e, appt, columnEl);
@@ -531,50 +533,51 @@ const AgendaPage = () => {
           }
         }}
       >
-        {/* Simplified Header: Time Only if space allows */}
-        {height >= 28 && (
-          <div className="horario flex justify-between items-center w-full">
-            <span className="opacity-80 font-bold">{appt.start_time.slice(0, 5)}</span>
-            {overlapCount === 1 && height >= 100 && (
-              <span className="opacity-50 text-[10px] uppercase font-bold tracking-widest text-right">
-                {statusLabel[appt.status]}
-              </span>
+        {/* Status Dot / Indicator */}
+        {appt.status !== "bloqueado" && overlapCount === 1 && height >= 50 && (
+          <div className="status-badge" style={{ backgroundColor: "currentColor", opacity: 0.5 }} />
+        )}
+
+        {/* Header: Time */}
+        {height >= 25 && (
+          <div className="horario flex items-center justify-between">
+            <span>{appt.start_time.slice(0, 5)}</span>
+            {overlapCount === 1 && height >= 120 && (
+              <span className="opacity-40">{statusLabel[appt.status]}</span>
             )}
           </div>
         )}
 
-        {/* Client Name with optional status icon */}
+        {/* Body: Client name */}
         <div
           className="cliente"
           style={{
-            fontSize: overlapCount > 1 ? "12px" : "13.5px",
-            fontWeight: 700
+            fontSize: overlapCount > 1 ? "12px" : "13px",
+            lineHeight: 1.1,
+            marginTop: height < 40 ? "-1px" : "0px"
           }}
         >
-          {appt.status !== "bloqueado" && appt.status === "confirmado" && (
-            <span className="status-icon text-white/70">✔</span>
+          {appt.status === "confirmado" && (
+            <span className="mr-1 opacity-70">✓</span>
           )}
           {appt.client_name}
         </div>
 
-        {/* Service Summary: Compact and Clean */}
-        {height >= 40 && (
+        {/* Footer: Service / Professional */}
+        {height >= 45 && (
           <div
             className="servico"
             style={{
-              fontSize: overlapCount > 1 ? "10.5px" : "11.5px",
-              opacity: 0.85
+              fontSize: overlapCount > 1 ? "10px" : "10.5px",
+              opacity: 0.7
             }}
           >
             {serviceSummary}
-            {prof && overlapCount === 1 && height >= 55 && ` • ${prof.name.split(" ")[0]}`}
-          </div>
-        )}
-
-        {/* Professional tag for larger slots */}
-        {prof && overlapCount === 1 && height >= 110 && (
-          <div className="text-[10px] mt-auto font-bold uppercase tracking-tight opacity-50">
-            {prof.name}
+            {prof && overlapCount === 1 && height >= 80 && (
+              <div className="mt-1 font-bold uppercase tracking-widest text-[9px] opacity-50">
+                {prof.name.split(" ")[0]}
+              </div>
+            )}
           </div>
         )}
       </div>
