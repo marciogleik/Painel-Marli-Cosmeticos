@@ -197,23 +197,17 @@ const AgendaPage = () => {
   };
 
   const renderBlockedBlock = (block: any) => {
-    const timeParts = block.start_time.split(":").map(Number);
-    const endParts = block.end_time.split(":").map(Number);
-    const startMinutes = timeParts[0] * 60 + timeParts[1];
-    const endMinutes = endParts[0] * 60 + endParts[1];
-    const duration = endMinutes - startMinutes;
-    const top = (timeParts[0] - 7) * 64 + (timeParts[1] / 60) * 64;
-    const height = Math.max((duration / 60) * 64, 32);
-    const timeRange = `${block.start_time.slice(0, 5)} - ${block.end_time.slice(0, 5)}`;
+    const { top, height } = getPosition({
+      start_time: block.start_time,
+      end_time: block.end_time,
+    } as DBAppointment);
 
     return (
       <div
         key={block.id}
         className={cn(
-          "absolute left-1 right-1 rounded-md overflow-hidden border z-10 group cursor-default shadow-sm",
-          block.isWeekly
-            ? "border-black bg-black text-white"
-            : "border-black bg-black text-white"
+          "absolute left-1 right-1 overflow-hidden z-10 cursor-pointer transition-all hover:brightness-95 group",
+          "modern-agenda-card absence-block evento-agenda"
         )}
         style={{ top: `${top}px`, height: `${height}px` }}
         onClick={() => {
@@ -223,48 +217,41 @@ const AgendaPage = () => {
               date: new Date(block.date + "T12:00:00"),
               time: block.start_time.slice(0, 5),
             });
-            // We can't set the reason directly in setBlockDefaults because of the TS type
-            // but the dialog handles it if we pass the right props or update the state correctly.
-            // Let's ensure the type is respected.
             setBlockDialogOpen(true);
           }
         }}
       >
-        <div className={cn(
-          "h-full px-1.5 py-1 flex flex-col justify-start relative leading-[1]",
-          !block.isWeekly && "cursor-pointer hover:bg-destructive/20"
-        )}>
-          <div className="flex items-center gap-1 mb-0.5 shrink-0">
-            <Ban className={cn("w-2.5 h-2.5 shrink-0", "text-white/70")} />
-            <span className={cn("text-[9px] font-bold uppercase tracking-tight", "text-white/80")}>
-              {timeRange}
+        <div className="horario flex justify-between items-center opacity-60">
+          <span>{block.start_time.slice(0, 5)}</span>
+          {height >= 40 && (
+            <span className="text-[9px] uppercase font-bold tracking-widest">
+              {block.isWeekly ? "Semanal" : "Bloqueio"}
             </span>
-          </div>
-          <span className={cn(
-            "text-[10.5px] font-display font-black uppercase leading-[1] tracking-tighter line-clamp-4",
-            "text-white"
-          )}>
-            {(() => {
-              const prof = professionals.find(p => p.id === block.professional_id);
-              const profName = prof ? prof.name.split(" ")[0] : "";
-              const baseReason = block.reason || "AUSÊNCIA DO PROFISSIONAL";
-              if (baseReason.toUpperCase().includes("SEMANA")) {
-                return `${baseReason} ${profName}`;
-              }
-              return `${baseReason} SEMANA ${profName}`;
-            })()}
-          </span>
-
-          {!block.isWeekly && (
-            <button
-              onClick={(e) => { e.stopPropagation(); deleteBlockedSlot(block.id); }}
-              className="absolute top-1 right-1 p-0.5 rounded hover:bg-destructive/20 opacity-0 group-hover:opacity-100 transition-opacity"
-              title="Remover bloqueio"
-            >
-              <Trash2 className="w-3.5 h-3.5 text-destructive" />
-            </button>
           )}
         </div>
+        <div className="cliente flex items-center gap-1.5" style={{ fontSize: "11px", fontWeight: 500 }}>
+          <span className="opacity-50">🚫</span>
+          <span className="truncate uppercase tracking-tight">
+            {block.reason || "Horário Bloqueado"}
+            {(() => {
+              const prof = professionals.find(p => p.id === block.professional_id);
+              return prof ? ` • ${prof.name.split(" ")[0]}` : "";
+            })()}
+          </span>
+        </div>
+
+        {!block.isWeekly && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              deleteBlockedSlot(block.id);
+            }}
+            className="absolute top-1 right-1 p-0.5 rounded hover:bg-destructive/20 opacity-0 group-hover:opacity-100 transition-opacity"
+            title="Remover bloqueio"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-destructive" />
+          </button>
+        )}
       </div>
     );
   };
