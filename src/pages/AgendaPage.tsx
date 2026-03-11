@@ -885,7 +885,7 @@ function ProfColumn({
 function getStatusBg(status: string): string {
   const map: Record<string, string> = {
     agendado: "#4285F4",
-    confirmado: "#1a237e",
+    confirmado: "#020617",
     espera: "#FF9800",
     atendendo: "#E040FB",
     atendido: "#4CAF50",
