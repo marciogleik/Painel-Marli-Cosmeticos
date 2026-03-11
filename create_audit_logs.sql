@@ -32,7 +32,7 @@ BEGIN
     
     -- Try to get name from profiles if exists, fallback to email or 'Sistema'
     -- Note: Adjust profile table name if necessary
-    SELECT COALESCE(full_name, email, 'Sistema') INTO v_user_name 
+    SELECT COALESCE(p.full_name, u.email, 'Sistema') INTO v_user_name 
     FROM auth.users u 
     LEFT JOIN public.profiles p ON u.id = p.id
     WHERE u.id = v_user_id;

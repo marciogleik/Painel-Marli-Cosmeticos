@@ -3,8 +3,9 @@ import { useProfessionals, useAppointments, statusConfig, DBAppointment, WEEKLY_
 import { cn } from "@/lib/utils";
 import { format, addDays, subDays, startOfWeek, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, Calendar, Check, X as XIcon, GripVertical, Ban, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Calendar, Check, X as XIcon, GripVertical, Ban, Trash2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import NewAppointmentDialog from "@/components/NewAppointmentDialog";
 import BlockedSlotDialog from "@/components/BlockedSlotDialog";
 import AppointmentDetailDialog from "@/components/AppointmentDetailDialog";
@@ -44,6 +45,7 @@ const AgendaPage = () => {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [selectedDay, setSelectedDay] = useState(() => new Date());
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<DBAppointment | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -450,6 +452,14 @@ const AgendaPage = () => {
     return appointments.filter((a) => {
       if (a.status === "removido") return false;
       const matchDay = a.date === dayStr;
+
+      // Search filter
+      const matchesSearch = searchTerm.trim() === "" ||
+        (a.client_name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (a.client_phone?.includes(searchTerm));
+
+      if (!matchesSearch) return false;
+
       if (viewMode === "day" && profId) return matchDay && a.professional_id === profId;
       const matchProf = selectedFilter === "all" || a.professional_id === selectedFilter;
       return matchDay && matchProf;
@@ -479,14 +489,13 @@ const AgendaPage = () => {
         className={cn(
           "absolute left-1 right-1 rounded-md shadow-sm overflow-hidden border-l-[4px] transition-shadow select-none",
           cfg.color.replace("bg-", "border-l-"),
-          isCancelled ? "opacity-60" : "",
           isDraggable ? "cursor-grab hover:shadow-md" : "cursor-pointer",
           isDragging && "opacity-80 shadow-lg ring-2 ring-primary/40 z-50"
         )}
         style={{
           top: `${displayTop}px`,
           height: `${height}px`,
-          backgroundColor: isCancelled ? "hsl(var(--muted))" : undefined,
+          backgroundColor: isCancelled ? undefined : undefined, // Removed hardcoded muted bg
           transition: isDragging ? "none" : "box-shadow 0.15s",
         }}
         onMouseDown={(e) => {
@@ -501,7 +510,7 @@ const AgendaPage = () => {
       >
         <div
           className="h-full flex flex-col justify-start overflow-hidden leading-[1.1] gap-0 text-foreground"
-          style={!isCancelled ? { backgroundColor: `color-mix(in srgb, ${getStatusBg(appt.status)} 40%, white)` } : undefined}
+          style={{ backgroundColor: `color-mix(in srgb, ${getStatusBg(appt.status)} 40%, white)` }}
         >
           {/* Header: Time Content (Always visible if height > 30) */}
           {height >= 30 && (
@@ -581,6 +590,15 @@ const AgendaPage = () => {
           <p className="text-sm text-muted-foreground mt-0.5">Gerencie seus agendamentos e horários</p>
         </div>
         <div className="flex items-center gap-2">
+          <div className="relative w-64 mr-2">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Pesquisar cliente..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
           <Button variant="outline" className="gap-1.5" onClick={() => { setBlockDefaults({}); setBlockDialogOpen(true); }}>
             <Ban className="w-4 h-4" /> Bloquear Horário
           </Button>
@@ -885,11 +903,11 @@ function ProfColumn({
 function getStatusBg(status: string): string {
   const map: Record<string, string> = {
     agendado: "#4285F4",
-    confirmado: "#020617",
+    confirmado: "#000080",
     espera: "#FF9800",
     atendendo: "#E040FB",
     atendido: "#4CAF50",
-    cancelado: "#9E9E9E",
+    cancelado: "#020617",
     atrasado: "#CDDC39",
     falta: "#8B0000",
   };
