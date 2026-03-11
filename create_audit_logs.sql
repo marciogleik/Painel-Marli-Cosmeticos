@@ -30,12 +30,22 @@ BEGIN
     -- Get current user context
     v_user_id := auth.uid();
     
-    -- Try to get name from profiles if exists, fallback to email or 'Sistema'
-    -- Note: Adjust profile table name if necessary
-    SELECT COALESCE(p.full_name, u.email, 'Sistema') INTO v_user_name 
-    FROM auth.users u 
-    LEFT JOIN public.profiles p ON u.id = p.id
-    WHERE u.id = v_user_id;
+    -- Try to get name from profiles
+    SELECT full_name INTO v_user_name 
+    FROM public.profiles 
+    WHERE user_id = v_user_id;
+
+    -- If not found or empty, try email from profiles
+    IF v_user_name IS NULL OR v_user_name = '' THEN
+        SELECT email INTO v_user_name 
+        FROM public.profiles 
+        WHERE user_id = v_user_id;
+    END IF;
+
+    -- Fallback to Sistema
+    IF v_user_name IS NULL OR v_user_name = '' THEN
+        v_user_name := 'Sistema';
+    END IF;
 
     IF (TG_OP = 'INSERT') THEN
         INSERT INTO public.activity_logs (action, entity_type, entity_id, new_data, user_id, user_name)
