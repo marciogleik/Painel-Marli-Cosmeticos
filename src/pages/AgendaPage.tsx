@@ -12,6 +12,8 @@ import AppointmentDetailDialog from "@/components/AppointmentDetailDialog";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { checkAppointmentConflict } from "@/utils/appointmentConflict";
+import { useNavigate } from "react-router-dom";
+import { normalizePhone, matchesPhone } from "@/utils/phoneUtils";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -903,14 +905,14 @@ function ProfColumn({
 
 function getStatusBg(status: string): string {
   const map: Record<string, string> = {
-    agendado: "#4285F4",
-    confirmado: "#9b87f5",
-    espera: "#FF9800",
-    atendendo: "#E040FB",
-    atendido: "#4CAF50",
-    cancelado: "#9E9E9E",
-    atrasado: "#CDDC39",
-    falta: "#8B0000",
+    agendado: "#4579F1",
+    confirmado: "#040351",
+    espera: "#F29A28",
+    atendendo: "#DF33DC",
+    atendido: "#41BD46",
+    cancelado: "#99AAB3",
+    atrasado: "#D4CC2D",
+    falta: "#AB2612",
   };
   return map[status] || "#4285F4";
 }
