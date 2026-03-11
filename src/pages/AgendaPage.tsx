@@ -605,7 +605,7 @@ const AgendaPage = () => {
 
     return (
       <div className="flex-1 overflow-auto bg-background p-4">
-        <div className="grid grid-cols-7 gap-px bg-border border border-border rounded-lg overflow-hidden shadow-sm">
+        <div className="grid grid-cols-7 gap-px bg-slate-300 border-2 border-slate-300 rounded-lg overflow-hidden shadow-sm">
           {weekDays.map(day => (
             <div key={day} className="bg-muted/50 p-2 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
               {day}
@@ -811,7 +811,7 @@ const AgendaPage = () => {
                     {hours.map((time) => {
                       const isHalf = time.endsWith(":30");
                       return (
-                        <div key={time} className={cn("h-8 flex items-start justify-end pr-2 pt-0.5 border-t", isHalf ? "border-border/60" : "border-border/90")}>
+                        <div key={time} className={cn("h-8 flex items-start justify-end pr-2 pt-0.5 border-t", isHalf ? "border-slate-300" : "border-slate-400")}>
                           <span className={cn("text-[10px] font-medium", isHalf ? "text-muted-foreground/70" : "text-muted-foreground/90")}>{time}</span>
                         </div>
                       );
@@ -880,7 +880,7 @@ const AgendaPage = () => {
                     {hours.map((time) => {
                       const isHalf = time.endsWith(":30");
                       return (
-                        <div key={time} className={cn("h-8 flex items-start justify-end pr-2 pt-0.5 border-t", isHalf ? "border-border/60" : "border-border/90")}>
+                        <div key={time} className={cn("h-8 flex items-start justify-end pr-2 pt-0.5 border-t", isHalf ? "border-slate-300" : "border-slate-400")}>
                           <span className={cn("text-[10px] font-medium", isHalf ? "text-muted-foreground/70" : "text-muted-foreground/90")}>{time}</span>
                         </div>
                       );
@@ -1010,7 +1010,10 @@ function DayColumn({
       </div>
       <div className="relative" ref={colRef}>
         {hours.map((time) => (
-          <div key={time} className={cn("h-8 border-t hover:bg-accent/30 transition-colors", time.endsWith(":30") ? "border-border/30" : "border-border/60")} />
+          <div
+            key={time}
+            className={cn("h-8 border-t hover:bg-accent/30 transition-colors", time.endsWith(":30") ? "border-slate-300" : "border-slate-400")}
+          />
         ))}
         {blockedBlocks.map((block) => renderBlockedBlock(block))}
         {appts.map((appt) => renderBlock(appt, colRef.current))}
@@ -1038,7 +1041,7 @@ function ProfColumn({
         {hours.map((time) => (
           <div
             key={time}
-            className={cn("h-8 border-t hover:bg-accent/30 transition-colors cursor-pointer", time.endsWith(":30") ? "border-border/50" : "border-border/80")}
+            className={cn("h-8 border-t hover:bg-accent/30 transition-colors cursor-pointer", time.endsWith(":30") ? "border-slate-300" : "border-slate-400")}
             onDoubleClick={() => onSlotClick(time)}
           />
         ))}
