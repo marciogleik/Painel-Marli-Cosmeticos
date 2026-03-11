@@ -221,17 +221,17 @@ const AgendaPage = () => {
           }
         }}
       >
-        <div className="horario flex justify-between items-center text-black">
-          <span>{block.start_time.slice(0, 5)}</span>
+        <div className="horario flex justify-between items-center" style={{ color: "#000000" }}>
+          <span style={{ color: "#000000" }}>{block.start_time.slice(0, 5)}</span>
           {height >= 40 && (
-            <span className="text-[9px] uppercase font-bold tracking-widest opacity-70">
+            <span className="text-[9px] uppercase font-bold tracking-widest opacity-70" style={{ color: "#000000" }}>
               {block.isWeekly ? "Semanal" : "Bloqueio"}
             </span>
           )}
         </div>
-        <div className="cliente text-black font-medium flex items-center gap-1.5" style={{ fontSize: "11px" }}>
-          <span className="opacity-70">🚫</span>
-          <span className="truncate uppercase tracking-tight">
+        <div className="cliente font-medium flex items-center gap-1.5" style={{ fontSize: "11px", color: "#000000" }}>
+          <span className="opacity-70" style={{ color: "#000000" }}>🚫</span>
+          <span className="truncate uppercase tracking-tight" style={{ color: "#000000" }}>
             {block.reason || "Horário Bloqueado"}
             {(() => {
               const prof = professionals.find(p => p.id === block.professional_id);
