@@ -105,6 +105,7 @@ export interface DBAppointment {
 export const useAppointments = (dateFrom?: string, dateTo?: string) => {
   return useQuery({
     queryKey: ["appointments", dateFrom, dateTo],
+    refetchInterval: 300000, // 5 minutes
     queryFn: async () => {
       let query = supabase
         .from("appointments")

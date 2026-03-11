@@ -147,8 +147,8 @@ const NewAppointmentDialog = ({
 
   const mutation = useMutation({
     mutationFn: async () => {
-      if (!date || !startTime || !professionalId || !clientName || selectedServices.length === 0) {
-        throw new Error("Preencha todos os campos obrigatórios");
+      if (!date || !startTime || !professionalId || !clientName || !clientPhone.trim() || selectedServices.length === 0) {
+        throw new Error("Preencha todos os campos obrigatórios (incluindo o telefone)");
       }
 
       const dateStr = format(date, "yyyy-MM-dd");
@@ -164,9 +164,38 @@ const NewAppointmentDialog = ({
         throw new Error(`Conflito de horário: a profissional já tem agendamento com ${conflict} neste horário.`);
       }
 
+      let effectiveClientId = selectedClientId;
+
+      // If no client selected, try to find by phone before creating new
+      if (!effectiveClientId && clientPhone.trim()) {
+        const { data: existingClient } = await supabase
+          .from("clients")
+          .select("id")
+          .eq("phone", clientPhone.trim())
+          .maybeSingle();
+
+        if (existingClient) {
+          effectiveClientId = existingClient.id;
+        } else {
+          // Create new client if not found
+          const { data: newClient, error: clientError } = await supabase
+            .from("clients")
+            .insert({
+              full_name: clientName.trim(),
+              phone: clientPhone.trim(),
+              is_active: true
+            })
+            .select("id")
+            .single();
+
+          if (clientError) throw clientError;
+          effectiveClientId = newClient.id;
+        }
+      }
+
       const { data, error } = await supabase.from("appointments").insert({
         professional_id: professionalId,
-        client_id: selectedClientId,
+        client_id: effectiveClientId,
         client_name: clientName.trim(),
         client_phone: clientPhone.trim() || null,
         date: dateStr,
@@ -208,7 +237,7 @@ const NewAppointmentDialog = ({
     },
   });
 
-  const canSubmit = professionalId && selectedServices.length > 0 && date && startTime && clientName.trim();
+  const canSubmit = professionalId && selectedServices.length > 0 && date && startTime && clientName.trim() && clientPhone.trim();
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); onOpenChange(v); }}>
