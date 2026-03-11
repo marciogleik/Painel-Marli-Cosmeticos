@@ -42,10 +42,14 @@ interface AppointmentEditFormProps {
   onCancel: () => void;
 }
 
-const timeSlots = Array.from({ length: 48 }, (_, i) => {
-  const hour = Math.floor(i / 4) + 8;
-  const min = (i % 4) * 15;
+const timeSlots = Array.from({ length: 180 }, (_, i) => {
+  const totalMin = 7 * 60 + i * 5;
+  const hour = Math.floor(totalMin / 60);
+  const min = totalMin % 60;
   return `${hour.toString().padStart(2, "0")}:${min.toString().padStart(2, "0")}`;
+}).filter((t) => {
+  const [h] = t.split(":").map(Number);
+  return h >= 7 && h < 22;
 });
 
 const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }: AppointmentEditFormProps) => {
@@ -62,6 +66,7 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
   const [clientPhone, setClientPhone] = useState(appointment.client_phone || "");
   const [notes, setNotes] = useState(appointment.notes || "");
   const [serviceSearch, setServiceSearch] = useState("");
+  const [manualEndTime, setManualEndTime] = useState<string | null>(appointment.end_time?.slice(0, 5) || null);
 
   const availableServices = useServicesForProfessional(professionalId);
   const { data: clientsData } = useClients({ search: clientSearch, pageSize: 20 });
@@ -89,13 +94,15 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
     : [];
 
   const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration_minutes, 0);
-  const endTime = startTime
+  const suggestedEndTime = startTime
     ? (() => {
       const [h, m] = startTime.split(":").map(Number);
       const endMin = h * 60 + m + totalDuration;
       return `${Math.floor(endMin / 60).toString().padStart(2, "0")}:${(endMin % 60).toString().padStart(2, "0")}`;
     })()
     : "";
+
+  const endTime = manualEndTime || suggestedEndTime;
 
   const toggleService = (service: DBService) => {
     setSelectedServices(prev =>
@@ -267,9 +274,9 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
           </Popover>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs">Horário * {endTime && <span className="text-muted-foreground font-normal">até {endTime}</span>}</Label>
-          <Select value={startTime} onValueChange={setStartTime}>
-            <SelectTrigger className="h-9"><SelectValue placeholder="Horário" /></SelectTrigger>
+          <Label className="text-xs">Início *</Label>
+          <Select value={startTime} onValueChange={v => { setStartTime(v); setManualEndTime(null); }}>
+            <SelectTrigger className="h-9"><SelectValue placeholder="Início" /></SelectTrigger>
             <SelectContent>
               {timeSlots.map(t => {
                 const conflict = totalDuration > 0 ? getConflict(t, totalDuration) : null;
@@ -278,9 +285,25 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
                     <span className="flex items-center gap-2">
                       {t}
                       {conflict && (
-                        <span className="text-xs text-destructive font-normal">● {conflict}</span>
+                        <span className="text-[10px] text-destructive font-normal">● {conflict}</span>
                       )}
                     </span>
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Término *</Label>
+          <Select value={endTime} onValueChange={setManualEndTime}>
+            <SelectTrigger className="h-9"><SelectValue placeholder="Término" /></SelectTrigger>
+            <SelectContent>
+              {timeSlots.map(t => {
+                const isBeforeStart = startTime && t <= startTime;
+                return (
+                  <SelectItem key={t} value={t} disabled={!!isBeforeStart}>
+                    {t} {t === suggestedEndTime && "(Sugerido)"}
                   </SelectItem>
                 );
               })}

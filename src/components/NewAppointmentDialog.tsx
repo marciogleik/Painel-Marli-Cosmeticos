@@ -47,11 +47,15 @@ interface NewAppointmentDialogProps {
   defaultDate?: Date;
 }
 
-const timeSlots = Array.from({ length: 24 }, (_, i) => {
-  const hour = Math.floor(i / 2) + 8;
-  const min = i % 2 === 0 ? "00" : "30";
-  return `${hour.toString().padStart(2, "0")}:${min}`;
-}).filter((_, i) => i < 24); // 08:00 to 19:30
+const timeSlots = Array.from({ length: 180 }, (_, i) => {
+  const totalMin = 7 * 60 + i * 5;
+  const hour = Math.floor(totalMin / 60);
+  const min = totalMin % 60;
+  return `${hour.toString().padStart(2, "0")}:${min.toString().padStart(2, "0")}`;
+}).filter((t) => {
+  const [h] = t.split(":").map(Number);
+  return h >= 7 && h < 22;
+});
 
 const NewAppointmentDialog = ({ open, onOpenChange, defaultDate }: NewAppointmentDialogProps) => {
   const queryClient = useQueryClient();
@@ -68,6 +72,7 @@ const NewAppointmentDialog = ({ open, onOpenChange, defaultDate }: NewAppointmen
   const [clientPhone, setClientPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [serviceSearch, setServiceSearch] = useState("");
+  const [manualEndTime, setManualEndTime] = useState<string | null>(null);
 
   const services = useServicesForProfessional(professionalId);
   const { data: clientsData, isLoading: isLoadingClients } = useClients({ search: clientSearch, pageSize: 20 });
@@ -85,13 +90,15 @@ const NewAppointmentDialog = ({ open, onOpenChange, defaultDate }: NewAppointmen
 
   // Calculate total duration and end time
   const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration_minutes, 0);
-  const endTime = startTime
+  const suggestedEndTime = startTime
     ? (() => {
       const [h, m] = startTime.split(":").map(Number);
       const endMin = h * 60 + m + totalDuration;
       return `${Math.floor(endMin / 60).toString().padStart(2, "0")}:${(endMin % 60).toString().padStart(2, "0")}`;
     })()
     : "";
+
+  const endTime = manualEndTime || suggestedEndTime;
 
   const toggleService = (service: DBService) => {
     setSelectedServices((prev) =>
@@ -274,26 +281,48 @@ const NewAppointmentDialog = ({ open, onOpenChange, defaultDate }: NewAppointmen
           </div>
 
           {/* 4. Time */}
-          <div className="space-y-2">
-            <Label>Horário * {endTime && <span className="text-muted-foreground font-normal">até {endTime}</span>}</Label>
-            <Select value={startTime} onValueChange={setStartTime}>
-              <SelectTrigger><SelectValue placeholder="Selecione o horário" /></SelectTrigger>
-              <SelectContent>
-                {timeSlots.map((t) => {
-                  const conflict = totalDuration > 0 ? getConflict(t, totalDuration) : null;
-                  return (
-                    <SelectItem key={t} value={t} disabled={!!conflict}>
-                      <span className="flex items-center gap-2">
-                        {t}
-                        {conflict && (
-                          <span className="text-xs text-destructive font-normal">● {conflict}</span>
-                        )}
-                      </span>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Início *</Label>
+              <Select value={startTime} onValueChange={(v) => { setStartTime(v); setManualEndTime(null); }}>
+                <SelectTrigger><SelectValue placeholder="Início" /></SelectTrigger>
+                <SelectContent>
+                  {timeSlots.map((t) => {
+                    const conflict = totalDuration > 0 ? getConflict(t, totalDuration) : null;
+                    return (
+                      <SelectItem key={t} value={t} disabled={!!conflict}>
+                        <span className="flex items-center gap-2">
+                          {t}
+                          {conflict && (
+                            <span className="text-[10px] text-destructive font-normal">● {conflict}</span>
+                          )}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Término *</Label>
+              <Select value={endTime} onValueChange={setManualEndTime}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Término" />
+                </SelectTrigger>
+                <SelectContent>
+                  {timeSlots.map((t) => {
+                    // Disable times before or equal to start time
+                    const isBeforeStart = startTime && t <= startTime;
+                    return (
+                      <SelectItem key={t} value={t} disabled={!!isBeforeStart}>
+                        {t} {t === suggestedEndTime && "(Sugerido)"}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* 5. Client */}
