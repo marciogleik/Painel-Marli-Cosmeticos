@@ -35,7 +35,7 @@ const ServicosTab = () => {
   const { data: services = [], isLoading } = useServices(showInactive);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<SvcForm>(emptyForm);
+  const [search, setSearch] = useState("");
   const [deactivateTarget, setDeactivateTarget] = useState<{ id: string; name: string } | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>("all");
 
@@ -105,15 +105,31 @@ const ServicosTab = () => {
 
   const active = services.filter(s => s.is_active);
   const inactive = services.filter(s => !s.is_active);
-  const filteredActive = filterCategory === "all" ? active : active.filter(s => s.category === filterCategory);
-  const filteredInactive = filterCategory === "all" ? inactive : inactive.filter(s => s.category === filterCategory);
+
+  const filteredActive = active.filter(s => {
+    const matchesCategory = filterCategory === "all" || s.category === filterCategory;
+    const matchesSearch = s.name.toLowerCase().includes(search.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  const filteredInactive = inactive.filter(s => {
+    const matchesCategory = filterCategory === "all" || s.category === filterCategory;
+    const matchesSearch = s.name.toLowerCase().includes(search.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
   const canSubmit = form.name.trim().length >= 2 && form.duration_minutes > 0;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-sm text-muted-foreground">{active.length} serviços ativos</p>
+          <Input
+            placeholder="Pesquisar serviço..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-8 w-[180px]"
+          />
           <Select value={filterCategory} onValueChange={setFilterCategory}>
             <SelectTrigger className="h-8 w-[140px]"><SelectValue /></SelectTrigger>
             <SelectContent>
