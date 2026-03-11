@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800;900&family=Open+Sans:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -109,5 +109,43 @@
 
   .font-body {
     font-family: 'Inter', sans-serif;
+  }
+
+  /* Custom Agenda Card Styles */
+  .evento-agenda {
+    font-family: "Open Sans", sans-serif !important;
+    border-radius: 6px !important;
+    border: 2px solid #1f1f1f !important;
+    padding: 8px 10px !important;
+    line-height: 1.35 !important;
+    font-size: 15px !important;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    box-sizing: border-box;
+  }
+
+  .evento-agenda .cliente {
+    font-weight: 700 !important;
+    font-size: 17px !important;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .evento-agenda .horario {
+    font-size: 15px !important;
+    font-weight: 500;
+  }
+
+  .evento-agenda .servico {
+    font-size: 15px !important;
+    opacity: 0.9;
+  }
+
+  .evento-agenda .data-info {
+    font-size: 14px;
+    opacity: 0.8;
+    margin-top: 2px;
   }
 }
