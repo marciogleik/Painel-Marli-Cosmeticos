@@ -505,21 +505,21 @@ const AgendaPage = () => {
       <div
         key={appt.id}
         className={cn(
-          "absolute overflow-hidden z-10 group transition-all duration-200 shadow-sm",
+          "absolute overflow-hidden z-10 transition-all duration-200",
           "evento-agenda",
-          isDraggable ? "cursor-grab hover:shadow-md" : "cursor-pointer",
-          isDragging && "opacity-80 shadow-lg ring-2 ring-primary z-50",
-          isCancelled && "grayscale-[0.5] opacity-90",
-          isFalta && "opacity-70"
+          isDraggable ? "cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-white/20" : "cursor-pointer",
+          isDragging && "opacity-80 shadow-2xl scale-[1.02] z-50",
+          isCancelled && "opacity-60 grayscale-[0.3]",
+          isFalta && "opacity-75 grayscale-[0.5]",
+          appt.status === "bloqueado" && "absence-block font-medium"
         )}
         style={{
           top: `${top}px`,
           height: `${height}px`,
           width: `calc((100% - 8px) / ${overlapCount} - 2px)`,
           left: `calc(4px + (${overlapIndex} * (100% - 8px) / ${overlapCount}))`,
-          backgroundColor: getStatusBg(appt.status),
-          color: "white",
-          transition: isDragging ? "none" : "box-shadow 0.15s",
+          backgroundColor: appt.status === "bloqueado" ? undefined : getStatusBg(appt.status),
+          color: appt.status === "bloqueado" ? "#374151" : "white",
         }}
         onMouseDown={(e) => {
           if (isDraggable) handleDragStart(e, appt, columnEl);
@@ -531,22 +531,52 @@ const AgendaPage = () => {
           }
         }}
       >
-        <div className="horario">
-          {appt.start_time.slice(0, 5)} - {appt.end_time.slice(0, 5)}
-        </div>
+        {/* Simplified Header: Time Only if space allows */}
+        {height >= 28 && (
+          <div className="horario flex justify-between items-center w-full">
+            <span className="opacity-80 font-bold">{appt.start_time.slice(0, 5)}</span>
+            {overlapCount === 1 && height >= 100 && (
+              <span className="opacity-50 text-[10px] uppercase font-bold tracking-widest text-right">
+                {statusLabel[appt.status]}
+              </span>
+            )}
+          </div>
+        )}
 
-        <div className="cliente">
-          {appt.status === "confirmado" && "✔ "}
+        {/* Client Name with optional status icon */}
+        <div
+          className="cliente"
+          style={{
+            fontSize: overlapCount > 1 ? "12px" : "13.5px",
+            fontWeight: 700
+          }}
+        >
+          {appt.status !== "bloqueado" && appt.status === "confirmado" && (
+            <span className="status-icon text-white/70">✔</span>
+          )}
           {appt.client_name}
         </div>
 
-        <div className="servico text-white/90">
-          {serviceSummary} {prof && `(${prof.name.split(" ")[0]})`} - {statusLabel[appt.status] || appt.status}
-        </div>
+        {/* Service Summary: Compact and Clean */}
+        {height >= 40 && (
+          <div
+            className="servico"
+            style={{
+              fontSize: overlapCount > 1 ? "10.5px" : "11.5px",
+              opacity: 0.85
+            }}
+          >
+            {serviceSummary}
+            {prof && overlapCount === 1 && height >= 55 && ` • ${prof.name.split(" ")[0]}`}
+          </div>
+        )}
 
-        <div className="data-info text-white/80">
-          {format(parseISO(appt.date), "dd/MM/yyyy")} - {appt.start_time.slice(0, 5)} às {appt.end_time.slice(0, 5)}
-        </div>
+        {/* Professional tag for larger slots */}
+        {prof && overlapCount === 1 && height >= 110 && (
+          <div className="text-[10px] mt-auto font-bold uppercase tracking-tight opacity-50">
+            {prof.name}
+          </div>
+        )}
       </div>
     );
   };
