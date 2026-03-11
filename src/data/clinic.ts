@@ -309,7 +309,7 @@ export const statusConfig: Record<Appointment['status'], { color: string; label:
   espera: { color: 'bg-[#FF9800]', label: 'Espera', bgClass: 'bg-[#FF9800]/10 border-[#FF9800]/30 text-[#FF9800]' },
   atendendo: { color: 'bg-[#E040FB]', label: 'Atendendo', bgClass: 'bg-[#E040FB]/10 border-[#E040FB]/30 text-[#E040FB]' },
   atendido: { color: 'bg-[#4CAF50]', label: 'Atendido', bgClass: 'bg-[#4CAF50]/10 border-[#4CAF50]/30 text-[#4CAF50]' },
-  cancelado: { color: 'bg-[#020617]', label: 'Cancelado', bgClass: 'bg-[#020617]/10 border-[#020617]/30 text-[#020617]' },
+  cancelado: { color: 'bg-[#9E9E9E]', label: 'Cancelado', bgClass: 'bg-[#9E9E9E]/10 border-[#9E9E9E]/30 text-[#9E9E9E]' },
   atrasado: { color: 'bg-[#CDDC39]', label: 'Atrasado', bgClass: 'bg-[#CDDC39]/10 border-[#CDDC39]/30 text-[#9E9D00]' },
   falta: { color: 'bg-[#8B0000]', label: 'Faltou', bgClass: 'bg-[#8B0000]/10 border-[#8B0000]/30 text-[#8B0000]' },
 };
