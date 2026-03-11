@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useProfessionals, useAppointments, statusConfig, DBAppointment, WEEKLY_BLOCKS } from "@/hooks/useClinicData";
 import { cn } from "@/lib/utils";
-import { format, addDays, subDays, startOfWeek, isToday, parseISO } from "date-fns";
+import { format, addDays, subDays, startOfWeek, endOfWeek, isToday, parseISO, startOfMonth, endOfMonth, addMonths, isSameMonth, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Plus, Calendar, Check, X as XIcon, GripVertical, Ban, Trash2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-type ViewMode = "week" | "day";
+type ViewMode = "month" | "week" | "day";
 
 const statusLabel: Record<string, string> = {
   agendado: "Agendado",
@@ -122,8 +122,17 @@ const AgendaPage = () => {
   });
 
   // Date range for queries
-  const dateFrom = viewMode === "week" ? format(weekStart, "yyyy-MM-dd") : format(selectedDay, "yyyy-MM-dd");
-  const dateTo = viewMode === "week" ? format(addDays(weekStart, 6), "yyyy-MM-dd") : format(selectedDay, "yyyy-MM-dd");
+  const dateFrom = (() => {
+    if (viewMode === "month") return format(startOfMonth(selectedDay), "yyyy-MM-dd");
+    if (viewMode === "week") return format(weekStart, "yyyy-MM-dd");
+    return format(selectedDay, "yyyy-MM-dd");
+  })();
+
+  const dateTo = (() => {
+    if (viewMode === "month") return format(endOfMonth(selectedDay), "yyyy-MM-dd");
+    if (viewMode === "week") return format(addDays(weekStart, 6), "yyyy-MM-dd");
+    return format(selectedDay, "yyyy-MM-dd");
+  })();
 
   const { data: professionals = [] } = useProfessionals();
   const { data: appointments = [] } = useAppointments(dateFrom, dateTo);
@@ -409,24 +418,32 @@ const AgendaPage = () => {
 
   // Navigation handlers
   const handlePrev = () => {
-    if (viewMode === "week") setWeekStart(addDays(weekStart, -7));
+    if (viewMode === "month") setSelectedDay(addMonths(selectedDay, -1));
+    else if (viewMode === "week") setWeekStart(addDays(weekStart, -7));
     else setSelectedDay(subDays(selectedDay, 1));
   };
   const handleNext = () => {
-    if (viewMode === "week") setWeekStart(addDays(weekStart, 7));
+    if (viewMode === "month") setSelectedDay(addMonths(selectedDay, 1));
+    else if (viewMode === "week") setWeekStart(addDays(weekStart, 7));
     else setSelectedDay(addDays(selectedDay, 1));
   };
   const handleToday = () => {
-    if (viewMode === "week") setWeekStart(startOfWeek(new Date(), { weekStartsOn: 0 }));
-    else setSelectedDay(new Date());
+    const today = new Date();
+    setSelectedDay(today);
+    if (viewMode === "week") setWeekStart(startOfWeek(today, { weekStartsOn: 0 }));
   };
 
   const dateLabel =
-    viewMode === "week"
-      ? `${format(weekStart, "dd", { locale: ptBR })} de ${format(weekStart, "MMM.", { locale: ptBR })} - ${format(addDays(weekStart, 6), "dd", { locale: ptBR })} de ${format(addDays(weekStart, 6), "MMM.", { locale: ptBR })} de ${format(weekStart, "yyyy")}`
-      : format(selectedDay, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+    viewMode === "month"
+      ? format(selectedDay, "MMMM 'de' yyyy", { locale: ptBR })
+      : viewMode === "week"
+        ? `${format(weekStart, "dd", { locale: ptBR })} de ${format(weekStart, "MMM.", { locale: ptBR })} - ${format(addDays(weekStart, 6), "dd", { locale: ptBR })} de ${format(addDays(weekStart, 6), "MMM.", { locale: ptBR })} de ${format(weekStart, "yyyy")}`
+        : format(selectedDay, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
 
-  const days = viewMode === "week" ? Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)) : [selectedDay];
+  const days =
+    viewMode === "week" ? Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)) :
+      viewMode === "month" ? [] : // Month view handles its own day calculation
+        [selectedDay];
 
   // Professional sorting map (using IDs for stability)
   const professionalOrder = [
@@ -571,8 +588,100 @@ const AgendaPage = () => {
     );
   };
 
+  const renderMonthView = () => {
+    const start = startOfMonth(selectedDay);
+    const end = endOfMonth(selectedDay);
+    const startDay = startOfWeek(start, { weekStartsOn: 0 });
+    const endDay = endOfWeek(end, { weekStartsOn: 0 });
+
+    const calendarDays = [];
+    let current = startDay;
+    while (current <= endDay) {
+      calendarDays.push(current);
+      current = addDays(current, 1);
+    }
+
+    const weekDays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+    return (
+      <div className="flex-1 overflow-auto bg-background p-4">
+        <div className="grid grid-cols-7 gap-px bg-border border border-border rounded-lg overflow-hidden shadow-sm">
+          {weekDays.map(day => (
+            <div key={day} className="bg-muted/50 p-2 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              {day}
+            </div>
+          ))}
+          {calendarDays.map((date, idx) => {
+            const isCurrentMonth = isSameMonth(date, selectedDay);
+            const isToday = isSameDay(date, new Date());
+            const dayStr = format(date, "yyyy-MM-dd");
+            const dayAppts = appointments.filter(a => a.date === dayStr && a.status !== "removido");
+            const sortedAppts = dayAppts.sort((a, b) => a.start_time.localeCompare(b.start_time));
+
+            return (
+              <div
+                key={idx}
+                className={cn(
+                  "min-h-[120px] bg-card p-2 transition-colors cursor-pointer group hover:bg-accent/5",
+                  !isCurrentMonth && "bg-muted/20 text-muted-foreground/50",
+                  isToday && "bg-primary/5"
+                )}
+                onDoubleClick={() => {
+                  setApptDefaults({ date });
+                  setDialogOpen(true);
+                }}
+                onClick={() => {
+                  setSelectedDay(date);
+                  setViewMode("day");
+                }}
+              >
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className={cn(
+                    "text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full transition-colors",
+                    isToday ? "bg-primary text-primary-foreground" : "text-foreground group-hover:bg-muted"
+                  )}>
+                    {format(date, "d")}
+                  </span>
+                  {dayAppts.length > 0 && (
+                    <span className="text-[10px] font-medium text-muted-foreground px-1.5 py-0.5 bg-muted rounded-full">
+                      {dayAppts.length} {dayAppts.length === 1 ? 'agend.' : 'agends.'}
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  {sortedAppts.slice(0, 4).map(appt => (
+                    <div
+                      key={appt.id}
+                      className="text-[10px] truncate px-1.5 py-0.5 rounded-sm border border-border hover:border-border-foreground/20 transition-all flex items-center gap-1"
+                      style={{
+                        backgroundColor: getStatusBg(appt.status) + '20',
+                        borderLeft: `2px solid ${getStatusBg(appt.status)}`
+                      }}
+                    >
+                      <span className="font-bold shrink-0">{appt.start_time.slice(0, 5)}</span>
+                      <span className="truncate">{appt.client_name}</span>
+                    </div>
+                  ))}
+                  {dayAppts.length > 4 && (
+                    <div className="text-[9px] font-bold text-muted-foreground pl-1.5 pt-0.5">
+                      + {dayAppts.length - 4} mais...
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
   // Format time for display in dialog
   const formatTimeDisplay = (time: string) => time.slice(0, 5);
+
+  const gridContainerRef = useRef<HTMLDivElement>(null);
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    // Sync scroll if needed, currently just placeholder for potential sync
+  };
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -618,6 +727,17 @@ const AgendaPage = () => {
 
           {/* View toggle */}
           <div className="ml-3 flex items-center rounded-full border border-border overflow-hidden">
+            <button
+              onClick={() => {
+                setViewMode("month");
+              }}
+              className={cn(
+                "px-3 py-1 text-xs font-medium transition-colors",
+                viewMode === "month" ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"
+              )}
+            >
+              Mês
+            </button>
             <button
               onClick={() => setViewMode("week")}
               className={cn(
@@ -677,113 +797,144 @@ const AgendaPage = () => {
         ))}
       </div>
 
-      {/* Calendar Grid */}
-      <div className="flex-1 overflow-auto mx-8 mb-4 border border-border rounded-lg bg-[#fffdf5] relative">
-        {/* Real-time Indicator Component */}
-        {(() => {
-          const h = currentTime.getHours();
-          const m = currentTime.getMinutes();
-          if (h < 7 || h >= 22) return null; // Outside business hours
-
-          // Only show if the selected day is today
-          if (!isToday(viewMode === "week" ? new Date() : selectedDay)) {
-            // In week view, we might want to show it on the specific day column, 
-            // but for now let's keep it simple and only show if "today" is in view.
-            if (viewMode === "day" && !isToday(selectedDay)) return null;
-          }
-
-          const top = (h - 7) * 64 + (m / 60) * 64 + 48; // +48px for the day header offset
-
-          return (
-            <div
-              id="real-time-indicator"
-              className="absolute left-0 right-0 z-50 pointer-events-none flex items-center"
-              style={{ top: `${top}px` }}
-            >
-              <div className="w-2 h-2 rounded-full bg-destructive -ml-1 shadow-sm" />
-              <div className="h-[2px] flex-1 bg-destructive shadow-sm" />
-            </div>
-          );
-        })()}
-        {viewMode === "week" ? (
-          /* ============ WEEK VIEW ============ */
-          <div className="flex min-w-[1200px]">
-            <div className="w-16 shrink-0 border-r border-border">
-              <div className="h-12" />
-              {hours.map((time) => {
-                const isHalf = time.endsWith(":30");
-                return (
-                  <div key={time} className={cn("h-8 flex items-start justify-end pr-2 pt-0.5 border-t", isHalf ? "border-border/60" : "border-border/90")}>
-                    <span className={cn("text-[10px] font-medium", isHalf ? "text-muted-foreground/70" : "text-muted-foreground/90")}>{time}</span>
+      <div className="flex-1 overflow-hidden flex flex-col relative px-8 pb-4">
+        <div className="flex-1 border border-border rounded-lg overflow-hidden bg-[#fffdf5] relative flex flex-col">
+          {viewMode === "month" ? (
+            renderMonthView()
+          ) : (
+            <div className="flex-1 overflow-auto custom-scrollbar" ref={gridContainerRef} onScroll={handleScroll}>
+              {viewMode === "week" ? (
+                /* ============ WEEK VIEW ============ */
+                <div className="flex min-w-[1200px] relative h-full">
+                  <div className="w-16 shrink-0 border-r border-border bg-background/50 sticky left-0 z-20">
+                    <div className="h-12" />
+                    {hours.map((time) => {
+                      const isHalf = time.endsWith(":30");
+                      return (
+                        <div key={time} className={cn("h-8 flex items-start justify-end pr-2 pt-0.5 border-t", isHalf ? "border-border/60" : "border-border/90")}>
+                          <span className={cn("text-[10px] font-medium", isHalf ? "text-muted-foreground/70" : "text-muted-foreground/90")}>{time}</span>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
 
-            {days.map((day) => {
-              const dayStr = format(day, "yyyy-MM-dd");
-              const dayAppts = getApptsForColumn(dayStr);
-              const today = isToday(day);
-              const dayAbbr = format(day, "EEE.", { locale: ptBR }).toUpperCase();
+                  <div className="flex flex-1 relative h-[1000px]">
+                    {/* Real-time Indicator Component (Week) */}
+                    {(() => {
+                      const h = currentTime.getHours();
+                      const m = currentTime.getMinutes();
+                      if (h < 7 || h >= 22) return null;
+                      const todayIdx = days.findIndex(d => isToday(d));
+                      if (todayIdx === -1) return null;
 
-              return (
-                <DayColumn
-                  key={dayStr}
-                  dayStr={dayStr}
-                  dayAbbr={dayAbbr}
-                  dayNum={format(day, "d")}
-                  isToday={today}
-                  hours={hours}
-                  appts={dayAppts}
-                  blockedBlocks={getBlockedForColumn(dayStr)}
-                  renderBlock={(posAppt, el) => renderAppointmentBlock(posAppt, selectedFilter === "all", el)}
-                  renderBlockedBlock={renderBlockedBlock}
-                  onDoubleClick={() => {
-                    setSelectedDay(day);
-                    setViewMode("day");
-                  }}
-                />
-              );
-            })}
-          </div>
-        ) : (
-          /* ============ DAY VIEW ============ */
-          <div className="flex" style={{ minWidth: `${Math.max(filteredProfessionals.length * 200 + 80, 800)}px`, width: 'max-content' }}>
-            <div className="w-16 shrink-0 border-r border-border">
-              <div className="h-12" />
-              {hours.map((time) => {
-                const isHalf = time.endsWith(":30");
-                return (
-                  <div key={time} className={cn("h-8 flex items-start justify-end pr-2 pt-0.5 border-t", isHalf ? "border-border/60" : "border-border/90")}>
-                    <span className={cn("text-[10px] font-medium", isHalf ? "text-muted-foreground/70" : "text-muted-foreground/90")}>{time}</span>
+                      const topOffset = (h - 7) * 64 + (m / 60) * 64 + 48;
+                      const colWidth = 100 / 7;
+
+                      return (
+                        <div
+                          className="absolute z-50 pointer-events-none flex items-center"
+                          style={{
+                            top: `${topOffset}px`,
+                            left: `${todayIdx * colWidth}%`,
+                            width: `${colWidth}%`
+                          }}
+                        >
+                          <div className="w-2 h-2 rounded-full bg-destructive -ml-1 shadow-sm" />
+                          <div className="h-[2px] flex-1 bg-destructive shadow-sm" />
+                        </div>
+                      );
+                    })()}
+
+                    {days.map((day) => {
+                      const dayStr = format(day, "yyyy-MM-dd");
+                      const dayAppts = getApptsForColumn(dayStr);
+                      const today = isToday(day);
+                      const dayAbbr = format(day, "EEE.", { locale: ptBR }).toUpperCase();
+
+                      return (
+                        <DayColumn
+                          key={dayStr}
+                          dayStr={dayStr}
+                          dayAbbr={dayAbbr}
+                          dayNum={format(day, "d")}
+                          isToday={today}
+                          hours={hours}
+                          appts={dayAppts}
+                          blockedBlocks={getBlockedForColumn(dayStr)}
+                          renderBlock={(posAppt, el) => renderAppointmentBlock(posAppt, selectedFilter === "all", el)}
+                          renderBlockedBlock={renderBlockedBlock}
+                          onDoubleClick={() => {
+                            setSelectedDay(day);
+                            setViewMode("day");
+                          }}
+                        />
+                      );
+                    })}
                   </div>
-                );
-              })}
+                </div>
+              ) : (
+                /* ============ DAY VIEW ============ */
+                <div className="flex h-full" style={{ minWidth: `${Math.max(filteredProfessionals.length * 200 + 80, 800)}px`, width: 'max-content' }}>
+                  <div className="w-16 shrink-0 border-r border-border bg-background/50 sticky left-0 z-20">
+                    <div className="h-12" />
+                    {hours.map((time) => {
+                      const isHalf = time.endsWith(":30");
+                      return (
+                        <div key={time} className={cn("h-8 flex items-start justify-end pr-2 pt-0.5 border-t", isHalf ? "border-border/60" : "border-border/90")}>
+                          <span className={cn("text-[10px] font-medium", isHalf ? "text-muted-foreground/70" : "text-muted-foreground/90")}>{time}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex flex-1 relative h-[1000px]">
+                    {/* Real-time Indicator Component (Day) */}
+                    {(() => {
+                      const h = currentTime.getHours();
+                      const m = currentTime.getMinutes();
+                      if (h < 7 || h >= 22) return null;
+                      if (!isToday(selectedDay)) return null;
+
+                      const topOffset = (h - 7) * 64 + (m / 60) * 64 + 48;
+
+                      return (
+                        <div
+                          className="absolute left-0 right-0 z-50 pointer-events-none flex items-center"
+                          style={{ top: `${topOffset}px` }}
+                        >
+                          <div className="w-2 h-2 rounded-full bg-destructive -ml-1 shadow-sm" />
+                          <div className="h-[2px] flex-1 bg-destructive shadow-sm" />
+                        </div>
+                      );
+                    })()}
+
+                    {filteredProfessionals.map((prof) => {
+                      const dayStr = format(selectedDay, "yyyy-MM-dd");
+                      const profAppts = getApptsForColumn(dayStr, prof.id);
+
+                      return (
+                        <ProfColumn
+                          key={prof.id}
+                          profId={prof.id}
+                          profName={prof.name}
+                          hours={hours}
+                          appts={profAppts}
+                          blockedBlocks={getBlockedForColumn(dayStr, prof.id)}
+                          renderBlock={(posAppt, el) => renderAppointmentBlock(posAppt, false, el)}
+                          renderBlockedBlock={renderBlockedBlock}
+                          onSlotClick={(time) => {
+                            setApptDefaults({ profId: prof.id, date: selectedDay, time });
+                            setDialogOpen(true);
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
-
-            {filteredProfessionals.map((prof) => {
-              const dayStr = format(selectedDay, "yyyy-MM-dd");
-              const profAppts = getApptsForColumn(dayStr, prof.id);
-
-              return (
-                <ProfColumn
-                  key={prof.id}
-                  profId={prof.id}
-                  profName={prof.name}
-                  hours={hours}
-                  appts={profAppts}
-                  blockedBlocks={getBlockedForColumn(dayStr, prof.id)}
-                  renderBlock={(posAppt, el) => renderAppointmentBlock(posAppt, false, el)}
-                  renderBlockedBlock={renderBlockedBlock}
-                  onSlotClick={(time) => {
-                    setApptDefaults({ profId: prof.id, date: selectedDay, time });
-                    setDialogOpen(true);
-                  }}
-                />
-              );
-            })}
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <NewAppointmentDialog
@@ -832,7 +983,7 @@ const AgendaPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div >
+    </div>
   );
 };
 
