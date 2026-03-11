@@ -45,17 +45,20 @@ const statusActions: Record<string, { label: string; icon: React.ReactNode; next
   agendado: [
     { label: "Confirmar", icon: <CalendarCheck className="w-4 h-4" />, next: "confirmado" },
     { label: "Atendendo", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendendo" },
+    { label: "Atendido", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendido" },
     { label: "Cancelar", icon: <XCircle className="w-4 h-4" />, next: "cancelado" },
     { label: "Faltou", icon: <XCircle className="w-4 h-4" />, next: "falta" },
   ],
   confirmado: [
     { label: "Atendendo", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendendo" },
+    { label: "Atendido", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendido" },
     { label: "Cancelar", icon: <XCircle className="w-4 h-4" />, next: "cancelado" },
     { label: "Faltou", icon: <XCircle className="w-4 h-4" />, next: "falta" },
   ],
   espera: [
     { label: "Confirmar", icon: <CalendarCheck className="w-4 h-4" />, next: "confirmado" },
     { label: "Atendendo", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendendo" },
+    { label: "Atendido", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendido" },
     { label: "Cancelar", icon: <XCircle className="w-4 h-4" />, next: "cancelado" },
   ],
   atendendo: [
@@ -67,6 +70,7 @@ const statusActions: Record<string, { label: string; icon: React.ReactNode; next
   ],
   atrasado: [
     { label: "Atendendo", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendendo" },
+    { label: "Atendido", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendido" },
     { label: "Cancelar", icon: <XCircle className="w-4 h-4" />, next: "cancelado" },
     { label: "Faltou", icon: <XCircle className="w-4 h-4" />, next: "falta" },
   ],
