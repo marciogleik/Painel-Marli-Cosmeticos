@@ -776,8 +776,8 @@ const AgendaPage = () => {
                   renderBlock={(posAppt, el) => renderAppointmentBlock(posAppt, false, el)}
                   renderBlockedBlock={renderBlockedBlock}
                   onSlotClick={(time) => {
-                    setBlockDefaults({ profId: prof.id, date: selectedDay, time });
-                    setBlockDialogOpen(true);
+                    setApptDefaults({ profId: prof.id, date: selectedDay, time });
+                    setDialogOpen(true);
                   }}
                 />
               );
