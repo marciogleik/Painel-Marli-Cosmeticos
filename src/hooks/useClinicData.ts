@@ -144,7 +144,13 @@ export const useClients = (options: {
         .eq("is_active", is_active);
 
       if (search && search.trim().length > 0) {
-        query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%,cpf.ilike.%${search}%`);
+        const numericSearch = search.replace(/\D/g, '');
+        if (numericSearch.length >= 8) {
+          // If searching by number, try to match digits too
+          query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%,phone.ilike.%${numericSearch}%,cpf.ilike.%${search}%`);
+        } else {
+          query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%,cpf.ilike.%${search}%`);
+        }
       }
 
       if (sortBy === 'last_visit') {
