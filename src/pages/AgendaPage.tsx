@@ -221,21 +221,21 @@ const AgendaPage = () => {
           }
         }}
       >
-        <div className="horario flex justify-between items-center opacity-60">
+        <div className="horario flex justify-between items-center text-black">
           <span>{block.start_time.slice(0, 5)}</span>
           {height >= 40 && (
-            <span className="text-[9px] uppercase font-bold tracking-widest">
+            <span className="text-[9px] uppercase font-bold tracking-widest opacity-70">
               {block.isWeekly ? "Semanal" : "Bloqueio"}
             </span>
           )}
         </div>
-        <div className="cliente flex items-center gap-1.5" style={{ fontSize: "11px", fontWeight: 500 }}>
-          <span className="opacity-50">🚫</span>
+        <div className="cliente text-black font-medium flex items-center gap-1.5" style={{ fontSize: "11px" }}>
+          <span className="opacity-70">🚫</span>
           <span className="truncate uppercase tracking-tight">
             {block.reason || "Horário Bloqueado"}
             {(() => {
               const prof = professionals.find(p => p.id === block.professional_id);
-              return prof ? ` • ${prof.name.split(" ")[0]}` : "";
+              return prof && height >= 60 ? ` • ${prof.name.split(" ")[0]}` : "";
             })()}
           </span>
         </div>
@@ -507,7 +507,7 @@ const AgendaPage = () => {
           left: `calc(4px + (${overlapIndex} * (100% - 8px) / ${overlapCount}) + 2px)`, // 2px start gap
           backgroundColor: appt.status === "bloqueado" ? undefined : getStatusBg(appt.status),
           color: appt.status === "bloqueado"
-            ? "#4b5563"
+            ? "#000000"
             : (["atrasado", "espera"].includes(appt.status) ? "#1f2937" : "white"),
         }}
         onMouseDown={(e) => {
