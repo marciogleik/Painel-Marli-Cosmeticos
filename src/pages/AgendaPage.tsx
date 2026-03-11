@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useProfessionals, useAppointments, statusConfig, DBAppointment, WEEKLY_BLOCKS } from "@/hooks/useClinicData";
 import { cn } from "@/lib/utils";
-import { format, addDays, subDays, startOfWeek, isToday } from "date-fns";
+import { format, addDays, subDays, startOfWeek, isToday, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Plus, Calendar, Check, X as XIcon, GripVertical, Ban, Trash2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,18 @@ import {
 } from "@/components/ui/alert-dialog";
 
 type ViewMode = "week" | "day";
+
+const statusLabel: Record<string, string> = {
+  agendado: "Agendado",
+  confirmado: "Confirmado",
+  espera: "Em Espera",
+  atendendo: "Atendendo",
+  atendido: "Atendido",
+  cancelado: "Cancelado",
+  atrasado: "Atrasado",
+  falta: "Faltou",
+  removido: "Removido",
+};
 
 interface DragState {
   appointment: DBAppointment;
@@ -493,9 +505,8 @@ const AgendaPage = () => {
       <div
         key={appt.id}
         className={cn(
-          "absolute rounded-md overflow-hidden border z-10 group transition-all duration-200 shadow-sm",
-          cfg.bgClass,
-          cfg.color.replace("bg-", "border-l-"),
+          "absolute overflow-hidden z-10 group transition-all duration-200 shadow-sm",
+          "evento-agenda",
           isDraggable ? "cursor-grab hover:shadow-md" : "cursor-pointer",
           isDragging && "opacity-80 shadow-lg ring-2 ring-primary z-50",
           isCancelled && "grayscale-[0.5] opacity-90",
@@ -506,7 +517,8 @@ const AgendaPage = () => {
           height: `${height}px`,
           width: `calc((100% - 8px) / ${overlapCount} - 2px)`,
           left: `calc(4px + (${overlapIndex} * (100% - 8px) / ${overlapCount}))`,
-          backgroundColor: isCancelled ? undefined : undefined, // Removed hardcoded muted bg
+          backgroundColor: getStatusBg(appt.status),
+          color: "white",
           transition: isDragging ? "none" : "box-shadow 0.15s",
         }}
         onMouseDown={(e) => {
@@ -519,72 +531,21 @@ const AgendaPage = () => {
           }
         }}
       >
-        <div
-          className="h-full flex flex-col justify-start overflow-hidden leading-[1.1] gap-0 text-white"
-          style={{ backgroundColor: `color-mix(in srgb, ${getStatusBg(appt.status)} 70%, black)` }}
-        >
-          {/* Header: Time Content (Always visible if height > 30) */}
-          {height >= 30 && (
-            <div className="flex items-center gap-1 opacity-90 px-1.5 py-0.5 shrink-0 leading-none">
-              {isDraggable && height > 40 && <GripVertical className="w-2.5 h-2.5 shrink-0 text-white/40" />}
-              <span className="text-[8.5px] font-bold uppercase tracking-tighter whitespace-nowrap">{timeRange}</span>
-            </div>
-          )}
+        <div className="horario">
+          {appt.start_time.slice(0, 5)} - {appt.end_time.slice(0, 5)}
+        </div>
 
-          <div className="px-1 py-0.5 flex flex-col gap-0 overflow-hidden leading-none">
-            {/* Client Name: Crucial */}
-            <div className="flex items-start gap-1">
-              {height > 40 && getStatusIcon(appt.status)}
-              <span className={cn(
-                "font-display font-normal uppercase tracking-tight overflow-hidden leading-[0.85]",
-                height < 40 ? "text-[8.5px] truncate" : "text-[10px] line-clamp-2",
-                isCancelled && "line-through opacity-70"
-              )}>
-                {appt.client_name}
-              </span>
-            </div>
+        <div className="cliente">
+          {appt.status === "confirmado" && "✔ "}
+          {appt.client_name}
+        </div>
 
-            {/* Service & Professional: High density */}
-            {height >= 35 && (
-              <div className="flex flex-col gap-0 mt-0.5">
-                {serviceSummary && (
-                  <p className="text-[8.5px] font-bold tracking-tighter line-clamp-1 opacity-95 leading-[0.9]">
-                    {serviceSummary}
-                  </p>
-                )}
-                {prof && height >= 45 && (
-                  <p className="text-[7.5px] font-bold tracking-tighter truncate opacity-85 leading-none mt-0.5">
-                    ({prof.name.split(" ")[0]})
-                  </p>
-                )}
-              </div>
-            )}
+        <div className="servico text-white/90">
+          {serviceSummary} {prof && `(${prof.name.split(" ")[0]})`} - {statusLabel[appt.status] || appt.status}
+        </div>
 
-            {/* Executed By or Observations: Explicit labels */}
-            {(appt.executed_by || appt.notes) && height >= 65 && (
-              <div className="flex flex-col gap-0 mt-0.5 opacity-80 leading-none">
-                {appt.executed_by && height >= 65 && (
-                  <p className="text-[7.5px] font-bold truncate">
-                    Exec: {appt.executed_by}
-                  </p>
-                )}
-                {appt.notes && height >= 80 && (
-                  <p className="text-[7.5px] font-medium line-clamp-2 mt-0.5">
-                    <span className="font-bold">Obs:</span> {appt.notes}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Footer with Full Date: Luxurious if space permits */}
-            {height >= 110 && (
-              <div className="mt-0.5 border-t border-foreground/10 pt-0.5 shrink-0">
-                <p className="text-[8.5px] font-bold opacity-90 truncate leading-tight">
-                  {format(new Date(appt.date + "T12:00:00"), "dd/MM/yyyy")}
-                </p>
-              </div>
-            )}
-          </div>
+        <div className="data-info text-white/80">
+          {format(parseISO(appt.date), "dd/MM/yyyy")} - {appt.start_time.slice(0, 5)} às {appt.end_time.slice(0, 5)}
         </div>
       </div>
     );
