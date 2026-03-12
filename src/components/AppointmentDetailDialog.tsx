@@ -9,6 +9,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -31,6 +41,7 @@ import {
   Scissors,
   Pencil,
   ExternalLink,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import AppointmentEditForm from "@/components/AppointmentEditForm";
@@ -101,6 +112,7 @@ const AppointmentDetailDialog = ({
   const { data: professionals = [] } = useProfessionals();
   const [cancellationReason, setCancellationReason] = useState("");
   const [showCancelForm, setShowCancelForm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [editing, setEditing] = useState(false);
 
   const { data: appointmentServices = [] } = useQuery({
@@ -402,11 +414,7 @@ const AppointmentDetailDialog = ({
                       variant="ghost"
                       size="sm"
                       className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => {
-                        if (confirm("Tem certeza que deseja excluir este agendamento da visão da agenda? Ele continuará no histórico bancário, mas não aparecerá mais aqui.")) {
-                          statusMutation.mutate({ id: appointment.id, newStatus: "removido" });
-                        }
-                      }}
+                      onClick={() => setShowDeleteConfirm(true)}
                       disabled={statusMutation.isPending}
                     >
                       <Trash2 className="w-4 h-4" />
@@ -419,6 +427,34 @@ const AppointmentDetailDialog = ({
           </div>
         )}
       </DialogContent>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              Excluir da Agenda
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este agendamento da visão da agenda?
+              Ele continuará no histórico, mas não aparecerá mais aqui.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={() => {
+                statusMutation.mutate({ id: appointment.id, newStatus: "removido" });
+                setShowDeleteConfirm(false);
+              }}
+            >
+              Sim, Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 };

@@ -384,7 +384,7 @@ const AgendaPage = () => {
 
     const { appointment, newStartTime, newEndTime } = pendingReschedule;
 
-    // Check conflicts
+    // Check conflicts (warn but don't block)
     const conflict = await checkAppointmentConflict({
       professionalId: appointment.professional_id,
       date: appointment.date,
@@ -394,10 +394,7 @@ const AgendaPage = () => {
     });
 
     if (conflict) {
-      toast.error(`Conflito de horário com ${conflict}. Escolha outro horário.`);
-      setIsRescheduling(false);
-      setPendingReschedule(null);
-      return;
+      toast.warning(`Atenção: sobreposição de horário com ${conflict}. Agendamento reagendado como encaixe.`);
     }
 
     const { error } = await supabase
@@ -408,7 +405,7 @@ const AgendaPage = () => {
     if (error) {
       toast.error("Erro ao reagendar: " + error.message);
     } else {
-      toast.success("Agendamento reagendado com sucesso!");
+      if (!conflict) toast.success("Agendamento reagendado com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
     }
 

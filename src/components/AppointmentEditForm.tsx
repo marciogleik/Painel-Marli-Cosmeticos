@@ -29,10 +29,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Loader2, Search } from "lucide-react";
+import { CalendarIcon, Loader2, Search, AlertTriangle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface AppointmentEditFormProps {
@@ -67,6 +77,8 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
   const [notes, setNotes] = useState(appointment.notes || "");
   const [serviceSearch, setServiceSearch] = useState("");
   const [manualEndTime, setManualEndTime] = useState<string | null>(appointment.end_time?.slice(0, 5) || null);
+  const [conflictWarning, setConflictWarning] = useState<string | null>(null);
+  const [forceCreate, setForceCreate] = useState(false);
 
   const availableServices = useServicesForProfessional(professionalId);
   const { data: clientsData } = useClients({ search: clientSearch, pageSize: 20 });
@@ -127,16 +139,19 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
 
       const dateStr = format(date, "yyyy-MM-dd");
 
-      // Check for time conflicts (exclude current appointment)
-      const conflict = await checkAppointmentConflict({
-        professionalId,
-        date: dateStr,
-        startTime: startTime + ":00",
-        endTime: endTime + ":00",
-        excludeAppointmentId: appointment.id,
-      });
-      if (conflict) {
-        throw new Error(`Conflito de horário: a profissional já tem agendamento com ${conflict} neste horário.`);
+      // Check for time conflicts (skip if user already confirmed force)
+      if (!forceCreate) {
+        const conflict = await checkAppointmentConflict({
+          professionalId,
+          date: dateStr,
+          startTime: startTime + ":00",
+          endTime: endTime + ":00",
+          excludeAppointmentId: appointment.id,
+        });
+        if (conflict) {
+          setConflictWarning(conflict);
+          return null; // Abort mutation without error
+        }
       }
 
       const { error } = await supabase
@@ -180,7 +195,8 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
 
       if (svcErr) throw svcErr;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (result === null) return; // Conflict warning shown, don't close
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
       queryClient.invalidateQueries({ queryKey: ["appointment_services", appointment.id] });
       toast({ title: "Agendamento atualizado com sucesso!" });
@@ -190,6 +206,12 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
       toast({ title: "Erro ao atualizar", description: err.message, variant: "destructive" });
     },
   });
+
+  const handleForceCreate = () => {
+    setConflictWarning(null);
+    setForceCreate(true);
+    setTimeout(() => mutation.mutate(), 50);
+  };
 
   const canSubmit = professionalId && selectedServices.length > 0 && date && startTime && clientName.trim();
 
@@ -281,11 +303,11 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
               {timeSlots.map(t => {
                 const conflict = totalDuration > 0 ? getConflict(t, totalDuration) : null;
                 return (
-                  <SelectItem key={t} value={t} disabled={!!conflict}>
+                  <SelectItem key={t} value={t}>
                     <span className="flex items-center gap-2">
                       {t}
                       {conflict && (
-                        <span className="text-[10px] text-destructive font-normal">● {conflict}</span>
+                        <span className="text-[10px] text-amber-500 font-normal">⚠ {conflict}</span>
                       )}
                     </span>
                   </SelectItem>
@@ -383,6 +405,30 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
         </Button>
         <Button variant="outline" onClick={onCancel}>Cancelar</Button>
       </div>
+
+      {/* Conflict confirmation dialog */}
+      <AlertDialog open={!!conflictWarning} onOpenChange={(open) => { if (!open) setConflictWarning(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              Conflito de Horário
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm">
+              A profissional já possui um atendimento com{" "}
+              <strong>{conflictWarning}</strong> neste horário.
+              <br /><br />
+              Deseja salvar mesmo assim? (encaixe)
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleForceCreate} className="bg-amber-500 hover:bg-amber-600">
+              Salvar Mesmo Assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
