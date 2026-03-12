@@ -21,12 +21,16 @@ export function useOccupiedSlots(
     queryFn: async () => {
       if (!professionalId || !date) return [];
 
+      // Use allowlist to avoid PostgREST .not().in() syntax issues.
+      // cancelado, falta, removido are all excluded.
+      const ACTIVE_STATUSES = ["agendado", "confirmado", "espera", "atendendo", "atendido", "atrasado"];
+
       let query = supabase
         .from("appointments")
         .select("start_time, end_time, client_name")
         .eq("professional_id", professionalId)
         .eq("date", date)
-        .not("status", "in", '("cancelado","falta")');
+        .in("status", ACTIVE_STATUSES);
 
       if (excludeAppointmentId) {
         query = query.neq("id", excludeAppointmentId);

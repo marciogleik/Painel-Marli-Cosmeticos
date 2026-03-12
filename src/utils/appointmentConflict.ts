@@ -19,13 +19,15 @@ export async function checkAppointmentConflict({
   endTime: string;   // HH:MM:SS
   excludeAppointmentId?: string;
 }): Promise<string | null> {
-  // Check appointment conflicts
+  // Check appointment conflicts — using allowlist to avoid PostgREST .not().in() syntax issues
+  const ACTIVE_STATUSES = ["agendado", "confirmado", "espera", "atendendo", "atendido", "atrasado"];
+
   let query = supabase
     .from("appointments")
     .select("id, client_name, start_time, end_time")
     .eq("professional_id", professionalId)
     .eq("date", date)
-    .not("status", "in", '("cancelado","falta","removido")')
+    .in("status", ACTIVE_STATUSES)
     .lt("start_time", endTime)
     .gt("end_time", startTime);
 
