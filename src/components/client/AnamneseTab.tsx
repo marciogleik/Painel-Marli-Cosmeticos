@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronDown as ChevronDownIcon, ChevronUp as ChevronUpIcon } from "lucide-react";
@@ -21,11 +21,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, ChevronDown, Pencil, Trash2, FileText, Loader2 } from "lucide-react";
+import { Plus, ChevronDown, Pencil, Trash2, FileText, Loader2, Image, Lock } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
 import type { AnamnesisTemplate, TemplateField } from "@/components/settings/AnamnesesTab";
+import { useAuth } from "@/hooks/useAuth";
 import type { Database } from "@/integrations/supabase/types";
 
 type Tables = Database["public"]["Tables"];
@@ -59,11 +60,20 @@ const usePatientRecords = (clientId: string) =>
     queryFn: async () => {
       const { data, error } = await supabase
         .from("patient_records")
-        .select("*")
+        .select(`
+          *,
+          client_attachments (
+            id,
+            file_path,
+            file_type,
+            privacy_type,
+            professional_id
+          )
+        `)
         .eq("client_id", clientId)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as PatientRecord[];
+      return (data ?? []) as (PatientRecord & { client_attachments: any[] })[];
     },
     enabled: !!clientId,
   });
@@ -178,8 +188,111 @@ const RecordFields = ({
   );
 };
 
+const RecordThumbnail = ({ filePath, onClick }: { filePath: string, onClick: () => void }) => {
+  const [url, setUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const getThumbnailUrl = async () => {
+      const path = filePath.startsWith('uploads/') ? filePath : `uploads/${filePath}`;
+      const { data } = await supabase.storage
+        .from("client-attachments")
+        .createSignedUrl(path, 3600); // 1 hour expiry
+      if (data?.signedUrl) setUrl(data.signedUrl);
+    };
+    getThumbnailUrl();
+  }, [filePath]);
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-20 h-20 rounded-md border border-border overflow-hidden hover:opacity-80 transition-opacity bg-muted flex items-center justify-center shrink-0"
+    >
+      {url ? (
+        <img
+          src={url}
+          alt="Anexo"
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <div className="flex flex-col items-center gap-1 opacity-50">
+          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+          <span className="text-[10px]">Carregando</span>
+        </div>
+      )}
+    </button>
+  );
+};
+
+const RecordImages = ({ attachments, currentUserId, userRole }: { attachments: any[], currentUserId?: string, userRole?: string }) => {
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  const visibleAttachments = attachments.filter(att => {
+    if (userRole === 'gestor') return true;
+    if (att.privacy_type === 'public') return true;
+    if (att.privacy_type === 'private') return true;
+    if (att.privacy_type === 'only_me' && att.professional_id === currentUserId) return true;
+    return false;
+  });
+
+  if (visibleAttachments.length === 0) return null;
+
+  return (
+    <div className="mt-4">
+      <p className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+        <Image className="w-3 h-3" /> Imagens e Anexos ({visibleAttachments.length})
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {visibleAttachments.map((att) => (
+          <div key={att.id} className="relative group">
+            {att.file_type === 'image' || att.file_path.match(/\.(jpg|jpeg|png|webp)$/i) ? (
+              <RecordThumbnail 
+                filePath={att.file_path} 
+                onClick={async () => {
+                  const path = att.file_path.startsWith('uploads/') ? att.file_path : `uploads/${att.file_path}`;
+                  const { data, error } = await supabase.storage
+                    .from("client-attachments")
+                    .createSignedUrl(path, 300);
+                  if (error || !data?.signedUrl) return;
+                  setPreviewUrl(data.signedUrl);
+                }}
+              />
+            ) : (
+              <div className="w-20 h-20 rounded-md border border-border bg-muted flex items-center justify-center flex-col gap-1 p-1">
+                <FileText className="w-6 h-6 text-muted-foreground" />
+                <span className="text-[9px] truncate w-full text-center">{att.file_path.split('/').pop()}</span>
+              </div>
+            )}
+            {att.privacy_type === 'only_me' && (
+              <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5" title="Apenas eu">
+                <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2V7a5 5 0 00-5-5zM7 7a3 3 0 016 0v2H7V7z"></path></svg>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <AlertDialog open={!!previewUrl} onOpenChange={() => setPreviewUrl(null)}>
+        <AlertDialogContent className="max-w-3xl p-2 bg-transparent border-none">
+          <div className="relative">
+            <img src={previewUrl!} className="w-full h-auto max-h-[85vh] object-contain rounded-lg" />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="absolute top-2 right-2 bg-background/80"
+              onClick={() => setPreviewUrl(null)}
+            >
+              Fechar
+            </Button>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
+
 const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const { data: templates = [] } = useActiveTemplates();
   const { data: records = [], isLoading } = usePatientRecords(clientId);
   const [fillTemplate, setFillTemplate] = useState<AnamnesisTemplate | null>(null);
@@ -360,6 +473,13 @@ const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
                       isExpanded={expandedRecords.has(record.id)}
                       onToggle={() => toggleExpand(record.id)}
                       collapsedLimit={COLLAPSED_LIMIT}
+                    />
+
+                    {/* Inline Images */}
+                    <RecordImages 
+                      attachments={(record as any).client_attachments || []} 
+                      currentUserId={user?.id}
+                      userRole={(user as any)?.app_metadata?.role}
                     />
                   </CardContent>
                 </Card>
