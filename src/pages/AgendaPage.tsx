@@ -316,10 +316,8 @@ const AgendaPage = () => {
       if (!dragRef.current) return;
       const delta = ev.clientY - dragRef.current.startY;
       const newTop = Math.max(48, dragRef.current.initialTop + delta); // Min top is offset
-      // Snap to 15-min grid (15 mins = 32px because 60 mins = 128px)
-      const snappedTop = Math.round((newTop - 48) / 32) * 32 + 48;
-      dragRef.current.currentTop = snappedTop;
-      setDragPreviewTop(snappedTop);
+      dragRef.current.currentTop = newTop;
+      setDragPreviewTop(newTop);
     };
 
     const handleMouseUp = () => {
@@ -368,7 +366,8 @@ const AgendaPage = () => {
       });
 
       dragRef.current = null;
-      setDraggingApptId(null);
+      // Note: we don't clear draggingApptId here to avoid the card jumping back 
+      // while the user is looking at the confirmation dialog.
     };
 
     document.addEventListener("mousemove", handleMouseMove);
@@ -408,6 +407,7 @@ const AgendaPage = () => {
 
     setIsRescheduling(false);
     setPendingReschedule(null);
+    setDraggingApptId(null); // Clear drag state AFTER confirmation
   };
 
   // Navigation handlers
@@ -488,7 +488,7 @@ const AgendaPage = () => {
     const isCancelled = appt.status === "cancelado";
     const isFalta = appt.status === "falta";
     const isDraggable = !isCancelled && !isFalta;
-    const isDragging = draggingApptId === appt.id;
+    const isDragging = draggingApptId !== null && String(draggingApptId) === String(appt.id);
     const prof = professionals.find((p) => p.id === appt.professional_id);
     const serviceName = getServiceNames(appt.id);
     const timeRange = `${appt.start_time?.slice(0, 5)} - ${appt.end_time?.slice(0, 5)}`;
@@ -503,16 +503,14 @@ const AgendaPage = () => {
       <div
         key={appt.id}
         className={cn(
-          "absolute overflow-hidden z-10 transition-all duration-200",
+          "absolute overflow-hidden z-10",
+          !isDragging && "transition-all duration-200",
           "modern-agenda-card evento-agenda",
           isDraggable ? "cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-white/20" : "cursor-pointer",
-          isDragging && "opacity-80 shadow-2xl scale-[1.01] z-50",
-          isCancelled && "opacity-50 grayscale-[0.2]",
-          isFalta && "opacity-70 grayscale-[0.4]",
           appt.status === "bloqueado" && "absence-block"
         )}
         style={{
-          top: `${top}px`,
+          top: `${displayTop}px`,
           height: `${height}px`,
           width: `calc((100% - 8px) / ${overlapCount} - 4px)`, // 4px total gap per slot
           left: `calc(4px + (${overlapIndex} * (100% - 8px) / ${overlapCount}) + 2px)`, // 2px start gap
@@ -520,6 +518,11 @@ const AgendaPage = () => {
           color: appt.status === "bloqueado"
             ? "#000000"
             : (["atrasado", "espera"].includes(appt.status) ? "#1f2937" : "white"),
+          zIndex: isDragging ? 1000 : 10,
+          opacity: isDragging ? 0.9 : (isCancelled ? 0.5 : (isFalta ? 0.7 : 1)),
+          transform: isDragging ? 'scale(1.02)' : 'scale(1)',
+          boxShadow: isDragging ? '0 25px 50px -12px rgb(0 0 0 / 0.5)' : undefined,
+          border: isDragging ? '2px solid #ffffff' : undefined,
         }}
         onMouseDown={(e) => {
           if (isDraggable) handleDragStart(e, appt, columnEl);
@@ -948,7 +951,15 @@ const AgendaPage = () => {
       <AppointmentDetailDialog appointment={selectedAppointment} open={detailOpen} onOpenChange={setDetailOpen} />
 
       {/* Reschedule confirmation dialog */}
-      <AlertDialog open={!!pendingReschedule} onOpenChange={(open) => !open && setPendingReschedule(null)}>
+      <AlertDialog 
+        open={!!pendingReschedule} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingReschedule(null);
+            setDraggingApptId(null); // Clear drag state if cancelled
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar reagendamento</AlertDialogTitle>
