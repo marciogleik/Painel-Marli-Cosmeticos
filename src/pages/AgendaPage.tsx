@@ -216,19 +216,10 @@ const AgendaPage = () => {
       <div
         key={block.id}
         className={cn(
-          "absolute left-1 right-1 overflow-hidden z-10 cursor-pointer transition-all hover:brightness-95 group",
+          "absolute left-1 right-1 overflow-hidden z-10 transition-all pointer-events-none hover:brightness-95 group",
           "modern-agenda-card absence-block evento-agenda"
         )}
         style={{ top: `${top}px`, height: `${height}px` }}
-        onDoubleClick={(e) => {
-          e.stopPropagation();
-          setApptDefaults({
-            profId: block.professional_id,
-            date: new Date(block.date + "T12:00:00"),
-            time: block.start_time.slice(0, 5),
-          });
-          setDialogOpen(true);
-        }}
       >
         <div className="horario flex justify-between items-center" style={{ color: "#ffffff" }}>
           <span style={{ color: "#ffffff" }}>{block.start_time.slice(0, 5)}</span>
@@ -250,16 +241,18 @@ const AgendaPage = () => {
         </div>
 
         {!block.isWeekly && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              deleteBlockedSlot(block.id);
-            }}
-            className="absolute top-1 right-1 p-0.5 rounded hover:bg-destructive/20 opacity-0 group-hover:opacity-100 transition-opacity"
-            title="Remover bloqueio"
-          >
-            <Trash2 className="w-3.5 h-3.5 text-destructive" />
-          </button>
+          <div className="absolute top-1 right-1 p-0.5 pointer-events-auto">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteBlockedSlot(block.id);
+              }}
+              className="p-1 rounded hover:bg-destructive/20 opacity-0 group-hover:opacity-100 transition-opacity"
+              title="Remover bloqueio"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-destructive" />
+            </button>
+          </div>
         )}
       </div>
     );
@@ -287,9 +280,13 @@ const AgendaPage = () => {
 
   // Convert pixel position to time
   const pixelToTime = (px: number): { hours: number; minutes: number } => {
-    // Snap to 30-minute intervals
-    const totalMinutes = Math.round((px / 64) * 60) + 7 * 60;
-    const snapped = Math.round(totalMinutes / 30) * 30;
+    // 1 hour = 128px, 1 minute = 2.133px
+    // 48px header offset
+    const minutesFromSeven = Math.round((px - 48) / 128 * 60);
+    const totalMinutes = minutesFromSeven + 7 * 60;
+    
+    // Snap to 15-minute intervals (existing grid is 15-min based)
+    const snapped = Math.round(totalMinutes / 15) * 15;
     const h = Math.floor(snapped / 60);
     const m = snapped % 60;
     return { hours: Math.max(7, Math.min(h, 21)), minutes: m };
@@ -318,9 +315,9 @@ const AgendaPage = () => {
     const handleMouseMove = (ev: MouseEvent) => {
       if (!dragRef.current) return;
       const delta = ev.clientY - dragRef.current.startY;
-      const newTop = Math.max(0, dragRef.current.initialTop + delta);
-      // Snap to 30-min grid (32px = 30min)
-      const snappedTop = Math.round(newTop / 32) * 32;
+      const newTop = Math.max(48, dragRef.current.initialTop + delta); // Min top is offset
+      // Snap to 15-min grid (15 mins = 32px because 60 mins = 128px)
+      const snappedTop = Math.round((newTop - 48) / 32) * 32 + 48;
       dragRef.current.currentTop = snappedTop;
       setDragPreviewTop(snappedTop);
     };
