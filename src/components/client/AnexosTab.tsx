@@ -3,7 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { FileText, Image, File, ChevronDown, ChevronUp, Download } from "lucide-react";
+import { FileText, Image, File, ChevronDown, ChevronUp, Download, Lock, Globe, Users, ShieldAlert } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,9 +46,42 @@ const fileIcon = (type: string | null) => {
 };
 
 const AnexosTab = ({ clientId }: AnexosTabProps) => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { data: attachments, isLoading } = useClientAttachments(clientId);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  const updatePrivacy = async (id: string, privacy: string) => {
+    const { error } = await supabase
+      .from("client_attachments")
+      .update({ privacy_type: privacy })
+      .eq("id", id);
+    
+    if (error) {
+      toast({
+        title: "Erro ao atualizar privacidade",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({ title: "Privacidade atualizada com sucesso" });
+    queryClient.invalidateQueries({ queryKey: ["client_attachments", clientId] });
+    queryClient.invalidateQueries({ queryKey: ["patient_records", clientId] });
+  };
+
+  const userRole = (user as any)?.app_metadata?.role;
+  const currentUserId = user?.id;
+
+  const visibleAttachments = attachments?.filter(att => {
+    if (userRole === 'gestor') return true;
+    if (att.privacy_type === 'public' || !att.privacy_type) return true;
+    if (att.privacy_type === 'private') return true;
+    if (att.privacy_type === 'only_me' && att.professional_id === currentUserId) return true;
+    return false;
+  }) || [];
 
   if (isLoading) {
     return (
@@ -49,16 +91,16 @@ const AnexosTab = ({ clientId }: AnexosTabProps) => {
     );
   }
 
-  if (!attachments?.length) {
+  if (!visibleAttachments.length) {
     return (
       <p className="text-sm text-muted-foreground py-4">
-        Nenhum anexo encontrado para este cliente.
+        Nenhum anexo visível encontrado para este cliente.
       </p>
     );
   }
 
   // Group by ficha_type
-  const grouped = attachments.reduce<Record<string, typeof attachments>>((acc, att) => {
+  const grouped = visibleAttachments.reduce<Record<string, typeof visibleAttachments>>((acc, att) => {
     const key = att.ficha_type || "Sem categoria";
     if (!acc[key]) acc[key] = [];
     acc[key].push(att);
@@ -71,7 +113,7 @@ const AnexosTab = ({ clientId }: AnexosTabProps) => {
     <div className="space-y-4 max-w-3xl">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {attachments.length} anexo{attachments.length !== 1 ? "s" : ""} encontrado{attachments.length !== 1 ? "s" : ""}
+          {visibleAttachments.length} anexo{visibleAttachments.length !== 1 ? "s" : ""} encontrado{visibleAttachments.length !== 1 ? "s" : ""}
         </p>
       </div>
 
@@ -109,12 +151,49 @@ const AnexosTab = ({ clientId }: AnexosTabProps) => {
                       {att.professional_name ? ` • ${att.professional_name}` : ""}
                       {att.ficha_code ? ` • Cód: ${att.ficha_code}` : ""}
                     </p>
-                    {att.notes && (
-                      <p className="text-xs text-muted-foreground mt-0.5 italic">{att.notes}</p>
-                    )}
+                    <div className="flex items-center gap-2 mt-1">
+                      {att.privacy_type === 'only_me' ? (
+                        <Badge variant="destructive" className="text-[9px] gap-1 px-1 py-0 h-4">
+                          <Lock className="w-2 h-2" /> Apenas Eu
+                        </Badge>
+                      ) : att.privacy_type === 'private' ? (
+                        <Badge variant="secondary" className="text-[9px] gap-1 px-1 py-0 h-4 bg-amber-100 text-amber-700 hover:bg-amber-100 border-amber-200">
+                          <ShieldAlert className="w-2 h-2" /> Privado
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[9px] gap-1 px-1 py-0 h-4 text-emerald-600 border-emerald-200">
+                          <Globe className="w-2 h-2" /> Público
+                        </Badge>
+                      )}
+                      
+                      {att.notes && (
+                        <p className="text-[10px] text-muted-foreground italic truncate max-w-[200px]">{att.notes}</p>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-1 shrink-0">
+                    {/* Privacy Selector */}
+                    {(userRole === 'gestor' || att.professional_id === currentUserId) && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+                            <Lock className="h-3.5 w-3.5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="text-xs">
+                          <DropdownMenuItem onClick={() => updatePrivacy(att.id, 'public')} className="gap-2">
+                            <Globe className="w-3.5 h-3.5" /> Público (Todos)
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updatePrivacy(att.id, 'private')} className="gap-2">
+                            <ShieldAlert className="w-3.5 h-3.5" /> Privado (Clínica)
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updatePrivacy(att.id, 'only_me')} className="gap-2 text-red-600">
+                            <Lock className="w-3.5 h-3.5" /> Apenas Eu
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                     {att.file_type === "image" && att.file_path.startsWith("uploads/") && (
                       <Button
                         variant="ghost"
