@@ -131,6 +131,7 @@ const NewAppointmentDialog = ({
   const endTime = manualEndTime || suggestedEndTime;
 
   const toggleService = (service: DBService) => {
+    setManualEndTime(null);
     setSelectedServices((prev) =>
       prev.find((s) => s.id === service.id)
         ? prev.filter((s) => s.id !== service.id)
