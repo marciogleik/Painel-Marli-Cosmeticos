@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useCallback } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -41,14 +41,56 @@ const AnamneseFillDialog = ({
     ? existingRecord.title ?? "Ficha"
     : template?.name ?? "Ficha";
 
+  const { data: client } = useQuery({
+    queryKey: ["client", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("clients").select("*").eq("id", clientId).single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!clientId,
+  });
+
+  const replaceTags = useCallback((text: string) => {
+    if (!text || !client) return text;
+    let replaced = text;
+    replaced = replaced.replace(/@NomeCliente/g, client.full_name || "");
+    replaced = replaced.replace(/@CPF/g, client.cpf || "");
+    replaced = replaced.replace(/@RG/g, ""); // Not in DB schema
+    replaced = replaced.replace(/@DataNascimento/g, client.birth_date ? new Date(client.birth_date).toLocaleDateString("pt-BR") : "");
+    replaced = replaced.replace(/@Telefone1/g, client.phone || "");
+    replaced = replaced.replace(/@Email1/g, client.email || "");
+    replaced = replaced.replace(/@CEP/g, ""); // Not in DB schema
+    replaced = replaced.replace(/@Endereco/g, client.address || "");
+    replaced = replaced.replace(/@Numero/g, ""); // Not in DB schema
+    replaced = replaced.replace(/@Complemento/g, ""); // Not in DB schema
+    replaced = replaced.replace(/@Bairro/g, ""); // Not in DB schema
+    replaced = replaced.replace(/@Cidade/g, client.city || "");
+    replaced = replaced.replace(/@Estado/g, ""); // Not in DB schema
+    replaced = replaced.replace(/@DataAtual/g, new Date().toLocaleDateString("pt-BR"));
+    return replaced;
+  }, [client]);
+
+  const [hasInitializedModels, setHasInitializedModels] = useState(false);
+
   useEffect(() => {
     if (isEditing && existingRecord.content) {
-      const content = existingRecord.content as any;
-      setAnswers((content.answers as Record<string, string>) ?? {});
-    } else {
-      setAnswers({});
+      if (!hasInitializedModels) {
+        const content = existingRecord.content as any;
+        setAnswers((content.answers as Record<string, string>) ?? {});
+        setHasInitializedModels(true);
+      }
+    } else if (!isEditing && client && !hasInitializedModels) {
+      const initialAnswers: Record<string, string> = {};
+      fields.forEach(f => {
+        if (f.type === "modelo_padrao" && f.content) {
+          initialAnswers[f.id] = replaceTags(f.content);
+        }
+      });
+      setAnswers(initialAnswers);
+      setHasInitializedModels(true);
     }
-  }, [isEditing, existingRecord]);
+  }, [isEditing, existingRecord, client, fields, hasInitializedModels, replaceTags]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -153,6 +195,33 @@ const AnamneseFillDialog = ({
               onChange={(e) => updateAnswer(field.id, e.target.value)}
               placeholder={field.label}
               rows={3}
+            />
+          </div>
+        );
+
+      case "modelo_padrao":
+        return (
+          <div className="space-y-1.5 col-span-full">
+            <Label className="text-sm font-medium">{field.label}</Label>
+            <Textarea
+              value={value}
+              onChange={(e) => updateAnswer(field.id, e.target.value)}
+              placeholder="Conteúdo do Contrato..."
+              className="min-h-[250px] text-sm whitespace-pre-wrap"
+            />
+          </div>
+        );
+
+      case "number":
+        return (
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium">{field.label}</Label>
+            <Input
+              type="number"
+              value={value}
+              onChange={(e) => updateAnswer(field.id, e.target.value)}
+              placeholder={field.label}
+              step="any"
             />
           </div>
         );

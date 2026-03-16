@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, ChevronDown, Pencil, Trash2, FileText, Loader2, Image, Lock } from "lucide-react";
+import { Plus, ChevronDown, Pencil, Trash2, FileText, Loader2, Image, Lock, ExternalLink } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
@@ -444,17 +444,27 @@ const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
                           variant="outline"
                           size="sm"
                           className="h-7 text-xs gap-1"
-                          onClick={() => setEditingRecord(record)}
+                          onClick={() => window.open(`/prontuario/${record.id}`, '_blank')}
                         >
-                          <Pencil className="w-3 h-3" /> Editar
+                          <ExternalLink className="w-3 h-3" /> Ver Completo / Imprimir
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-7 text-xs gap-1 text-destructive hover:text-destructive"
-                          onClick={() => setDeleteTarget(record)}
+                          className="h-7 w-7 p-0"
+                          onClick={() => setEditingRecord(record)}
+                          title="Editar Ficha"
                         >
-                          <Trash2 className="w-3 h-3" /> Excluir
+                          <Pencil className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                          onClick={() => setDeleteTarget(record)}
+                          title="Excluir Ficha"
+                        >
+                          <Trash2 className="w-3 h-3" />
                         </Button>
                       </div>
                     </div>

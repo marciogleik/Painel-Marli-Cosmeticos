@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -10,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import {
   Plus, Pencil, Loader2, Trash2, GripVertical, Archive, ArchiveRestore, FileText, ChevronDown, ChevronUp,
 } from "lucide-react";
@@ -19,9 +21,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 // ========== Types ==========
 export interface TemplateField {
   id: string;
-  type: "multiple_choice" | "short_text" | "long_text";
+  type: "multiple_choice" | "short_text" | "long_text" | "modelo_padrao" | "number";
   label: string;
   options?: string[];
+  content?: string;
   sameLine: boolean;
   isActive: boolean;
 }
@@ -39,6 +42,8 @@ const FIELD_TYPE_LABELS: Record<string, string> = {
   multiple_choice: "Múltipla Escolha",
   short_text: "Texto Curto",
   long_text: "Texto Longo",
+  modelo_padrao: "Modelo Padrão",
+  number: "Número",
 };
 
 const genId = () => crypto.randomUUID();
@@ -110,6 +115,8 @@ const FieldRow = ({
               <SelectItem value="multiple_choice">Múltipla Escolha</SelectItem>
               <SelectItem value="short_text">Texto Curto</SelectItem>
               <SelectItem value="long_text">Texto Longo</SelectItem>
+              <SelectItem value="modelo_padrao">Modelo Padrão</SelectItem>
+              <SelectItem value="number">Número</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -122,6 +129,18 @@ const FieldRow = ({
               onChange={(e) => onUpdate({ ...field, options: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })}
               placeholder="Sim, Não"
               className="h-7 text-xs"
+            />
+          </div>
+        )}
+
+        {field.type === "modelo_padrao" && (
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground">Conteúdo do Modelo</Label>
+            <Textarea
+              value={field.content ?? ""}
+              onChange={(e) => onUpdate({ ...field, content: e.target.value })}
+              placeholder="Digite o texto do contrato com as variáveis (@NomeCliente, etc)"
+              className="text-xs min-h-[100px]"
             />
           </div>
         )}
@@ -273,35 +292,72 @@ const AnamnesesTab = () => {
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="grid gap-2">
+        <Accordion type="single" collapsible className="w-full space-y-2">
           {active.map(t => (
-            <Card key={t.id} className="group">
-              <CardContent className="flex items-center gap-3 p-3">
-                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <FileText className="w-4 h-4 text-primary" />
+            <AccordionItem value={t.id} key={t.id} className="border rounded-lg bg-card overflow-hidden">
+              <AccordionTrigger className="hover:no-underline p-3 data-[state=open]:bg-muted/50 transition-colors">
+                <div className="flex items-center gap-3 text-left w-full pr-4">
+                  <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <FileText className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{t.name}</p>
+                    <p className="text-xs text-muted-foreground font-normal">
+                      {(t.fields ?? []).filter(f => f.isActive).length} campos ativos
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">{t.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {(t.fields ?? []).filter(f => f.isActive).length} campos ativos
-                  </p>
-                </div>
-                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(t)} title="Editar">
-                    <Pencil className="w-3.5 h-3.5" />
+              </AccordionTrigger>
+              <AccordionContent className="p-4 pt-2 border-t bg-muted/20">
+                <div className="flex justify-end gap-2 mb-4">
+                  <Button variant="outline" size="sm" className="h-8 gap-1" onClick={() => openEdit(t)}>
+                    <Pencil className="w-3.5 h-3.5" /> Editar
                   </Button>
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1 text-destructive hover:text-destructive"
                     onClick={() => setDeactivateTarget({ id: t.id, name: t.name })}
-                    title="Desativar"
                   >
-                    <Archive className="w-3.5 h-3.5" />
+                    <Archive className="w-3.5 h-3.5" /> Desativar
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
+                
+                {(!t.fields || t.fields.length === 0) ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">Nenhum campo configurado.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {t.fields.map((f, i) => (
+                      <div key={f.id} className="flex flex-col gap-1 p-3 rounded-md border bg-background/50 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{i + 1}. {f.label}</span>
+                          <div className="flex gap-2 items-center">
+                            <Badge variant="outline" className="text-[10px] bg-background">
+                              {FIELD_TYPE_LABELS[f.type] || f.type}
+                            </Badge>
+                            {!f.isActive && <Badge variant="secondary" className="text-[10px]">Inativo</Badge>}
+                          </div>
+                        </div>
+                        
+                        {f.options && f.options.length > 0 && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {f.options.map(opt => (
+                              <Badge key={opt} variant="secondary" className="text-[10px] font-normal">{opt}</Badge>
+                            ))}
+                          </div>
+                        )}
+
+                        {f.sameLine && (
+                           <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                             <GripVertical className="w-3 h-3" /> Mesma linha que o anterior
+                           </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </AccordionContent>
+            </AccordionItem>
           ))}
 
           {showInactive && inactive.map(t => (
@@ -333,7 +389,7 @@ const AnamnesesTab = () => {
               <p className="text-xs text-muted-foreground mt-0.5">Crie seu primeiro template de anamnese</p>
             </div>
           )}
-        </div>
+        </Accordion>
       )}
 
       {/* Template editor dialog */}

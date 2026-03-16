@@ -15,6 +15,7 @@ import NotificationsPage from "./pages/NotificationsPage";
 
 import PlaceholderPage from "./pages/PlaceholderPage";
 import ClientDetailPage from "./pages/ClientDetailPage";
+import ProntuarioViewPage from "./pages/ProntuarioViewPage";
 import ConfiguracoesPage from "./pages/ConfiguracoesPage";
 import FinanceiroPage from "./pages/FinanceiroPage";
 import ProfissionaisPage from "./pages/ProfissionaisPage";
@@ -57,6 +58,7 @@ const App = () => (
               <Route path="/clientes" element={<ClientsPage />} />
               <Route path="/clientes/:id" element={<ClientDetailPage />} />
               <Route path="/prontuarios" element={<Navigate to="/clientes" replace />} />
+              <Route path="/prontuario/:recordId" element={<ProntuarioViewPage />} />
               <Route path="/financeiro" element={<FinanceiroPage />} />
               <Route path="/profissionais" element={<RoleGuard denyRoles={["secretaria"]}><ProfissionaisPage /></RoleGuard>} />
               <Route path="/profissionais/:id" element={<RoleGuard denyRoles={["secretaria"]}><ProfissionalDetailPage /></RoleGuard>} />

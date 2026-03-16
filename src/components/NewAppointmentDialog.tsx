@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { maskPhone } from "@/utils/masks";
 import { checkAppointmentConflict } from "@/utils/appointmentConflict";
 import { useOccupiedSlots } from "@/hooks/useOccupiedSlots";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   useProfessionals,
@@ -47,10 +47,11 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { matchesPhone } from "@/utils/phoneUtils";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Loader2, Search, AlertTriangle } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { CalendarIcon, Loader2, Search, AlertTriangle, UserPlus, User, ExternalLink, History } from "lucide-react";
+import { toast } from "sonner";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface NewAppointmentDialogProps {
   open: boolean;
@@ -94,6 +95,7 @@ const NewAppointmentDialog = ({
   const [manualEndTime, setManualEndTime] = useState<string | null>(null);
   const [conflictWarning, setConflictWarning] = useState<string | null>(null);
   const [forceCreate, setForceCreate] = useState(false);
+  const [showRecentServices, setShowRecentServices] = useState(false);
 
   // Update states when props change (sync)
   useEffect(() => {
@@ -144,6 +146,7 @@ const NewAppointmentDialog = ({
     setClientName(client.full_name);
     setClientPhone(client.phone || "");
     setClientSearch("");
+    setShowRecentServices(false);
   };
 
   const resetForm = () => {
@@ -158,7 +161,56 @@ const NewAppointmentDialog = ({
     setNotes("");
     setConflictWarning(null);
     setForceCreate(false);
+    setShowRecentServices(false);
   };
+
+  const createClientMutation = useMutation({
+    mutationFn: async () => {
+      if (!clientName.trim() || !clientPhone.trim()) {
+        throw new Error("Preencha o nome e o telefone do cliente.");
+      }
+
+      const { data, error } = await supabase
+        .from("clients")
+        .insert({
+          full_name: clientName.trim(),
+          phone: clientPhone.trim(),
+          is_active: true
+        })
+        .select("id, full_name, phone")
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (newClient) => {
+      selectClient(newClient);
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      toast.success("Cliente foi incluído com sucesso.", {
+        icon: <UserPlus className="w-4 h-4 text-white" />,
+        className: "bg-green-600 text-white border-none",
+      });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message);
+    },
+  });
+
+  const { data: recentAppointments = [] } = useQuery({
+    queryKey: ["client_recent_appointments", selectedClientId],
+    queryFn: async () => {
+      if (!selectedClientId) return [];
+      const { data, error } = await supabase
+        .from("appointments")
+        .select("id, date, start_time, notes, appointment_services(service_name)")
+        .eq("client_id", selectedClientId)
+        .order("date", { ascending: false })
+        .limit(3);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedClientId && showRecentServices,
+  });
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -248,12 +300,12 @@ const NewAppointmentDialog = ({
     onSuccess: (result) => {
       if (result === null) return; // Conflict warning shown, don't close
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
-      toast({ title: "Agendamento criado com sucesso!" });
+      toast.success("Agendamento criado com sucesso!");
       resetForm();
       onOpenChange(false);
     },
     onError: (err: Error) => {
-      toast({ title: "Erro ao criar agendamento", description: err.message, variant: "destructive" });
+      toast.error(err.message);
     },
   });
 
@@ -402,22 +454,75 @@ const NewAppointmentDialog = ({
           {/* 5. Client */}
           <div className="space-y-2">
             <Label>Cliente *</Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar cliente por nome ou telefone..."
-                value={selectedClientId ? clientName : clientSearch}
-                onChange={(e) => {
-                  if (selectedClientId) {
-                    setSelectedClientId(null);
-                    setClientName("");
-                    setClientPhone("");
-                  }
-                  setClientSearch(e.target.value);
-                }}
-                className="pl-9"
-              />
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar cliente por nome ou telefone..."
+                  value={selectedClientId ? clientName : clientSearch}
+                  onChange={(e) => {
+                    if (selectedClientId) {
+                      setSelectedClientId(null);
+                      setClientName("");
+                      setClientPhone("");
+                    }
+                    setClientSearch(e.target.value);
+                  }}
+                  className="pl-9"
+                />
+              </div>
+              {selectedClientId && (
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="shrink-0"
+                  onClick={() => window.open(`/clientes/${selectedClientId}`, '_blank')}
+                  title="Ver perfil completo"
+                >
+                  <User className="w-4 h-4" />
+                </Button>
+              )}
             </div>
+
+            {selectedClientId && (
+              <div className="space-y-2">
+                <Collapsible open={showRecentServices} onOpenChange={setShowRecentServices}>
+                  <CollapsibleTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="bg-purple-600 text-white hover:bg-purple-700 hover:text-white border-none h-7 px-2 text-[10px] uppercase font-bold tracking-wider"
+                    >
+                      <History className="w-3 h-3 mr-1.5" />
+                      Exibir Últimos Serviços
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-2 text-xs space-y-2 border rounded-md p-3 bg-muted/30">
+                    <p className="font-semibold text-muted-foreground flex items-center gap-1.5 uppercase text-[9px] tracking-tight">
+                      Últimos agendamentos:
+                    </p>
+                    {recentAppointments.length === 0 ? (
+                      <p className="italic text-muted-foreground">Nenhum histórico encontrado.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {recentAppointments.map(apt => (
+                          <div key={apt.id} className="border-b border-border last:border-0 pb-1.5 mb-1.5 last:mb-0 last:pb-0">
+                            <div className="flex justify-between font-medium">
+                              <span>{format(parseISO(apt.date), "dd/MM/yyyy")}</span>
+                              <span>{apt.start_time.slice(0, 5)}</span>
+                            </div>
+                            <p className="text-muted-foreground truncate">
+                              {(apt as any).appointment_services?.map((s: any) => s.service_name).join(", ") || apt.notes || "-"}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CollapsibleContent>
+                </Collapsible>
+              </div>
+            )}
+
             {filteredClients.length > 0 && !selectedClientId && (
               <div className="border border-border rounded-lg max-h-32 overflow-y-auto">
                 {filteredClients.slice(0, 8).map((c) => (
@@ -434,18 +539,37 @@ const NewAppointmentDialog = ({
               </div>
             )}
             {clientSearch.length >= 2 && filteredClients.length === 0 && !selectedClientId && (
-              <div className="space-y-2 p-3 border border-dashed border-border rounded-lg">
-                <p className="text-xs text-muted-foreground">Cliente não encontrado. Preencha os dados:</p>
-                <Input
-                  placeholder="Nome do cliente"
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                />
-                <Input
-                  placeholder="Telefone"
-                  value={clientPhone}
-                  onChange={(e) => setClientPhone(maskPhone(e.target.value))}
-                />
+              <div className="space-y-4 p-6 border border-dashed border-border rounded-lg bg-gray-50/50 flex flex-col items-center justify-center text-center">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-slate-700">Não encontrei este Cliente.</p>
+                  <p className="text-xs text-muted-foreground">Deseja cadastrá-lo agora?</p>
+                </div>
+                
+                <div className="w-full space-y-3">
+                  <Input
+                    placeholder="Nome do cliente"
+                    value={clientName}
+                    onChange={(e) => setClientName(e.target.value)}
+                  />
+                  <Input
+                    placeholder="Telefone"
+                    value={clientPhone}
+                    onChange={(e) => setClientPhone(maskPhone(e.target.value))}
+                  />
+                  
+                  <Button 
+                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold uppercase tracking-wider gap-2 shadow-sm h-11"
+                    onClick={() => createClientMutation.mutate()}
+                    disabled={createClientMutation.isPending || !clientName.trim() || !clientPhone.trim()}
+                  >
+                    {createClientMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <UserPlus className="w-4 h-4" />
+                    )}
+                    Cadastrar Cliente
+                  </Button>
+                </div>
               </div>
             )}
           </div>

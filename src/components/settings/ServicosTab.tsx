@@ -38,6 +38,7 @@ const ServicosTab = () => {
   const [search, setSearch] = useState("");
   const [deactivateTarget, setDeactivateTarget] = useState<{ id: string; name: string } | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [form, setForm] = useState<SvcForm>(emptyForm);
 
   const mutation = useMutation({
     mutationFn: async () => {
