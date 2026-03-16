@@ -114,7 +114,7 @@ const ClientsPage = () => {
         <div>
           <h1 className="text-2xl font-display font-bold">Clientes</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {displayClients.length} clientes {search ? 'encontrados' : 'cadastrados'}
+            {totalItems} clientes {search ? 'encontrados' : 'cadastrados'}
           </p>
         </div>
         <Button className="gap-1.5" onClick={() => setShowNewClient(true)}>
@@ -158,7 +158,7 @@ const ClientsPage = () => {
         <ClientPagination
           startIndex={startIndex}
           pageSize={pageSize}
-          totalItems={displayClients.length}
+          totalItems={totalItems}
           currentPage={safePage}
           totalPages={totalPages}
           onPageChange={handlePageChange}

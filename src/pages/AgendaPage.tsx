@@ -264,7 +264,7 @@ const AgendaPage = () => {
     const startMinutes = timeParts[0] * 60 + timeParts[1];
     const endMinutes = endParts[0] * 60 + endParts[1];
     const duration = endMinutes - startMinutes;
-    const top = (timeParts[0] - 7) * 128 + (timeParts[1] / 60) * 128 + 48; // 48px header offset
+    const top = (timeParts[0] - 7) * 128 + (timeParts[1] / 60) * 128; // Header offset removed
     const height = Math.max((duration / 60) * 128, 32);
     return { top, height };
   };
@@ -281,8 +281,7 @@ const AgendaPage = () => {
   // Convert pixel position to time
   const pixelToTime = (px: number): { hours: number; minutes: number } => {
     // 1 hour = 128px, 1 minute = 2.133px
-    // 48px header offset
-    const minutesFromSeven = Math.round((px - 48) / 128 * 60);
+    const minutesFromSeven = Math.round(px / 128 * 60);
     const totalMinutes = minutesFromSeven + 7 * 60;
     
     // Snap to 15-minute intervals (existing grid is 15-min based)
@@ -315,7 +314,7 @@ const AgendaPage = () => {
     const handleMouseMove = (ev: MouseEvent) => {
       if (!dragRef.current) return;
       const delta = ev.clientY - dragRef.current.startY;
-      const newTop = Math.max(48, dragRef.current.initialTop + delta); // Min top is offset
+      const newTop = Math.max(0, dragRef.current.initialTop + delta); // Min top is 0
       dragRef.current.currentTop = newTop;
       setDragPreviewTop(newTop);
     };
@@ -824,7 +823,7 @@ const AgendaPage = () => {
                       const todayIdx = days.findIndex(d => isToday(d));
                       if (todayIdx === -1) return null;
 
-                      const topOffset = (h - 7) * 128 + (m / 60) * 128 + 48;
+                      const topOffset = (h - 7) * 128 + (m / 60) * 128;
                       const colWidth = 100 / 7;
 
                       return (
@@ -892,7 +891,7 @@ const AgendaPage = () => {
                       if (h < 7 || h >= 22) return null;
                       if (!isToday(selectedDay)) return null;
 
-                      const topOffset = (h - 7) * 128 + (m / 60) * 128 + 48;
+                      const topOffset = (h - 7) * 128 + (m / 60) * 128;
 
                       return (
                         <div

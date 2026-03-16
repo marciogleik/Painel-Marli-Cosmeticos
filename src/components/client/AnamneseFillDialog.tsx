@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2 } from "lucide-react";
+import { Loader2, X, Check, Save } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import type { AnamnesisTemplate, TemplateField } from "@/components/settings/AnamnesesTab";
 import type { PatientRecord } from "./AnamneseTab";
@@ -166,22 +167,28 @@ const AnamneseFillDialog = ({
     switch (field.type) {
       case "multiple_choice":
         return (
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium">{field.label}</Label>
+          <div className="space-y-3">
+            <Label className="text-base font-medium text-slate-700">{field.label}</Label>
             <RadioGroup
               value={value}
               onValueChange={(v) => updateAnswer(field.id, v)}
-              className="flex flex-wrap gap-3"
+              className="flex flex-col gap-2"
             >
-              {(field.options ?? []).map((opt) => (
-                <label
-                  key={opt}
-                  className="flex items-center gap-1.5 cursor-pointer text-sm"
-                >
-                  <RadioGroupItem value={opt} />
-                  {opt}
-                </label>
-              ))}
+              {(field.options ?? []).map((opt) => {
+                const isSelected = value === opt;
+                return (
+                  <label
+                    key={opt}
+                    className={`flex items-center gap-2 cursor-pointer text-sm font-medium transition-colors ${isSelected ? 'text-blue-600' : 'text-slate-600'}`}
+                  >
+                    <div className={`w-4 h-4 border-2 rounded flex items-center justify-center transition-colors ${isSelected ? 'bg-blue-600 border-blue-600' : 'border-slate-300 bg-white'}`}>
+                       {isSelected && <Check className="w-3 h-3 text-white stroke-[4]" />}
+                       <RadioGroupItem value={opt} className="sr-only" />
+                    </div>
+                    {opt}
+                  </label>
+                );
+              })}
             </RadioGroup>
           </div>
         );
@@ -201,14 +208,30 @@ const AnamneseFillDialog = ({
 
       case "modelo_padrao":
         return (
-          <div className="space-y-1.5 col-span-full">
-            <Label className="text-sm font-medium">{field.label}</Label>
-            <Textarea
-              value={value}
-              onChange={(e) => updateAnswer(field.id, e.target.value)}
-              placeholder="Conteúdo do Contrato..."
-              className="min-h-[250px] text-sm whitespace-pre-wrap"
-            />
+          <div className="space-y-3 col-span-full mt-4">
+            <Label className="text-base font-medium text-slate-700 border-b w-full block pb-2">{field.label}</Label>
+            <div className="rounded-lg border border-slate-200 overflow-hidden bg-slate-50">
+               {/* Toolbar placeholder to match UI image */}
+               <div className="bg-[#f0f2f5] border-b p-2 flex flex-wrap gap-1">
+                  <div className="flex gap-0.5 border-r pr-1 mr-1">
+                    {['B', 'I', 'U'].map(b => (
+                      <div key={b} className="w-8 h-8 flex items-center justify-center font-bold text-slate-600 hover:bg-white rounded cursor-pointer">{b}</div>
+                    ))}
+                  </div>
+                  <div className="flex gap-0.5 border-r pr-1 mr-1">
+                    {['S', 'X', 'Y'].map(b => (
+                      <div key={b} className="w-8 h-8 flex items-center justify-center font-bold text-slate-600 hover:bg-white rounded cursor-pointer">{b}</div>
+                    ))}
+                  </div>
+               </div>
+               <Textarea
+                 value={value}
+                 onChange={(e) => updateAnswer(field.id, e.target.value)}
+                 placeholder="Digite aqui..."
+                 className="min-h-[300px] text-sm whitespace-pre border-none focus-visible:ring-0 bg-white rounded-none font-mono"
+                 style={{ tabSize: 20 }}
+               />
+            </div>
           </div>
         );
 
@@ -243,31 +266,80 @@ const AnamneseFillDialog = ({
 
   return (
     <Dialog open onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-display">
-            {isEditing ? `Editar: ${title}` : title}
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-5xl p-0 overflow-hidden border-none shadow-2xl h-[95vh] flex flex-col">
+        {/* Custom Blue Header */}
+        <div className="bg-[#5c7cbe] text-white px-4 py-3 flex items-center justify-between shrink-0">
+          <h2 className="text-lg font-medium">{title}</h2>
+          <Button 
+            variant="destructive" 
+            size="sm" 
+            onClick={onClose}
+            className="bg-[#eb5757] hover:bg-[#d44343] text-white border-none h-8 gap-1 upper px-4"
+          >
+            <X className="w-4 h-4" /> FECHAR
+          </Button>
+        </div>
 
-        <div className="space-y-4 pt-1">
-          {fields.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4">
-              Nenhum campo configurado neste template.
-            </p>
-          ) : (
-            renderFields()
-          )}
+        <div className="flex-1 overflow-y-auto bg-white p-6 pt-8">
+          <div className="max-w-4xl mx-auto space-y-8">
+            
+            {/* Top Metadata Fields */}
+            <div className="flex flex-wrap gap-8 items-end mb-10 border-b pb-8">
+              <div className="space-y-2">
+                <Label className="text-slate-500 font-normal">Data Cadastro</Label>
+                <Input 
+                  type="text" 
+                  value={new Date(existingRecord?.created_at || new Date()).toLocaleDateString("pt-BR")} 
+                  readOnly 
+                  className="max-w-[150px] bg-white border-slate-200"
+                />
+              </div>
+              <div className="space-y-2 flex-1 min-w-[300px]">
+                <Label className="text-slate-500 font-normal">Quem pode ver esta ficha ou contrato?</Label>
+                <Select defaultValue="public">
+                  <SelectTrigger className="w-full bg-white border-slate-200">
+                    <SelectValue placeholder="Selecione a visibilidade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="public">Público - todos podem ver</SelectItem>
+                    <SelectItem value="private">Privado - apenas eu</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
+            <div className="space-y-6">
+              {fields.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4">
+                  Nenhum campo configurado neste template.
+                </p>
+              ) : (
+                renderFields()
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Custom Footer with Green Save Button */}
+        <div className="p-4 bg-slate-50 border-t flex flex-col sm:flex-row gap-3 items-center justify-center shrink-0">
           <Button
-            className="w-full"
+            className="w-full sm:max-w-md h-12 bg-[#27ae60] hover:bg-[#219150] text-white font-bold uppercase tracking-wider gap-2 shadow-lg transition-all"
             disabled={saveMutation.isPending}
             onClick={() => saveMutation.mutate()}
           >
-            {saveMutation.isPending && (
-              <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
+            {saveMutation.isPending ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Check className="w-5 h-5" />
             )}
-            {isEditing ? "Salvar Alterações" : "Salvar Ficha"}
+            SALVAR
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={onClose}
+            className="w-full sm:w-auto h-12 bg-[#e0e4ed] hover:bg-[#d1d7e2] text-slate-700 border-none px-10 font-bold uppercase tracking-wider gap-2"
+          >
+            <X className="w-5 h-5" /> FECHAR
           </Button>
         </div>
       </DialogContent>

@@ -81,6 +81,7 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
   const [conflictWarning, setConflictWarning] = useState<string | null>(null);
   const [forceCreate, setForceCreate] = useState(false);
   const [showRecentServices, setShowRecentServices] = useState(false);
+  const [status, setStatus] = useState(appointment.status || "agendado");
 
   const availableServices = useServicesForProfessional(professionalId);
   const { data: clientsData } = useClients({ search: clientSearch, pageSize: 20 });
@@ -216,6 +217,7 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
           date: dateStr,
           start_time: startTime + ":00",
           end_time: endTime + ":00",
+          status: status,
           notes: notes.trim() || null,
         })
         .eq("id", appointment.id);
@@ -515,6 +517,27 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
       <div className="space-y-1.5">
         <Label className="text-xs">Observações</Label>
         <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} maxLength={500} placeholder="Observações..." />
+      </div>
+
+
+      {/* Status */}
+      <div className="space-y-1.5">
+        <Label className="text-xs">Status</Label>
+        <Select value={status} onValueChange={setStatus}>
+          <SelectTrigger className="h-9">
+            <SelectValue placeholder="Selecione o status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="agendado">Agendado</SelectItem>
+            <SelectItem value="atendendo">Atendendo</SelectItem>
+            <SelectItem value="atendido">Atendido</SelectItem>
+            <SelectItem value="atrasado">Atrasado</SelectItem>
+            <SelectItem value="cancelado">Cancelado</SelectItem>
+            <SelectItem value="confirmado">Confirmado</SelectItem>
+            <SelectItem value="espera">Espera</SelectItem>
+            <SelectItem value="faltou">Faltou</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Actions */}

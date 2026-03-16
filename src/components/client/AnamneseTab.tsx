@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, ChevronDown, Pencil, Trash2, FileText, Loader2, Image, Lock, ExternalLink } from "lucide-react";
+import { Plus, ChevronDown, Pencil, Trash2, FileText, Loader2, Image, Lock } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
@@ -32,6 +32,7 @@ import type { Database } from "@/integrations/supabase/types";
 type Tables = Database["public"]["Tables"];
 export type PatientRecord = Tables["patient_records"]["Row"];
 import AnamneseFillDialog from "./AnamneseFillDialog";
+import { RecordOptionsMenu } from "./RecordOptionsMenu";
 
 // PatientRecord is now imported from types
 
@@ -302,6 +303,16 @@ const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
 
   const COLLAPSED_LIMIT = 5;
 
+  const { data: client } = useQuery({
+    queryKey: ["client_phone", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("clients").select("phone").eq("id", clientId).single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!clientId,
+  });
+
   const toggleExpand = (id: string) => {
     setExpandedRecords((prev) => {
       const next = new Set(prev);
@@ -440,14 +451,13 @@ const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
                         </p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 text-xs gap-1"
-                          onClick={() => window.open(`/prontuario/${record.id}`, '_blank')}
-                        >
-                          <ExternalLink className="w-3 h-3" /> Ver Completo / Imprimir
-                        </Button>
+                        <RecordOptionsMenu 
+                          recordId={record.id}
+                          clientName={clientName}
+                          clientPhone={client?.phone || ""}
+                          documentTitle={record.title || "Ficha"}
+                          onSignatureSuccess={() => queryClient.invalidateQueries({ queryKey: ["patient_records", clientId] })}
+                        />
                         <Button
                           variant="outline"
                           size="sm"

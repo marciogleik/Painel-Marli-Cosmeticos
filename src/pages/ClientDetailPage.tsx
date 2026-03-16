@@ -109,7 +109,7 @@ const ClientDetailPage = () => {
     queryKey: ["professionals_map"],
     queryFn: async () => {
       const { data } = await supabase.from("professionals").select("id, name").eq("is_active", true);
-      return new Map((data ?? []).map((p) => [p.id, p.name]));
+      return new Map((data ?? []).filter(p => p !== null && p !== undefined).map((p) => [p.id, p.name]));
     },
   });
 

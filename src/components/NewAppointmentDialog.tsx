@@ -47,7 +47,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { matchesPhone } from "@/utils/phoneUtils";
 import { cn } from "@/lib/utils";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, addDays, addWeeks, addMonths, addYears } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Loader2, Search, AlertTriangle, UserPlus, User, ExternalLink, History } from "lucide-react";
 import { toast } from "sonner";
@@ -96,6 +96,9 @@ const NewAppointmentDialog = ({
   const [conflictWarning, setConflictWarning] = useState<string | null>(null);
   const [forceCreate, setForceCreate] = useState(false);
   const [showRecentServices, setShowRecentServices] = useState(false);
+  const [recurrence, setRecurrence] = useState("none");
+  const [repeatCount, setRepeatCount] = useState("1");
+  const [status, setStatus] = useState("agendado");
 
   // Update states when props change (sync)
   useEffect(() => {
@@ -162,6 +165,9 @@ const NewAppointmentDialog = ({
     setConflictWarning(null);
     setForceCreate(false);
     setShowRecentServices(false);
+    setRecurrence("none");
+    setRepeatCount("1");
+    setStatus("agendado");
   };
 
   const createClientMutation = useMutation({
@@ -220,7 +226,44 @@ const NewAppointmentDialog = ({
 
       const dateStr = format(date, "yyyy-MM-dd");
 
-      // Check for time conflicts (skip if user already confirmed force)
+      // Calculate dates for recurrence
+      const datesToProcess: string[] = [dateStr];
+      if (recurrence !== "none") {
+        const occurrences = parseInt(repeatCount);
+        let incrementFn: (d: Date, i: number) => Date;
+
+        switch (recurrence) {
+          case 'daily':
+            incrementFn = (d, i) => addDays(d, i);
+            break;
+          case 'weekly':
+            incrementFn = (d, i) => addWeeks(d, i);
+            break;
+          case 'biweekly':
+            incrementFn = (d, i) => addWeeks(d, i * 2);
+            break;
+          case 'monthly':
+            incrementFn = (d, i) => addMonths(d, i);
+            break;
+          case 'quarterly':
+            incrementFn = (d, i) => addMonths(d, i * 3);
+            break;
+          case 'semiannual':
+            incrementFn = (d, i) => addMonths(d, i * 6);
+            break;
+          case 'annual':
+            incrementFn = (d, i) => addYears(d, i);
+            break;
+          default:
+            incrementFn = (d) => d;
+        }
+
+        for (let i = 1; i < occurrences; i++) {
+          datesToProcess.push(format(incrementFn(date, i), "yyyy-MM-dd"));
+        }
+      }
+
+      // Check for time conflicts (only for the first one for simplicity, or we could check all)
       if (!forceCreate) {
         const conflict = await checkAppointmentConflict({
           professionalId,
@@ -229,15 +272,14 @@ const NewAppointmentDialog = ({
           endTime: endTime + ":00",
         });
         if (conflict) {
-          // Instead of throwing, show warning and let user decide
           setConflictWarning(conflict);
-          return null; // Abort mutation without error
+          return null;
         }
       }
 
       let effectiveClientId = selectedClientId;
 
-      // If no client selected, try to find by phone before creating new
+      // Ensure client exists
       if (!effectiveClientId && clientPhone.trim()) {
         const { data: existingClient } = await supabase
           .from("clients")
@@ -248,7 +290,6 @@ const NewAppointmentDialog = ({
         if (existingClient) {
           effectiveClientId = existingClient.id;
         } else {
-          // Create new client if not found
           const { data: newClient, error: clientError } = await supabase
             .from("clients")
             .insert({
@@ -264,38 +305,46 @@ const NewAppointmentDialog = ({
         }
       }
 
-      const { data, error } = await supabase.from("appointments").insert({
+      // Insert all appointments
+      const appointmentsToInsert = datesToProcess.map(d => ({
         professional_id: professionalId,
         client_id: effectiveClientId,
         client_name: clientName.trim(),
         client_phone: clientPhone.trim() || null,
-        date: dateStr,
+        date: d,
         start_time: startTime + ":00",
         end_time: endTime + ":00",
-        status: "agendado",
+        status: status,
         notes: notes.trim() || null,
-      }).select().single();
+      }));
+
+      const { data: createdApts, error } = await supabase
+        .from("appointments")
+        .insert(appointmentsToInsert)
+        .select("id");
 
       if (error) throw error;
 
-      // Insert appointment_services
-      if (data) {
-        const servicesToInsert = selectedServices.map((s) => ({
-          appointment_id: data.id,
-          service_name: s.name,
-          service_id: s.id,
-          duration_minutes: s.duration_minutes,
-          price: s.base_price,
-        }));
+      // Insert services for each appointment
+      if (createdApts) {
+        const allServicesToInsert = createdApts.flatMap(apt => 
+          selectedServices.map(s => ({
+            appointment_id: apt.id,
+            service_name: s.name,
+            service_id: s.id,
+            duration_minutes: s.duration_minutes,
+            price: s.base_price,
+          }))
+        );
 
         const { error: svcError } = await supabase
           .from("appointment_services")
-          .insert(servicesToInsert);
+          .insert(allServicesToInsert);
 
         if (svcError) throw svcError;
       }
 
-      return data;
+      return createdApts;
     },
     onSuccess: (result) => {
       if (result === null) return; // Conflict warning shown, don't close
@@ -574,7 +623,79 @@ const NewAppointmentDialog = ({
             )}
           </div>
 
-          {/* 6. Notes */}
+          {/* Status and Recurrence */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="agendado">Agendado</SelectItem>
+                  <SelectItem value="atendendo">Atendendo</SelectItem>
+                  <SelectItem value="atendido">Atendido</SelectItem>
+                  <SelectItem value="atrasado">Atrasado</SelectItem>
+                  <SelectItem value="cancelado">Cancelado</SelectItem>
+                  <SelectItem value="confirmado">Confirmado</SelectItem>
+                  <SelectItem value="espera">Espera</SelectItem>
+                  <SelectItem value="faltou">Faltou</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Repetir?</Label>
+              <Select value={recurrence} onValueChange={setRecurrence}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Não repetir" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Não repetir</SelectItem>
+                  <SelectItem value="daily">Diariamente</SelectItem>
+                  <SelectItem value="weekly">Semanalmente</SelectItem>
+                  <SelectItem value="biweekly">Quinzenalmente</SelectItem>
+                  <SelectItem value="monthly">Mensalmente</SelectItem>
+                  <SelectItem value="quarterly">Trimestralmente</SelectItem>
+                  <SelectItem value="semiannual">Semestralmente</SelectItem>
+                  <SelectItem value="annual">Anualmente</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {recurrence !== "none" && (
+            <div className="space-y-2">
+              <Label>Número de repetições</Label>
+              <Select value={repeatCount} onValueChange={setRepeatCount}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Nunca" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">Nunca</SelectItem>
+                  {Array.from({ length: 29 }, (_, i) => i + 2).map((num) => (
+                    <SelectItem key={num} value={num.toString()}>
+                      {num}x
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {recurrence !== "none" && (
+            <div className="bg-blue-50 border border-blue-100 p-3 rounded-md">
+              <div className="flex items-center gap-2 text-blue-700 text-xs font-medium mb-1">
+                <History className="w-3.5 h-3.5" />
+                Agendamento Recorrente
+              </div>
+              <p className="text-[11px] text-blue-600/80 leading-relaxed">
+                O sistema criará automaticamente as próximas <strong>{parseInt(repeatCount) - 1}</strong> ocorrências deste agendamento nos mesmos horários (Total de {repeatCount} sessões).
+              </p>
+            </div>
+          )}
+
+          {/* 7. Notes */}
           <div className="space-y-2">
             <Label>Observações</Label>
             <Textarea

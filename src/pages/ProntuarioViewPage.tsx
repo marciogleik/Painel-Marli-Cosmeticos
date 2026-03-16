@@ -1,4 +1,5 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -7,8 +8,29 @@ import { ptBR } from "date-fns/locale";
 import { Printer, ChevronLeft, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { SignaturePad } from "@/components/SignaturePad";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription,
+  DialogTrigger 
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { CheckCircle } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import type { TemplateField } from "@/components/settings/AnamnesesTab";
+import { RecordOptionsMenu } from "@/components/client/RecordOptionsMenu";
+import { useEffect } from "react";
 
 interface FieldData {
   id: string;
@@ -20,6 +42,10 @@ interface FieldData {
 const ProntuarioViewPage = () => {
   const { recordId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [isSigningOpen, setIsSigningOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showHeader, setShowHeader] = useState(searchParams.get("h") !== "0");
 
   const { data: record, isLoading } = useQuery({
     queryKey: ["patient_record", recordId],
@@ -32,7 +58,8 @@ const ProntuarioViewPage = () => {
           *,
           clients (
             full_name,
-            cpf
+            cpf,
+            phone
           )
         `)
         .eq("id", recordId)
@@ -43,6 +70,16 @@ const ProntuarioViewPage = () => {
     },
     enabled: !!recordId,
   });
+
+  useEffect(() => {
+    if (searchParams.get("p") === "1" && !isLoading && record) {
+      const timer = setTimeout(() => {
+        window.print();
+        // After printing, if it was an auto-print from list, we might want to close or just stay
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams, isLoading, record]);
 
   if (isLoading) {
     return (
@@ -106,8 +143,73 @@ const ProntuarioViewPage = () => {
       }));
   }
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = (withHeader: boolean) => {
+    setShowHeader(withHeader);
+    // Use a timeout to allow the state change to render before printing
+    setTimeout(() => {
+      window.print();
+      // Optionally reset after printing (though print is synchronous in blocking way, 
+      // some browsers might need a delay to reset reliably)
+      setTimeout(() => setShowHeader(true), 500);
+    }, 100);
+  };
+
+  const handleShareWhatsApp = (withHeader: boolean) => {
+    const baseUrl = window.location.origin;
+    const signatureUrl = `${baseUrl}/assinar/${recordId}${withHeader ? "" : "?h=0"}`;
+    const message = `Olá ${clientName}, por favor acesse o link abaixo para visualizar e assinar o documento "${record.title || "Ficha"}":\n\n${signatureUrl}`;
+    const clientPhone = (record.clients as any)?.phone || "";
+    const whatsappUrl = `https://wa.me/${clientPhone.replace(/\D/g, '') || ""}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  const handleSendToClientToSign = () => {
+    const baseUrl = window.location.origin;
+    const signUrl = `${baseUrl}/assinar/${recordId}`;
+    const message = `Olá ${clientName}, preciso da sua assinatura no documento "${record.title || "Ficha"}". Clique no link para assinar agora:\n\n${signUrl}`;
+    const clientPhone = (record.clients as any)?.phone || "";
+    const whatsappUrl = `https://wa.me/${clientPhone.replace(/\D/g, '') || ""}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  const handleLocalSignature = async (signatureDataUrl: string) => {
+    if (!recordId) return;
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(signatureDataUrl);
+      const blob = await response.blob();
+      
+      const fileName = `${recordId}/local_signature_${Date.now()}.png`;
+      const { error: uploadError } = await supabase.storage
+        .from("signatures")
+        .upload(fileName, blob, { contentType: "image/png", upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("signatures")
+        .getPublicUrl(fileName);
+
+      const { error: updateError } = await supabase
+        .from("patient_records")
+        .update({
+          signature_url: publicUrl,
+          signed_at: new Date().toISOString()
+        })
+        .eq("id", recordId);
+
+      if (updateError) throw updateError;
+
+      toast.success("Assinatura salva com sucesso!");
+      setIsSigningOpen(false);
+      window.location.reload(); // Refresh to show signature
+    } catch (err) {
+      console.error("Error saving local signature:", err);
+      toast.error("Erro ao salvar assinatura.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -124,9 +226,16 @@ const ProntuarioViewPage = () => {
               <p className="text-xs text-muted-foreground">{clientName}</p>
             </div>
           </div>
-          <Button onClick={handlePrint} className="gap-2 shadow-sm">
-            <Printer className="w-4 h-4" /> Imprimir / PDF
-          </Button>
+            <div className="flex items-center gap-2">
+              <RecordOptionsMenu 
+                recordId={recordId || ""}
+                clientName={clientName}
+                clientPhone={(record.clients as any)?.phone || ""}
+                documentTitle={record.title || "Ficha"}
+                onPrint={handlePrint}
+                onShare={handleShareWhatsApp}
+              />
+            </div>
         </div>
       </div>
 
@@ -135,18 +244,20 @@ const ProntuarioViewPage = () => {
         <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-sm print:shadow-none p-8 md:p-12 print:p-0">
           
           {/* Header */}
-          <div className="border-b-2 border-primary/20 pb-6 mb-8 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-primary mb-1 uppercase tracking-tight">
-                {record.title || "Ficha de Anamnese"}
-              </h1>
-              <p className="text-sm font-medium">Paciente: <span className="text-foreground">{clientName}</span></p>
+          {showHeader && (
+            <div className="border-b-2 border-primary/20 pb-6 mb-8 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in duration-300">
+              <div>
+                <h1 className="text-2xl font-bold text-primary mb-1 uppercase tracking-tight">
+                  {record.title || "Ficha de Anamnese"}
+                </h1>
+                <p className="text-sm font-medium">Paciente: <span className="text-foreground">{clientName}</span></p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Data / Hora</p>
+                <p className="text-sm font-medium bg-muted px-2 py-1 rounded inline-block">{dateStr}</p>
+              </div>
             </div>
-            <div className="text-right">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Data / Hora</p>
-              <p className="text-sm font-medium bg-muted px-2 py-1 rounded inline-block">{dateStr}</p>
-            </div>
-          </div>
+          )}
 
           {/* Form Content */}
           <div className="space-y-8">
@@ -191,12 +302,29 @@ const ProntuarioViewPage = () => {
           </div>
 
           {/* Signature Line */}
-          <div className="mt-24 pt-16 border-t border-border flex flex-col items-center justify-center break-inside-avoid">
-            <div className="w-64 border-b border-foreground mb-2"></div>
-            <p className="font-semibold text-sm text-center">{clientName}</p>
-            <p className="text-xs text-muted-foreground text-center mt-1">
-              Assinatura do(a) Paciente
-            </p>
+          <div className="mt-20 pt-10 border-t border-border flex flex-col items-center justify-center break-inside-avoid">
+            {record.signature_url ? (
+              <div className="flex flex-col items-center animate-in fade-in duration-700">
+                <img 
+                  src={record.signature_url} 
+                  alt="Assinatura do Paciente" 
+                  className="max-h-24 object-contain mb-2 mix-blend-multiply dark:invert"
+                />
+                <div className="w-64 border-b border-foreground/50 mb-2"></div>
+                <p className="font-semibold text-sm text-center">{clientName}</p>
+                <p className="text-[10px] text-muted-foreground text-center flex items-center gap-1">
+                   Assinado digitalmente em {format(parseISO(record.signed_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center opacity-40">
+                <div className="w-64 border-b border-foreground mb-4"></div>
+                <p className="font-semibold text-sm text-center">{clientName}</p>
+                <p className="text-xs text-muted-foreground text-center mt-1 uppercase tracking-widest">
+                  Assinatura do Paciente
+                </p>
+              </div>
+            )}
           </div>
 
         </div>

@@ -30,6 +30,7 @@ import ImportFichasPage from "./pages/ImportFichasPage";
 import ImportClientesPage from "./pages/ImportClientesPage";
 import ImportAnexosPage from "./pages/ImportAnexosPage";
 import ExportDataPage from "./pages/ExportDataPage";
+import PublicSignaturePage from "./pages/PublicSignaturePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/login" element={<LoginPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/cadastro" element={<CadastroConvitePage />} />
+            <Route path="/assinar/:recordId" element={<PublicSignaturePage />} />
             <Route path="/import" element={<ProtectedRoute><ImportPage /></ProtectedRoute>} />
             <Route path="/import-fichas" element={<ProtectedRoute><ImportFichasPage /></ProtectedRoute>} />
             <Route path="/import-clientes" element={<ProtectedRoute><ImportClientesPage /></ProtectedRoute>} />
