@@ -25,6 +25,14 @@ import { Plus, ChevronDown, Pencil, Trash2, FileText, Loader2, Image, Lock } fro
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription 
+} from "@/components/ui/dialog";
+import { SignaturePad } from "@/components/SignaturePad";
 import type { AnamnesisTemplate, TemplateField } from "@/components/settings/AnamnesesTab";
 import { useAuth } from "@/hooks/useAuth";
 import type { Database } from "@/integrations/supabase/types";
@@ -291,6 +299,8 @@ const RecordImages = ({ attachments, currentUserId, userRole }: { attachments: a
   );
 };
 
+
+
 const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -300,6 +310,8 @@ const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
   const [editingRecord, setEditingRecord] = useState<PatientRecord | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PatientRecord | null>(null);
   const [expandedRecords, setExpandedRecords] = useState<Set<string>>(new Set());
+  const [signingRecordId, setSigningRecordId] = useState<string | null>(null);
+  const [isSigningOpen, setIsSigningOpen] = useState(false);
 
   const COLLAPSED_LIMIT = 5;
 
@@ -501,6 +513,23 @@ const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
                       currentUserId={user?.id}
                       userRole={(user as any)?.app_metadata?.role}
                     />
+
+                    {/* Signature Preview */}
+                    {record.signature_url && (
+                      <div className="mt-4 pt-4 border-t border-dashed flex flex-col items-start gap-1">
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1">Assinatura do Cliente</p>
+                        <div className="bg-white rounded border p-1 shadow-sm">
+                          <img 
+                            src={record.signature_url} 
+                            alt="Assinatura" 
+                            className="h-12 object-contain mix-blend-multiply dark:invert"
+                          />
+                        </div>
+                        <p className="text-[9px] text-muted-foreground italic">
+                          Assinado em {format(parseISO(record.signed_at || record.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        </p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -516,6 +545,11 @@ const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
           clientId={clientId}
           existingRecord={null}
           onClose={() => setFillTemplate(null)}
+          onSaveAndSign={(recordId) => {
+            setFillTemplate(null);
+            setSigningRecordId(recordId);
+            setIsSigningOpen(true);
+          }}
         />
       )}
 
@@ -526,7 +560,63 @@ const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
           clientId={clientId}
           existingRecord={editingRecord}
           onClose={() => setEditingRecord(null)}
+          onSaveAndSign={(recordId) => {
+            setEditingRecord(null);
+            setSigningRecordId(recordId);
+            setIsSigningOpen(true);
+          }}
         />
+      )}
+
+      {/* Integrated Signature Dialog */}
+      {isSigningOpen && signingRecordId && (
+        <Dialog open={isSigningOpen} onOpenChange={setIsSigningOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Assinatura Digital</DialogTitle>
+              <DialogDescription>
+                O documento foi salvo. Agora, o cliente deve assinar no quadro abaixo.
+              </DialogDescription>
+            </DialogHeader>
+            <SignaturePad 
+              onSave={async (signatureDataUrl) => {
+                try {
+                  const response = await fetch(signatureDataUrl);
+                  const blob = await response.blob();
+                  const fileName = `${signingRecordId}/local_signature_${Date.now()}.png`;
+                  
+                  await supabase.storage
+                    .from("signatures")
+                    .upload(fileName, blob, { contentType: "image/png", upsert: true });
+
+                  const { data: { publicUrl } } = supabase.storage
+                    .from("signatures")
+                    .getPublicUrl(fileName);
+
+                  await supabase
+                    .from("patient_records")
+                    .update({
+                      signature_url: publicUrl,
+                      signed_at: new Date().toISOString()
+                    })
+                    .eq("id", signingRecordId);
+
+                  toast({ title: "Assinatura salva com sucesso!" });
+                  setIsSigningOpen(false);
+                  setSigningRecordId(null);
+                  queryClient.invalidateQueries({ queryKey: ["patient_records", clientId] });
+                } catch (err) {
+                  console.error("Error saving signature:", err);
+                  toast({ title: "Erro ao salvar assinatura", variant: "destructive" });
+                }
+              }} 
+              onCancel={() => {
+                setIsSigningOpen(false);
+                setSigningRecordId(null);
+              }} 
+            />
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Delete confirmation */}

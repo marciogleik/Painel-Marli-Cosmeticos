@@ -20,6 +20,7 @@ interface AnamneseFillDialogProps {
   clientId: string;
   existingRecord: PatientRecord | null;
   onClose: () => void;
+  onSaveAndSign?: (recordId: string) => void;
 }
 
 const AnamneseFillDialog = ({
@@ -27,6 +28,7 @@ const AnamneseFillDialog = ({
   clientId,
   existingRecord,
   onClose,
+  onSaveAndSign,
 }: AnamneseFillDialogProps) => {
   const queryClient = useQueryClient();
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -109,20 +111,30 @@ const AnamneseFillDialog = ({
           .update({ content: JSON.parse(JSON.stringify(content)), updated_at: new Date().toISOString() })
           .eq("id", existingRecord.id);
         if (error) throw error;
+        return existingRecord.id;
       } else {
-        const { error } = await supabase.from("patient_records").insert([{
+        const { data, error } = await supabase.from("patient_records").insert([{
           client_id: clientId,
           record_type: "anamnese",
           title,
           content: JSON.parse(JSON.stringify(content)),
-        }]);
+        }]).select("id").single();
         if (error) throw error;
+        return data?.id;
       }
     },
-    onSuccess: () => {
+    onSuccess: (newRecordId) => {
       queryClient.invalidateQueries({ queryKey: ["patient_records", clientId] });
       toast({ title: isEditing ? "Ficha atualizada!" : "Ficha preenchida!" });
-      onClose();
+      
+      const shouldSign = (saveMutation.variables as any)?.shouldSign;
+      if (shouldSign && newRecordId) {
+        if (onSaveAndSign) {
+          onSaveAndSign(newRecordId);
+        }
+      } else {
+        onClose();
+      }
     },
     onError: (err: Error) => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
@@ -325,7 +337,7 @@ const AnamneseFillDialog = ({
           <Button
             className="w-full sm:max-w-md h-12 bg-[#27ae60] hover:bg-[#219150] text-white font-bold uppercase tracking-wider gap-2 shadow-lg transition-all"
             disabled={saveMutation.isPending}
-            onClick={() => saveMutation.mutate()}
+            onClick={() => saveMutation.mutate({ shouldSign: false } as any)}
           >
             {saveMutation.isPending ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -333,6 +345,18 @@ const AnamneseFillDialog = ({
               <Check className="w-5 h-5" />
             )}
             SALVAR
+          </Button>
+          <Button
+            className="w-full sm:max-w-md h-12 bg-[#5c7cbe] hover:bg-[#4a65a1] text-white font-bold uppercase tracking-wider gap-2 shadow-lg transition-all"
+            disabled={saveMutation.isPending}
+            onClick={() => saveMutation.mutate({ shouldSign: true } as any)}
+          >
+            {saveMutation.isPending ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Save className="w-5 h-5" />
+            )}
+            SALVAR E ASSINAR
           </Button>
           <Button 
             variant="outline" 
