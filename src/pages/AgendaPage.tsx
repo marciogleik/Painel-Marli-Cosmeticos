@@ -246,7 +246,7 @@ const AgendaPage = () => {
     const endMinutes = endParts[0] * 60 + endParts[1];
     const duration = endMinutes - startMinutes;
     const top = (timeParts[0] - 7) * 128 + (timeParts[1] / 60) * 128; // Header offset removed
-    const height = Math.max((duration / 60) * 128, 36);
+    const height = Math.max((duration / 60) * 128, 42);
     return { top, height };
   };
 
@@ -519,28 +519,40 @@ const AgendaPage = () => {
           <div className="status-badge" style={{ backgroundColor: "currentColor", opacity: 0.5 }} />
         )}
 
-        {/* Header: Time */}
-        {height >= 25 && (
-          <div className="horario flex items-center justify-between">
-            <span>{appt.start_time.slice(0, 5)}</span>
-            {overlapCount === 1 && height >= 120 && (
-              <span className="opacity-40">{statusLabel[appt.status]}</span>
-            )}
+        {/* Body: Client name & Time (Compact or Normal) */}
+        {height < 50 ? (
+          <div className="flex items-center gap-1.5 overflow-hidden">
+            <div className="horario">{appt.start_time.slice(0, 5)}</div>
+            <div className="cliente flex-1 truncate">
+              {appt.status === "confirmado" && <span className="mr-0.5 opacity-70">✓</span>}
+              {appt.client_name}
+            </div>
           </div>
-        )}
+        ) : (
+          <>
+            {/* Header: Time */}
+            <div className="horario flex items-center justify-between">
+              <span>{appt.start_time.slice(0, 5)}</span>
+              {overlapCount === 1 && height >= 120 && (
+                <span className="opacity-40">{statusLabel[appt.status]}</span>
+              )}
+            </div>
 
-        {/* Body: Client name */}
-        <div
-          className="cliente"
-          style={{
-            fontSize: overlapCount > 1 ? "12px" : "13px",
-          }}
-        >
-          {appt.status === "confirmado" && (
-            <span className="mr-1 opacity-70">✓</span>
-          )}
-          {appt.client_name}
-        </div>
+            {/* Body: Client name */}
+            <div
+              className="cliente"
+              style={{
+                fontSize: overlapCount > 1 ? "11px" : "12px",
+                WebkitLineClamp: 2,
+              }}
+            >
+              {appt.status === "confirmado" && (
+                <span className="mr-1 opacity-70">✓</span>
+              )}
+              {appt.client_name}
+            </div>
+          </>
+        )}
 
         {/* Footer: Service / Professional */}
         {height >= 25 && (
@@ -1016,7 +1028,7 @@ function ProfColumn({
 }) {
   const colRef = useRef<HTMLDivElement>(null);
   return (
-    <div className="flex-1 min-w-[240px] border-r border-border last:border-r-0">
+    <div className="flex-1 min-w-[300px] border-r border-border last:border-r-0">
       <div className="h-12 flex items-center justify-center border-b border-border bg-muted/30 px-2">
         <span className="text-xs font-bold text-foreground truncate">{profName}</span>
       </div>
