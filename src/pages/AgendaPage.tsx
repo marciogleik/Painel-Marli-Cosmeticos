@@ -543,7 +543,7 @@ const AgendaPage = () => {
         </div>
 
         {/* Footer: Service / Professional */}
-        {height >= 45 && (
+        {height >= 25 && (
           <div
             className="servico"
             style={{
@@ -1016,7 +1016,7 @@ function ProfColumn({
 }) {
   const colRef = useRef<HTMLDivElement>(null);
   return (
-    <div className="flex-1 min-w-[200px] border-r border-border last:border-r-0">
+    <div className="flex-1 min-w-[240px] border-r border-border last:border-r-0">
       <div className="h-12 flex items-center justify-center border-b border-border bg-muted/30 px-2">
         <span className="text-xs font-bold text-foreground truncate">{profName}</span>
       </div>
