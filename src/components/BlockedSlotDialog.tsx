@@ -109,15 +109,17 @@ const BlockedSlotDialog = ({
         date: format(d, "yyyy-MM-dd"),
         start_time: startTime + ":00",
         end_time: endTime + ":00",
-        reason: reason.trim() || null,
+        notes: reason.trim() || null,
+        client_name: "BLOQUEIO",
+        status: "bloqueado",
       }));
 
-      const { error } = await supabase.from("blocked_slots").insert(rows);
+      const { error } = await supabase.from("appointments").insert(rows);
       if (error) throw error;
       return dates.length;
     },
     onSuccess: (count) => {
-      queryClient.invalidateQueries({ queryKey: ["blocked_slots"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
       toast.success(
         count === 1
           ? "Horário bloqueado com sucesso!"

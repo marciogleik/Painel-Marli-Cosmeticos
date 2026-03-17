@@ -23,11 +23,12 @@ export function useOccupiedSlots(
 
       // Use allowlist to avoid PostgREST .not().in() syntax issues.
       // cancelado, falta, removido are all excluded.
-      const ACTIVE_STATUSES = ["agendado", "confirmado", "espera", "atendendo", "atendido", "atrasado"];
+      // Now including 'bloqueado' as an occupied status.
+      const ACTIVE_STATUSES = ["agendado", "confirmado", "espera", "atendendo", "atendido", "atrasado", "bloqueado"];
 
       let query = supabase
         .from("appointments")
-        .select("start_time, end_time, client_name")
+        .select("start_time, end_time, client_name, status, notes")
         .eq("professional_id", professionalId)
         .eq("date", date)
         .in("status", ACTIVE_STATUSES);
@@ -42,20 +43,13 @@ export function useOccupiedSlots(
         return [];
       }
 
-      // Also fetch blocked slots
-      const { data: blocked } = await supabase
-        .from("blocked_slots")
-        .select("start_time, end_time, reason")
-        .eq("professional_id", professionalId)
-        .eq("date", date);
-
-      const blockedSlots: OccupiedSlot[] = (blocked || []).map((b) => ({
-        start_time: b.start_time,
-        end_time: b.end_time,
-        client_name: `🚫 ${b.reason || "Bloqueado"}`,
+      const occupiedSlots: OccupiedSlot[] = (data || []).map((a) => ({
+        start_time: a.start_time,
+        end_time: a.end_time,
+        client_name: a.status === "bloqueado" ? `🚫 ${a.notes || "Bloqueado"}` : a.client_name,
       }));
 
-      return [...(data || []), ...blockedSlots];
+      return occupiedSlots;
     },
     enabled: !!professionalId && !!date,
   });

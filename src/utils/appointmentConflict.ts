@@ -20,11 +20,12 @@ export async function checkAppointmentConflict({
   excludeAppointmentId?: string;
 }): Promise<string | null> {
   // Check appointment conflicts — using allowlist to avoid PostgREST .not().in() syntax issues
-  const ACTIVE_STATUSES = ["agendado", "confirmado", "espera", "atendendo", "atendido", "atrasado"];
+  // Including 'bloqueado' status for unified conflict checking.
+  const ACTIVE_STATUSES = ["agendado", "confirmado", "espera", "atendendo", "atendido", "atrasado", "bloqueado"];
 
   let query = supabase
     .from("appointments")
-    .select("id, client_name, start_time, end_time")
+    .select("id, client_name, status, notes, start_time, end_time")
     .eq("professional_id", professionalId)
     .eq("date", date)
     .in("status", ACTIVE_STATUSES)
@@ -43,20 +44,10 @@ export async function checkAppointmentConflict({
 
   if (data && data.length > 0) {
     const conflict = data[0];
+    if (conflict.status === "bloqueado") {
+      return conflict.notes || "Horário bloqueado";
+    }
     return conflict.client_name || "outro cliente";
-  }
-
-  // Check blocked slot conflicts
-  const { data: blocked, error: blockedError } = await supabase
-    .from("blocked_slots")
-    .select("id, start_time, end_time, reason")
-    .eq("professional_id", professionalId)
-    .eq("date", date)
-    .lt("start_time", endTime)
-    .gt("end_time", startTime);
-
-  if (!blockedError && blocked && blocked.length > 0) {
-    return blocked[0].reason || "Horário bloqueado";
   }
 
   // Check weekly blocked slots

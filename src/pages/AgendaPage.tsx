@@ -92,14 +92,6 @@ const AgendaPage = () => {
           queryClient.invalidateQueries({ queryKey: ["appointments"] });
         }
       )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'blocked_slots' },
-        () => {
-          console.log("Realtime update: blocked_slots");
-          queryClient.invalidateQueries({ queryKey: ["blocked_slots"] });
-        }
-      )
       .subscribe();
 
     return () => {
@@ -158,33 +150,22 @@ const AgendaPage = () => {
     return services.map((s) => s.service_name).join(", ");
   };
 
-  // Blocked slots query
-  const { data: blockedSlots = [] } = useQuery({
-    queryKey: ["blocked_slots", dateFrom, dateTo],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("blocked_slots")
-        .select("*")
-        .gte("date", dateFrom)
-        .lte("date", dateTo);
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
   const deleteBlockedSlot = async (id: string) => {
-    const { error } = await supabase.from("blocked_slots").delete().eq("id", id);
+    const { error } = await supabase.from("appointments").delete().eq("id", id);
     if (error) {
       toast.error("Erro ao remover bloqueio: " + error.message);
     } else {
       toast.success("Bloqueio removido!");
-      queryClient.invalidateQueries({ queryKey: ["blocked_slots"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
     }
   };
 
   const getBlockedForColumn = (dayStr: string, profId?: string) => {
-    const dynamicBlocks = blockedSlots.filter((b) => {
+    const dynamicBlocks = appointments.filter((b) => {
       const matchDay = b.date === dayStr;
+      const isBlocked = b.status === "bloqueado";
+      if (!isBlocked) return false;
+      
       if (viewMode === "day" && profId) return matchDay && b.professional_id === profId;
       const matchProf = selectedFilter === "all" || b.professional_id === selectedFilter;
       return matchDay && matchProf;
@@ -232,7 +213,7 @@ const AgendaPage = () => {
         <div className="cliente font-medium flex items-center gap-1.5" style={{ fontSize: "11px", color: "#ffffff" }}>
           <span style={{ color: "#ffffff" }}>🚫</span>
           <span className="truncate uppercase tracking-tight" style={{ color: "#ffffff" }}>
-            {block.reason || "Horário Bloqueado"}
+            {block.notes || "Horário Bloqueado"}
             {(() => {
               const prof = professionals.find(p => p.id === block.professional_id);
               return prof && height >= 60 ? ` • ${prof.name.split(" ")[0]}` : "";
