@@ -246,7 +246,7 @@ const AgendaPage = () => {
     const endMinutes = endParts[0] * 60 + endParts[1];
     const duration = endMinutes - startMinutes;
     const top = (timeParts[0] - 7) * 128 + (timeParts[1] / 60) * 128; // Header offset removed
-    const height = Math.max((duration / 60) * 128, 32);
+    const height = Math.max((duration / 60) * 128, 36);
     return { top, height };
   };
 
@@ -534,8 +534,6 @@ const AgendaPage = () => {
           className="cliente"
           style={{
             fontSize: overlapCount > 1 ? "12px" : "13px",
-            lineHeight: 1.1,
-            marginTop: height < 40 ? "-1px" : "0px"
           }}
         >
           {appt.status === "confirmado" && (
