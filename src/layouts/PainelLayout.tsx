@@ -6,7 +6,7 @@ const PainelLayout = () => {
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       <AppSidebar />
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+      <main className="flex-1 flex flex-col min-w-0 w-full overflow-hidden relative">
         <img
           src={marliLogo}
           alt=""

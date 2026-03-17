@@ -34,12 +34,12 @@ const ProfissionaisPage = () => {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="px-8 pt-8 pb-2 shrink-0">
-        <h1 className="text-2xl font-display font-bold">Profissionais</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Gerencie a equipe da clínica</p>
+      <div className="px-4 sm:px-8 pt-4 sm:pt-8 pb-2 shrink-0">
+        <h1 className="text-xl sm:text-2xl font-display font-bold">Profissionais</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Gerencie a equipe da clínica</p>
       </div>
 
-      <div className="flex-1 overflow-auto px-8 py-4">
+      <div className="flex-1 overflow-auto px-4 sm:px-8 py-4">
         <div className="flex items-center gap-3 mb-4">
           <p className="text-sm text-muted-foreground">{active.length} profissionais ativos</p>
           <label className="flex items-center gap-1.5 cursor-pointer text-xs text-muted-foreground">

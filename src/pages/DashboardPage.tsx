@@ -92,51 +92,51 @@ const DashboardPage = () => {
   return (
     <div className="flex flex-col h-full overflow-auto">
       {/* Header */}
-      <div className="px-8 pt-8 pb-2">
-        <h1 className="text-2xl font-display font-bold">
+      <div className="px-4 sm:px-8 pt-4 sm:pt-8 pb-2">
+        <h1 className="text-xl sm:text-2xl font-display font-bold">
           Olá, {displayName}
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
           {format(new Date(), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
           {" · "}Esses são seus resumos de hoje.
         </p>
       </div>
 
-      <div className="mx-8 h-[1.5px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+      <div className="mx-4 sm:mx-8 h-[1.5px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
 
-      <div className="px-8 py-6 space-y-6">
+      <div className="px-4 sm:px-8 py-4 sm:py-6 space-y-6">
         {/* Quick stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-5 rounded-xl border border-border/60 bg-card">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-md bg-primary/10 flex items-center justify-center">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+          <div className="p-3 sm:p-5 rounded-xl border border-border/60 bg-card">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
                 <Calendar className="w-4 h-4 text-primary" />
               </div>
-              <div>
-                <p className="text-xl font-semibold">{todayAppointments.length}</p>
-                <p className="text-[11px] text-muted-foreground tracking-wide uppercase">Agendamentos</p>
+              <div className="min-w-0">
+                <p className="text-lg sm:text-xl font-semibold leading-tight">{todayAppointments.length}</p>
+                <p className="text-[9px] sm:text-[11px] text-muted-foreground tracking-wide uppercase truncate">Agends</p>
               </div>
             </div>
           </div>
-          <div className="p-5 rounded-xl border border-border/60 bg-card">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-md bg-accent flex items-center justify-center">
+          <div className="p-3 sm:p-5 rounded-xl border border-border/60 bg-card">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-accent flex items-center justify-center shrink-0">
                 <Clock className="w-4 h-4 text-accent-foreground" />
               </div>
-              <div>
-                <p className="text-xl font-semibold">{confirmed}</p>
-                <p className="text-[11px] text-muted-foreground tracking-wide uppercase">Confirmados</p>
+              <div className="min-w-0">
+                <p className="text-lg sm:text-xl font-semibold leading-tight">{confirmed}</p>
+                <p className="text-[9px] sm:text-[11px] text-muted-foreground tracking-wide uppercase truncate">Confirms</p>
               </div>
             </div>
           </div>
-          <div className="p-5 rounded-xl border border-border/60 bg-card">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-md bg-secondary flex items-center justify-center">
+          <div className="p-3 sm:p-5 rounded-xl border border-border/60 bg-card col-span-2 sm:col-span-1">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-secondary flex items-center justify-center shrink-0">
                 <Clock className="w-4 h-4 text-secondary-foreground" />
               </div>
-              <div>
-                <p className="text-xl font-semibold">{pending}</p>
-                <p className="text-[11px] text-muted-foreground tracking-wide uppercase">Pendentes</p>
+              <div className="min-w-0">
+                <p className="text-lg sm:text-xl font-semibold leading-tight">{pending}</p>
+                <p className="text-[9px] sm:text-[11px] text-muted-foreground tracking-wide uppercase truncate">Pendentes</p>
               </div>
             </div>
           </div>

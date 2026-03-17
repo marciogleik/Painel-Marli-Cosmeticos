@@ -86,39 +86,38 @@ const HistoricPage = () => {
     return (
         <div className="flex flex-col h-full overflow-hidden">
             {/* Header */}
-            <div className="px-8 pt-8 pb-4 shrink-0">
+            <div className="px-4 sm:px-8 pt-4 sm:pt-8 pb-4 shrink-0">
                 <div className="flex items-center gap-3 mb-1">
-                    <History className="w-6 h-6 text-primary" />
-                    <h1 className="text-2xl font-display font-bold">Histórico Global</h1>
+                    <History className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+                    <h1 className="text-xl sm:text-2xl font-display font-bold">Histórico Global</h1>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                     Visualize e busque todos os agendamentos registrados no sistema.
                 </p>
             </div>
 
             {/* Content Tabs */}
             <Tabs defaultValue="appointments" className="flex-1 flex flex-col overflow-hidden">
-                <div className="px-8 border-b">
-                    <TabsList className="bg-transparent border-b-0 h-10 gap-4">
-                        <TabsTrigger value="appointments" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-2 h-full font-bold text-sm">
+                <div className="px-4 sm:px-8 border-b">
+                    <TabsList className="bg-transparent border-b-0 h-10 gap-2 sm:gap-4 overflow-x-auto justify-start">
+                        <TabsTrigger value="appointments" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-2 h-full font-bold text-xs sm:text-sm shrink-0">
                             Agendamentos
                         </TabsTrigger>
-                        <TabsTrigger value="logs" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-2 h-full font-bold text-sm text-muted-foreground data-[state=active]:text-foreground">
-                            Auditoria de Alterações
+                        <TabsTrigger value="logs" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-2 h-full font-bold text-xs sm:text-sm text-muted-foreground data-[state=active]:text-foreground shrink-0">
+                            Auditoria
                         </TabsTrigger>
                     </TabsList>
                 </div>
 
-                {/* Filters Row (only for appointments) */}
                 <TabsContent value="appointments" className="flex-1 flex flex-col overflow-hidden m-0">
-                    <div className="px-8 py-4 shrink-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 bg-muted/5">
+                    <div className="px-4 sm:px-8 py-4 shrink-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-muted/5">
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                             <Input
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Buscar cliente ou obs..."
-                                className="pl-9 bg-card border-muted-foreground/20 focus:border-primary transition-all"
+                                placeholder="Buscar..."
+                                className="pl-9 h-9 text-sm bg-card border-muted-foreground/20 focus:border-primary transition-all"
                             />
                         </div>
 
@@ -127,24 +126,22 @@ const HistoricPage = () => {
                                 type="date"
                                 value={dateFrom}
                                 onChange={(e) => setDateFrom(e.target.value)}
-                                className="bg-card text-xs border-muted-foreground/20"
-                                placeholder="De"
+                                className="bg-card text-[10px] sm:text-xs h-9 border-muted-foreground/20"
                             />
                             <Input
                                 type="date"
                                 value={dateTo}
                                 onChange={(e) => setDateTo(e.target.value)}
-                                className="bg-card text-xs border-muted-foreground/20"
-                                placeholder="Até"
+                                className="bg-card text-[10px] sm:text-xs h-9 border-muted-foreground/20"
                             />
                         </div>
 
                         <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
-                            <SelectTrigger className="bg-card text-xs border-muted-foreground/20">
+                            <SelectTrigger className="bg-card text-[10px] sm:text-xs h-9 border-muted-foreground/20">
                                 <SelectValue placeholder="Profissional" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">Todas as profissionais</SelectItem>
+                                <SelectItem value="all">Todas</SelectItem>
                                 {professionals.map(p => (
                                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                                 ))}
@@ -152,11 +149,11 @@ const HistoricPage = () => {
                         </Select>
 
                         <Select value={selectedService} onValueChange={setSelectedService}>
-                            <SelectTrigger className="bg-card text-xs border-muted-foreground/20">
+                            <SelectTrigger className="bg-card text-[10px] sm:text-xs h-9 border-muted-foreground/20">
                                 <SelectValue placeholder="Serviço" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">Todos os serviços</SelectItem>
+                                <SelectItem value="all">Todos</SelectItem>
                                 {servicesList.map(s => (
                                     <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                                 ))}
@@ -164,7 +161,7 @@ const HistoricPage = () => {
                         </Select>
                     </div>
 
-                    <div className="px-8 pb-3 shrink-0 flex items-center gap-2 overflow-x-auto my-2">
+                    <div className="px-4 sm:px-8 pb-3 shrink-0 flex items-center gap-2 overflow-x-auto my-2 scrollbar-hide">
                         {["all", "agendado", "confirmado", "atendido", "cancelado", "falta"].map((s) => (
                             <Button
                                 key={s}
@@ -182,7 +179,7 @@ const HistoricPage = () => {
                     </div>
 
                     {/* List */}
-                    <div className="flex-1 overflow-auto px-8 pb-8 space-y-3">
+                    <div className="flex-1 overflow-auto px-4 sm:px-8 pb-8 space-y-3">
                         {isLoading ? (
                             <div className="flex justify-center py-12">
                                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -213,38 +210,38 @@ const HistoricPage = () => {
                                             setDetailOpen(true);
                                         }}
                                     >
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                            <div className="flex items-start gap-5">
-                                                <div className="w-24 shrink-0 text-center border-r pr-5 flex flex-col justify-center">
-                                                    <p className="text-[10px] text-muted-foreground uppercase font-black tracking-tighter">
-                                                        {format(parseISO(apt.date), "dd MMMM", { locale: ptBR })}
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                                            <div className="flex items-start gap-3 sm:gap-5">
+                                                <div className="w-16 sm:w-24 shrink-0 text-center border-r pr-3 sm:pr-5 flex flex-col justify-center">
+                                                    <p className="text-[9px] sm:text-[10px] text-muted-foreground uppercase font-black tracking-tighter">
+                                                        {format(parseISO(apt.date), "dd MMM", { locale: ptBR })}
                                                     </p>
-                                                    <p className="text-lg font-black Outfit text-foreground leading-none mt-1">
+                                                    <p className="text-sm sm:text-lg font-black Outfit text-foreground leading-none mt-1">
                                                         {apt.start_time.slice(0, 5)}
                                                     </p>
                                                 </div>
                                                 <div className="min-w-0">
-                                                    <p className="font-black text-base group-hover:text-primary transition-colors Outfit leading-tight uppercase tracking-tight">
+                                                    <p className="font-black text-sm sm:text-base group-hover:text-primary transition-colors Outfit leading-tight uppercase tracking-tight truncate">
                                                         {apt.client_name}
                                                     </p>
-                                                    <p className="text-xs text-primary font-black truncate tracking-tight uppercase opacity-90">
+                                                    <p className="text-[10px] sm:text-xs text-primary font-black truncate tracking-tight uppercase opacity-90">
                                                         {serviceSummary}
                                                     </p>
-                                                    <div className="flex items-center gap-4 mt-2 text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
-                                                        <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-muted/50 border border-muted-foreground/10">
-                                                            <UserCog className="w-3 h-3" />
-                                                            {proMap.get(apt.professional_id) ?? "Profissional"}
+                                                    <div className="flex items-center gap-3 sm:gap-4 mt-1.5 sm:mt-2 text-[9px] sm:text-[10px] text-muted-foreground font-bold uppercase tracking-wider overflow-x-auto">
+                                                        <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-muted/50 border border-muted-foreground/10 shrink-0">
+                                                            <UserCog className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                                                            {proMap.get(apt.professional_id)?.split(" ")[0] ?? "Prof"}
                                                         </span>
                                                         {apt.notes && services.length > 0 && (
-                                                            <span className="flex items-center gap-1.5 italic truncate max-w-[250px] opacity-70">
-                                                                <Clock className="w-3 h-3" />
+                                                            <span className="flex items-center gap-1.5 italic truncate max-w-[150px] sm:max-w-[250px] opacity-70 shrink-0">
+                                                                <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                                                                 {apt.notes}
                                                             </span>
                                                         )}
                                                     </div>
                                                 </div>
                                             </div>
-                                            <Badge variant="secondary" className={cn("text-[9px] h-6 font-black uppercase tracking-widest px-3 rounded-md shadow-sm", cfg.bgClass)}>
+                                            <Badge variant="secondary" className={cn("text-[8px] sm:text-[9px] h-5 sm:h-6 font-black uppercase tracking-widest px-2 sm:px-3 rounded-md shadow-sm self-start sm:self-center shrink-0", cfg.bgClass)}>
                                                 {cfg.label}
                                             </Badge>
                                         </div>

@@ -84,14 +84,14 @@ const FinanceiroPage = () => {
 
   return (
     <div className="flex flex-col h-full overflow-auto">
-      <div className="px-8 pt-8 pb-4">
-        <h1 className="text-2xl font-display font-bold">Relatório Financeiro</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+      <div className="px-4 sm:px-8 pt-4 sm:pt-8 pb-4">
+        <h1 className="text-xl sm:text-2xl font-display font-bold">Relatório Financeiro</h1>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
           Análise de receita por profissional e serviço
         </p>
       </div>
 
-      <div className="px-8 pb-8 space-y-6">
+      <div className="px-4 sm:px-8 pb-8 space-y-6">
         {/* Filters */}
         <div className="flex items-center gap-3 flex-wrap">
           {/* Mode toggle */}
@@ -176,7 +176,7 @@ const FinanceiroPage = () => {
           )}
 
           <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
-            <SelectTrigger className="h-8 w-[200px]">
+            <SelectTrigger className="h-8 w-full sm:w-[200px]">
               <SelectValue placeholder="Todos profissionais" />
             </SelectTrigger>
             <SelectContent>

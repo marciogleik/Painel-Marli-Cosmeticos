@@ -110,14 +110,14 @@ const ClientsPage = () => {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-8 pt-8 pb-2 shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 sm:px-8 pt-4 sm:pt-8 pb-2 shrink-0 gap-4">
         <div>
-          <h1 className="text-2xl font-display font-bold">Clientes</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <h1 className="text-xl sm:text-2xl font-display font-bold">Clientes</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
             {totalItems} clientes {search ? 'encontrados' : 'cadastrados'}
           </p>
         </div>
-        <Button className="gap-1.5" onClick={() => setShowNewClient(true)}>
+        <Button className="gap-1.5 h-9 sm:h-10 text-xs sm:text-sm w-full sm:w-auto" onClick={() => setShowNewClient(true)}>
           <Plus className="w-4 h-4" /> Novo Cliente
         </Button>
       </div>

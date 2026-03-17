@@ -125,8 +125,8 @@ const AppSidebar = () => {
       )}
 
       <aside className={cn(
-        "w-[200px] shrink-0 border-r border-sidebar-border transition-transform duration-200 z-40",
-        "fixed lg:relative inset-y-0 left-0",
+        "w-[220px] shrink-0 border-r border-sidebar-border transition-transform duration-300 z-50",
+        "fixed lg:relative inset-y-0 left-0 shadow-xl lg:shadow-none",
         mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
         {sidebarContent}

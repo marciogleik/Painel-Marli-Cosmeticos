@@ -672,27 +672,29 @@ const AgendaPage = () => {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex items-center justify-between px-8 pt-8 pb-2 shrink-0">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 sm:px-8 pt-4 sm:pt-8 pb-2 shrink-0 gap-4">
         <div>
-          <h1 className="text-2xl font-display font-bold">Agenda</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Gerencie seus agendamentos e horários</p>
+          <h1 className="text-xl sm:text-2xl font-display font-bold">Agenda</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Gerencie seus agendamentos e horários</p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="relative w-64 mr-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Pesquisar cliente..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
+              className="pl-9 h-9 sm:h-10 text-sm"
             />
           </div>
-          <Button variant="outline" className="gap-1.5" onClick={() => { setBlockDefaults({}); setBlockDialogOpen(true); }}>
-            <Ban className="w-4 h-4" /> Bloquear Horário
-          </Button>
-          <Button className="gap-1.5" onClick={() => setDialogOpen(true)}>
-            <Plus className="w-4 h-4" /> Novo Agendamento
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1 sm:flex-none gap-1.5 h-9 sm:h-10 text-xs sm:text-sm" onClick={() => { setBlockDefaults({}); setBlockDialogOpen(true); }}>
+              <Ban className="w-4 h-4" /> Bloquear
+            </Button>
+            <Button className="flex-1 sm:flex-none gap-1.5 h-9 sm:h-10 text-xs sm:text-sm" onClick={() => setDialogOpen(true)}>
+              <Plus className="w-4 h-4" /> Novo
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -713,13 +715,11 @@ const AgendaPage = () => {
           </button>
 
           {/* View toggle */}
-          <div className="ml-3 flex items-center rounded-full border border-border overflow-hidden">
+          <div className="flex items-center rounded-full border border-border overflow-hidden shrink-0">
             <button
-              onClick={() => {
-                setViewMode("month");
-              }}
+              onClick={() => setViewMode("month")}
               className={cn(
-                "px-3 py-1 text-xs font-medium transition-colors",
+                "px-2.5 sm:px-3 py-1 text-[10px] sm:text-xs font-medium transition-colors",
                 viewMode === "month" ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"
               )}
             >
@@ -728,7 +728,7 @@ const AgendaPage = () => {
             <button
               onClick={() => setViewMode("week")}
               className={cn(
-                "px-3 py-1 text-xs font-medium transition-colors",
+                "px-2.5 sm:px-3 py-1 text-[10px] sm:text-xs font-medium transition-colors",
                 viewMode === "week" ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"
               )}
             >
@@ -740,7 +740,7 @@ const AgendaPage = () => {
                 setSelectedDay(new Date());
               }}
               className={cn(
-                "px-3 py-1 text-xs font-medium transition-colors",
+                "px-2.5 sm:px-3 py-1 text-[10px] sm:text-xs font-medium transition-colors",
                 viewMode === "day" ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"
               )}
             >
@@ -749,7 +749,7 @@ const AgendaPage = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 overflow-x-auto">
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-1">
           <button
             onClick={() => setSelectedFilter("all")}
             className={cn(
@@ -775,16 +775,16 @@ const AgendaPage = () => {
       </div>
 
       {/* Status legend */}
-      <div className="flex items-center gap-4 px-8 pb-3 shrink-0">
+      <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-8 pb-3 shrink-0 overflow-x-auto scrollbar-hide whitespace-nowrap">
         {Object.entries(statusConfig).map(([key, cfg]) => (
-          <div key={key} className="flex items-center gap-1.5">
-            <div className={cn("w-3 h-3 rounded-sm", cfg.color)} />
-            <span className="text-[11px] text-muted-foreground">{cfg.label}</span>
+          <div key={key} className="flex items-center gap-1.5 shrink-0">
+            <div className={cn("w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm", cfg.color)} />
+            <span className="text-[10px] sm:text-[11px] text-muted-foreground">{cfg.label}</span>
           </div>
         ))}
       </div>
 
-      <div className="flex-1 overflow-hidden flex flex-col relative px-8 pb-4">
+      <div className="flex-1 overflow-hidden flex flex-col relative px-4 sm:px-8 pb-4">
         <div className="flex-1 border border-border rounded-lg overflow-hidden bg-[#fffdf5] relative flex flex-col">
           {viewMode === "month" ? (
             renderMonthView()
