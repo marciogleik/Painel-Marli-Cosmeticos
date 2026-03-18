@@ -32,3 +32,4 @@ dist-ssr
 create_view.sql
 generate_view_sql.py
 supabase/.temp/
+.env

@@ -56,9 +56,19 @@ interface PendingReschedule {
 }
 
 const AgendaPage = () => {
+  const getBrasiliaTime = () => {
+    // Get UTC time and subtract 3 hours (Brasília standard time)
+    // This is the most reliable way to get UTC-3 without environment drift
+    const now = new Date();
+    const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const brasiliaTime = new Date(utcTime - (3 * 3600000));
+    return brasiliaTime;
+  };
+
+
   const [viewMode, setViewMode] = useState<ViewMode>("day");
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 0 }));
-  const [selectedDay, setSelectedDay] = useState(() => new Date());
+  const [weekStart, setWeekStart] = useState(() => startOfWeek(getBrasiliaTime(), { weekStartsOn: 0 }));
+  const [selectedDay, setSelectedDay] = useState(() => getBrasiliaTime());
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -76,7 +86,7 @@ const AgendaPage = () => {
   // Confirmation dialog
   const [pendingReschedule, setPendingReschedule] = useState<PendingReschedule | null>(null);
   const [isRescheduling, setIsRescheduling] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState(getBrasiliaTime());
 
   const queryClient = useQueryClient();
 
@@ -102,8 +112,10 @@ const AgendaPage = () => {
   // Current time updater
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 60000); // Update every minute
+      const btl = getBrasiliaTime();
+      console.error(`[TERMINAL_TIME_CHECK] ${btl.toISOString()} | Local: ${btl.toLocaleTimeString()}`);
+      setCurrentTime(btl);
+    }, 10000); // Update every 10s for debugging
     return () => clearInterval(timer);
   }, []);
 
@@ -245,8 +257,8 @@ const AgendaPage = () => {
     const startMinutes = timeParts[0] * 60 + timeParts[1];
     const endMinutes = endParts[0] * 60 + endParts[1];
     const duration = endMinutes - startMinutes;
-    const top = (timeParts[0] - 7) * 128 + (timeParts[1] / 60) * 128; // Header offset removed
-    const height = Math.max((duration / 60) * 128, 42);
+    const top = (timeParts[0] - 7) * 132 + (timeParts[1] * (33 / 15)) + 48;
+    const height = Math.max((duration * (33 / 15)), 42);
     return { top, height };
   };
 
@@ -261,8 +273,9 @@ const AgendaPage = () => {
 
   // Convert pixel position to time
   const pixelToTime = (px: number): { hours: number; minutes: number } => {
-    // 1 hour = 128px, 1 minute = 2.133px
-    const minutesFromSeven = Math.round(px / 128 * 60);
+    // 15 min = 33px, 1 min = 2.2px, 1 hour = 132px
+    // Subtract 48px header before calculating time
+    const minutesFromSeven = Math.round((px - 48) / (33 / 15));
     const totalMinutes = minutesFromSeven + 7 * 60;
     
     // Snap to 15-minute intervals (existing grid is 15-min based)
@@ -402,7 +415,7 @@ const AgendaPage = () => {
     else setSelectedDay(addDays(selectedDay, 1));
   };
   const handleToday = () => {
-    const today = new Date();
+    const today = getBrasiliaTime();
     setSelectedDay(today);
     if (viewMode === "week") setWeekStart(startOfWeek(today, { weekStartsOn: 0 }));
   };
@@ -542,7 +555,8 @@ const AgendaPage = () => {
             <div
               className="cliente"
               style={{
-                fontSize: overlapCount > 1 ? "11px" : "12px",
+                fontSize: overlapCount > 3 ? "8px" : (overlapCount > 2 ? "9px" : (overlapCount > 1 ? "10px" : "11px")),
+                lineHeight: "1.1",
                 WebkitLineClamp: 2,
               }}
             >
@@ -559,7 +573,8 @@ const AgendaPage = () => {
           <div
             className="servico"
             style={{
-              fontSize: overlapCount > 1 ? "10px" : "10.5px",
+              fontSize: overlapCount > 3 ? "7.5px" : (overlapCount > 2 ? "8px" : (overlapCount > 1 ? "9px" : "10px")),
+              lineHeight: "1.1",
               opacity: 0.7
             }}
           >
@@ -805,7 +820,7 @@ const AgendaPage = () => {
                     })}
                   </div>
 
-                  <div className="flex flex-1 relative h-[1968px]">
+                  <div className="flex flex-1 relative h-[2028px]">
                     {/* Real-time Indicator Component (Week) */}
                     {(() => {
                       const h = currentTime.getHours();
@@ -814,7 +829,7 @@ const AgendaPage = () => {
                       const todayIdx = days.findIndex(d => isToday(d));
                       if (todayIdx === -1) return null;
 
-                      const topOffset = (h - 7) * 128 + (m / 60) * 128;
+                      const topOffset = (h - 7) * 132 + (m * (33 / 15)) + 48;
                       const colWidth = 100 / 7;
 
                       return (
@@ -826,8 +841,11 @@ const AgendaPage = () => {
                             width: `${colWidth}%`
                           }}
                         >
-                          <div className="w-2 h-2 rounded-full bg-destructive -ml-1 shadow-sm" />
-                          <div className="h-[2px] flex-1 bg-destructive shadow-sm" />
+                          <div className="w-2 h-2 rounded-full bg-destructive -ml-1 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse" />
+                          <div className="h-[2px] flex-1 bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+                          <span className="absolute -top-5 left-2 bg-destructive text-white text-[9px] px-1 rounded font-bold">
+                            {format(currentTime, "HH:mm")}
+                          </span>
                         </div>
                       );
                     })()}
@@ -861,7 +879,7 @@ const AgendaPage = () => {
                 </div>
               ) : (
                 /* ============ DAY VIEW ============ */
-                <div className="flex h-full" style={{ minWidth: `${Math.max(filteredProfessionals.length * 200 + 80, 800)}px`, width: 'max-content' }}>
+                <div className="flex h-full w-full">
                   <div className="w-16 shrink-0 border-r border-border bg-background/50 sticky left-0 z-20">
                     <div className="h-12" />
                     {hours.map((time) => {
@@ -874,7 +892,7 @@ const AgendaPage = () => {
                     })}
                   </div>
 
-                  <div className="flex flex-1 relative h-[1968px]">
+                  <div className="flex flex-1 relative h-[2028px]">
                     {/* Real-time Indicator Component (Day) */}
                     {(() => {
                       const h = currentTime.getHours();
@@ -882,15 +900,19 @@ const AgendaPage = () => {
                       if (h < 7 || h >= 22) return null;
                       if (!isToday(selectedDay)) return null;
 
-                      const topOffset = (h - 7) * 128 + (m / 60) * 128;
+                      const topOffset = (h - 7) * 132 + (m * (33 / 15)) + 48;
+                      console.error(`[TERMINAL_OFFSET_CHECK] h:${h} m:${m} offset:${topOffset}`);
 
                       return (
                         <div
                           className="absolute left-0 right-0 z-50 pointer-events-none flex items-center"
                           style={{ top: `${topOffset}px` }}
                         >
-                          <div className="w-2 h-2 rounded-full bg-destructive -ml-1 shadow-sm" />
-                          <div className="h-[2px] flex-1 bg-destructive shadow-sm" />
+                          <div className="w-2.5 h-2.5 rounded-full bg-destructive -ml-1.5 shadow-[0_0_10px_rgba(239,68,68,0.8)] animate-pulse" />
+                          <div className="h-[2px] flex-1 bg-destructive shadow-[0_0_10px_rgba(239,68,68,0.6)]" />
+                          <span className="absolute -top-5 left-2 bg-destructive text-white text-[10px] px-1.5 py-0.5 rounded font-bold shadow-sm">
+                            {format(currentTime, "HH:mm")}
+                          </span>
                         </div>
                       );
                     })()}
@@ -996,7 +1018,7 @@ function DayColumn({
   const colRef = useRef<HTMLDivElement>(null);
   return (
     <div
-      className="flex-1 min-w-[160px] border-r border-border last:border-r-0 cursor-pointer"
+      className="flex-1 min-w-0 border-r border-border last:border-r-0 cursor-pointer"
       onDoubleClick={onDoubleClick}
     >
       <div className="h-12 flex flex-col items-center justify-center border-b border-border bg-muted/30">
@@ -1028,9 +1050,9 @@ function ProfColumn({
 }) {
   const colRef = useRef<HTMLDivElement>(null);
   return (
-    <div className="flex-1 min-w-[300px] border-r border-border last:border-r-0">
+    <div className="flex-1 min-w-0 border-r border-border last:border-r-0">
       <div className="h-12 flex items-center justify-center border-b border-border bg-muted/30 px-2">
-        <span className="text-xs font-bold text-foreground truncate">{profName}</span>
+        <span className="text-[10px] sm:text-xs font-bold text-foreground truncate">{profName}</span>
       </div>
       <div className="relative" ref={colRef}>
         {hours.map((time) => (
