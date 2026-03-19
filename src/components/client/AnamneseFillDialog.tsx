@@ -273,20 +273,6 @@ const AnamneseFillDialog = ({
         );
 
       case "modelo_padrao":
-        if (field.label.includes("Procedimento") || field.label.includes("Observação Técnica")) {
-          return (
-            <div className="space-y-3 col-span-full mt-8">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                <Label className="text-base font-semibold text-[#5c7cbe]">{field.label}</Label>
-              </div>
-              <TableEditor 
-                value={value}
-                onChange={(newValue) => updateAnswer(field.id, newValue)}
-              />
-            </div>
-          );
-        }
-
         return (
           <div className="space-y-3 col-span-full mt-8">
             <div className="flex items-center justify-between border-b border-slate-200 pb-2">

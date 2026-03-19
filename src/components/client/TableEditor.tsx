@@ -19,6 +19,29 @@ export function TableEditor({ value, onChange }: TableEditorProps) {
       return;
     }
 
+    // Heuristic: If it contains the header text in a single line without pipes, it's a legacy dump
+    const legacyHeaders = ["Data", "Procedimento Realizado", "Observação"];
+    if (!value.includes("|") && value.toLowerCase().includes("procedimento realizado")) {
+      // Try to strip the headers and get the data
+      let cleanValue = value;
+      legacyHeaders.forEach(h => {
+        const regex = new RegExp(h, "gi");
+        cleanValue = cleanValue.replace(regex, "");
+      });
+      
+      const trimmed = cleanValue.trim();
+      if (trimmed.length > 0) {
+        // Find if it starts with a date like 00/00
+        const dateMatch = trimmed.match(/^(\d{2}\/\d{2})\s*(.*)$/);
+        if (dateMatch) {
+          setRows([[dateMatch[1], dateMatch[2], ""]]);
+          return;
+        }
+        setRows([["", trimmed, ""]]);
+        return;
+      }
+    }
+
     const lines = value.split("\n").filter(l => l.trim().length > 0);
     // Skip header and separator lines
     const dataLines = lines.filter((l, i) => {
