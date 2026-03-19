@@ -78,11 +78,57 @@ const AnamneseFillDialog = ({
 
   const [hasInitializedModels, setHasInitializedModels] = useState(false);
 
+  const parseLegacyAnswers = useCallback((text: string, templateFields: TemplateField[]) => {
+    const legacyAnswers: Record<string, string> = {};
+    if (!text) return legacyAnswers;
+
+    // Split by newline and try to find labels
+    const lines = text.split("\n");
+    templateFields.forEach(field => {
+      // Find a line that starts with the field label (or something similar)
+      const labelLower = field.label.toLowerCase().replace(/[?:.]/g, "").trim();
+      const line = lines.find(l => {
+        const lineParts = l.split(":");
+        if (lineParts.length < 2) return false;
+        const lineLabel = lineParts[0].toLowerCase().replace(/[?:.]/g, "").trim();
+        return lineLabel === labelLower || lineLabel.includes(labelLower) || labelLower.includes(lineLabel);
+      });
+
+      if (line) {
+        const parts = line.split(":");
+        if (parts.length >= 2) {
+          legacyAnswers[field.id] = parts.slice(1).join(":").trim();
+        }
+      }
+    });
+
+    // Special case for procedural notes which might be at the end or in a different format
+    if (!legacyAnswers['proced_realizado']) {
+      const procedLine = lines.find(l => l.includes("Procedimento Realizado"));
+      if (procedLine) {
+        const parts = procedLine.split(":");
+        legacyAnswers['proced_realizado'] = parts.slice(1).join(":").trim();
+      }
+    }
+
+    return legacyAnswers;
+  }, []);
+
   useEffect(() => {
     if (isEditing && existingRecord.content) {
       if (!hasInitializedModels) {
         const content = existingRecord.content as any;
-        setAnswers((content.answers as Record<string, string>) ?? {});
+        let initialAnswers = (content.answers as Record<string, string>) ?? {};
+        
+        // If answers are empty but we have an array (legacy format), try to parse
+        if (Object.keys(initialAnswers).length === 0 && Array.isArray(content)) {
+          const legacyObj = content.find((item: any) => item.label === "Observação" || item.label === "Descrição");
+          if (legacyObj && legacyObj.value) {
+            initialAnswers = parseLegacyAnswers(legacyObj.value, fields);
+          }
+        }
+        
+        setAnswers(initialAnswers);
         setHasInitializedModels(true);
       }
     } else if (!isEditing && client && !hasInitializedModels) {
@@ -95,7 +141,7 @@ const AnamneseFillDialog = ({
       setAnswers(initialAnswers);
       setHasInitializedModels(true);
     }
-  }, [isEditing, existingRecord, client, fields, hasInitializedModels, replaceTags]);
+  }, [isEditing, existingRecord, client, fields, hasInitializedModels, replaceTags, parseLegacyAnswers]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
