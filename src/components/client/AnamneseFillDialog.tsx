@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2, X, Check, Save, ChevronDown, FileText } from "lucide-react";
+import { Loader2, X, Check, Save, ChevronDown, FileText, Table } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import type { AnamnesisTemplate, TemplateField } from "@/components/settings/AnamnesesTab";
@@ -304,13 +304,16 @@ const AnamneseFillDialog = ({
                     <button className="w-8 h-8 flex items-center justify-center hover:bg-slate-200 rounded transition-colors rotate-90">
                       <ChevronDown className="w-4 h-4 text-slate-600" />
                     </button>
+                    <button className="w-8 h-8 flex items-center justify-center hover:bg-slate-200 rounded transition-colors ml-1 border-l pl-2">
+                      <Table className="w-4 h-4 text-slate-600" />
+                    </button>
                   </div>
                </div>
                <Textarea
                  value={value}
                  onChange={(e) => updateAnswer(field.id, e.target.value)}
                  placeholder="Digite aqui..."
-                 className="min-h-[250px] text-sm whitespace-pre border-none focus-visible:ring-0 bg-white rounded-none font-sans p-4 leading-relaxed"
+                 className="min-h-[250px] text-sm whitespace-pre border-none focus-visible:ring-0 bg-white rounded-none font-mono p-4 leading-relaxed"
                  style={{ tabSize: 20 }}
                />
                <div className="bg-[#f8f9fa] border-t h-2 flex items-center justify-center">
