@@ -8,7 +8,6 @@ import {
   useProfessionals,
   useServicesForProfessional,
   useClients,
-  type DBProfessional,
   type DBService,
 } from "@/hooks/useClinicData";
 import {
@@ -16,6 +15,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogClose,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -49,9 +49,10 @@ import { matchesPhone } from "@/utils/phoneUtils";
 import { cn } from "@/lib/utils";
 import { format, parseISO, addDays, addWeeks, addMonths, addYears } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Loader2, Search, AlertTriangle, UserPlus, User, ExternalLink, History } from "lucide-react";
+import { CalendarIcon, Loader2, Search, AlertTriangle, UserPlus, User, History, GripVertical, X } from "lucide-react";
 import { toast } from "sonner";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { motion } from "framer-motion";
 
 interface NewAppointmentDialogProps {
   open: boolean;
@@ -59,6 +60,7 @@ interface NewAppointmentDialogProps {
   defaultDate?: Date;
   defaultProfessionalId?: string;
   defaultStartTime?: string;
+  onDateSelect?: (date: Date) => void;
 }
 
 const timeSlots = Array.from({ length: 180 }, (_, i) => {
@@ -76,7 +78,8 @@ const NewAppointmentDialog = ({
   onOpenChange,
   defaultDate,
   defaultProfessionalId,
-  defaultStartTime
+  defaultStartTime,
+  onDateSelect
 }: NewAppointmentDialogProps) => {
   const queryClient = useQueryClient();
   const { data: professionals = [] } = useProfessionals();
@@ -109,21 +112,28 @@ const NewAppointmentDialog = ({
     }
   }, [open, defaultProfessionalId, defaultStartTime, defaultDate]);
 
+  // Notify date change to parent (Agenda)
+  useEffect(() => {
+    if (open && date && onDateSelect) {
+      onDateSelect(date);
+    }
+  }, [date, open, onDateSelect]);
+
   const services = useServicesForProfessional(professionalId);
-  const { data: clientsData, isLoading: isLoadingClients } = useClients({ search: clientSearch, pageSize: 20 });
+  const { data: clientsData } = useClients({ search: clientSearch, pageSize: 20 });
   const clients = clientsData?.data ?? [];
 
   const dateStr = date ? format(date, "yyyy-MM-dd") : undefined;
   const { getConflict } = useOccupiedSlots(professionalId || undefined, dateStr);
 
-  const filteredClients = clientSearch.length >= 2
+  const cleanSearch = clientSearch.trim().normalize("NFC");
+  const filteredClients = cleanSearch.length >= 2
     ? clients.filter(c =>
-      c.full_name.toLowerCase().includes(clientSearch.toLowerCase()) ||
-      matchesPhone(c.phone, clientSearch)
+      c.full_name.normalize("NFC").toLowerCase().includes(cleanSearch.toLowerCase()) ||
+      matchesPhone(c.phone, cleanSearch)
     )
     : [];
 
-  // Calculate total duration and end time
   const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration_minutes, 0);
   const suggestedEndTime = startTime
     ? (() => {
@@ -225,37 +235,20 @@ const NewAppointmentDialog = ({
       }
 
       const dateStr = format(date, "yyyy-MM-dd");
-
-      // Calculate dates for recurrence
       const datesToProcess: string[] = [dateStr];
       if (recurrence !== "none") {
         const occurrences = parseInt(repeatCount);
         let incrementFn: (d: Date, i: number) => Date;
 
         switch (recurrence) {
-          case 'daily':
-            incrementFn = (d, i) => addDays(d, i);
-            break;
-          case 'weekly':
-            incrementFn = (d, i) => addWeeks(d, i);
-            break;
-          case 'biweekly':
-            incrementFn = (d, i) => addWeeks(d, i * 2);
-            break;
-          case 'monthly':
-            incrementFn = (d, i) => addMonths(d, i);
-            break;
-          case 'quarterly':
-            incrementFn = (d, i) => addMonths(d, i * 3);
-            break;
-          case 'semiannual':
-            incrementFn = (d, i) => addMonths(d, i * 6);
-            break;
-          case 'annual':
-            incrementFn = (d, i) => addYears(d, i);
-            break;
-          default:
-            incrementFn = (d) => d;
+          case 'daily': incrementFn = (d, i) => addDays(d, i); break;
+          case 'weekly': incrementFn = (d, i) => addWeeks(d, i); break;
+          case 'biweekly': incrementFn = (d, i) => addWeeks(d, i * 2); break;
+          case 'monthly': incrementFn = (d, i) => addMonths(d, i); break;
+          case 'quarterly': incrementFn = (d, i) => addMonths(d, i * 3); break;
+          case 'semiannual': incrementFn = (d, i) => addMonths(d, i * 6); break;
+          case 'annual': incrementFn = (d, i) => addYears(d, i); break;
+          default: incrementFn = (d) => d;
         }
 
         for (let i = 1; i < occurrences; i++) {
@@ -263,7 +256,6 @@ const NewAppointmentDialog = ({
         }
       }
 
-      // Check for time conflicts (only for the first one for simplicity, or we could check all)
       if (!forceCreate) {
         const conflict = await checkAppointmentConflict({
           professionalId,
@@ -278,8 +270,6 @@ const NewAppointmentDialog = ({
       }
 
       let effectiveClientId = selectedClientId;
-
-      // Ensure client exists
       if (!effectiveClientId && clientPhone.trim()) {
         const { data: existingClient } = await supabase
           .from("clients")
@@ -305,7 +295,6 @@ const NewAppointmentDialog = ({
         }
       }
 
-      // Insert all appointments
       const appointmentsToInsert = datesToProcess.map(d => ({
         professional_id: professionalId,
         client_id: effectiveClientId,
@@ -325,7 +314,6 @@ const NewAppointmentDialog = ({
 
       if (error) throw error;
 
-      // Insert services for each appointment
       if (createdApts) {
         const allServicesToInsert = createdApts.flatMap(apt => 
           selectedServices.map(s => ({
@@ -343,11 +331,10 @@ const NewAppointmentDialog = ({
 
         if (svcError) throw svcError;
       }
-
       return createdApts;
     },
     onSuccess: (result) => {
-      if (result === null) return; // Conflict warning shown, don't close
+      if (result === null) return;
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
       toast.success("Agendamento criado com sucesso!");
       resetForm();
@@ -361,365 +348,304 @@ const NewAppointmentDialog = ({
   const handleForceCreate = () => {
     setConflictWarning(null);
     setForceCreate(true);
-    // Trigger mutation again with force flag
     setTimeout(() => mutation.mutate(), 50);
   };
 
   const canSubmit = professionalId && selectedServices.length > 0 && date && startTime && clientName.trim() && clientPhone.trim();
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); onOpenChange(v); }}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="font-display">Novo Agendamento</DialogTitle>
-        </DialogHeader>
+    <Dialog modal={false} open={open} onOpenChange={(v) => { if (!v) resetForm(); onOpenChange(v); }}>
+      <DialogContent 
+        hideOverlay={true}
+        hideCloseButton={true}
+        className="max-w-lg p-0 bg-transparent border-none shadow-none pointer-events-none"
+        onInteractOutside={(e) => e.preventDefault()}
+      >
+        <motion.div 
+          drag
+          dragMomentum={false}
+          className="relative bg-background border-2 rounded-xl shadow-2xl p-6 pointer-events-auto flex flex-col gap-4 max-h-[90vh] overflow-y-auto cursor-default"
+        >
+          <DialogHeader className="cursor-move select-none border-b pb-3 mb-2 flex flex-row items-center gap-2">
+            <GripVertical className="w-5 h-5 text-muted-foreground" />
+            <DialogTitle className="font-display">Novo Agendamento</DialogTitle>
+          </DialogHeader>
 
-        <div className="space-y-5 pt-2">
-          {/* 1. Professional */}
-          <div className="space-y-2">
-            <Label>Profissional *</Label>
-            <Select value={professionalId} onValueChange={(v) => { setProfessionalId(v); setSelectedServices([]); }}>
-              <SelectTrigger><SelectValue placeholder="Selecione a profissional" /></SelectTrigger>
-              <SelectContent>
-                {professionals.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name} — {p.role_description}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity data-[state=open]:bg-accent data-[state=open]:text-muted-foreground hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none z-10">
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </DialogClose>
 
-          {/* 2. Services */}
-          {professionalId && (
+          <div className="space-y-5 pt-2">
+            {/* 1. Professional */}
             <div className="space-y-2">
-              <Label>Serviços * {selectedServices.length > 0 && <span className="text-muted-foreground font-normal">({totalDuration} min)</span>}</Label>
-              {services.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhum serviço vinculado a esta profissional.</p>
-              ) : (
-                <div className="space-y-2">
-                  <div className="relative">
-                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                    <Input
-                      placeholder="Pesquisar serviço..."
-                      value={serviceSearch}
-                      onChange={(e) => setServiceSearch(e.target.value)}
-                      className="pl-8 h-8 text-xs"
-                    />
-                  </div>
-                  <div className="grid gap-2 max-h-40 overflow-y-auto border border-border rounded-lg p-3">
-                    {services
-                      .filter(s => s.name.toLowerCase().includes(serviceSearch.toLowerCase()))
-                      .map((s) => {
-                        const checked = selectedServices.some((ss) => ss.id === s.id);
-                        return (
-                          <label key={s.id} className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 rounded-md px-2 py-1.5 -mx-1">
-                            <Checkbox checked={checked} onCheckedChange={() => toggleService(s)} />
-                            <div className="flex-1 min-w-0">
-                              <span className="text-sm font-medium">{s.name}</span>
-                              <span className="text-xs text-muted-foreground ml-2">{s.duration_minutes} min</span>
-                            </div>
-                            {s.base_price != null && (
-                              <span className="text-xs text-muted-foreground shrink-0">
-                                R$ {s.base_price.toFixed(2).replace(".", ",")}
-                              </span>
-                            )}
-                          </label>
-                        );
-                      })}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* 3. Date */}
-          <div className="space-y-2">
-            <Label>Data *</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}>
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date ? format(date, "PPP", { locale: ptBR }) : "Selecione a data"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          {/* 4. Time */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Início *</Label>
-              <Select value={startTime} onValueChange={(v) => { setStartTime(v); setManualEndTime(null); }}>
-                <SelectTrigger><SelectValue placeholder="Início" /></SelectTrigger>
+              <Label>Profissional *</Label>
+              <Select value={professionalId} onValueChange={(v) => { setProfessionalId(v); setSelectedServices([]); }}>
+                <SelectTrigger><SelectValue placeholder="Selecione a profissional" /></SelectTrigger>
                 <SelectContent>
-                  {timeSlots.map((t) => {
-                    const conflict = totalDuration > 0 ? getConflict(t, totalDuration) : null;
-                    return (
-                      <SelectItem key={t} value={t}>
-                        <span className="flex items-center gap-2">
-                          {t}
-                          {conflict && (
-                            <span className="text-[10px] text-amber-500 font-normal">⚠ {conflict}</span>
-                          )}
-                        </span>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Término *</Label>
-              <Select value={endTime} onValueChange={setManualEndTime}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Término" />
-                </SelectTrigger>
-                <SelectContent>
-                  {timeSlots.map((t) => {
-                    // Disable times before or equal to start time
-                    const isBeforeStart = startTime && t <= startTime;
-                    return (
-                      <SelectItem key={t} value={t} disabled={!!isBeforeStart}>
-                        {t} {t === suggestedEndTime && "(Sugerido)"}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* 5. Client */}
-          <div className="space-y-2">
-            <Label>Cliente *</Label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar cliente por nome ou telefone..."
-                  value={selectedClientId ? clientName : clientSearch}
-                  onChange={(e) => {
-                    if (selectedClientId) {
-                      setSelectedClientId(null);
-                      setClientName("");
-                      setClientPhone("");
-                    }
-                    setClientSearch(e.target.value);
-                  }}
-                  className="pl-9"
-                />
-              </div>
-              {selectedClientId && (
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="shrink-0"
-                  onClick={() => window.open(`/clientes/${selectedClientId}`, '_blank')}
-                  title="Ver perfil completo"
-                >
-                  <User className="w-4 h-4" />
-                </Button>
-              )}
-            </div>
-
-            {selectedClientId && (
-              <div className="space-y-2">
-                <Collapsible open={showRecentServices} onOpenChange={setShowRecentServices}>
-                  <CollapsibleTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="bg-purple-600 text-white hover:bg-purple-700 hover:text-white border-none h-7 px-2 text-[10px] uppercase font-bold tracking-wider"
-                    >
-                      <History className="w-3 h-3 mr-1.5" />
-                      Exibir Últimos Serviços
-                    </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="mt-2 text-xs space-y-2 border rounded-md p-3 bg-muted/30">
-                    <p className="font-semibold text-muted-foreground flex items-center gap-1.5 uppercase text-[9px] tracking-tight">
-                      Últimos agendamentos:
-                    </p>
-                    {recentAppointments.length === 0 ? (
-                      <p className="italic text-muted-foreground">Nenhum histórico encontrado.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {recentAppointments.map(apt => (
-                          <div key={apt.id} className="border-b border-border last:border-0 pb-1.5 mb-1.5 last:mb-0 last:pb-0">
-                            <div className="flex justify-between font-medium">
-                              <span>{format(parseISO(apt.date), "dd/MM/yyyy")}</span>
-                              <span>{apt.start_time.slice(0, 5)}</span>
-                            </div>
-                            <p className="text-muted-foreground truncate">
-                              {(apt as any).appointment_services?.map((s: any) => s.service_name).join(", ") || apt.notes || "-"}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </CollapsibleContent>
-                </Collapsible>
-              </div>
-            )}
-
-            {filteredClients.length > 0 && !selectedClientId && (
-              <div className="border border-border rounded-lg max-h-32 overflow-y-auto">
-                {filteredClients.slice(0, 8).map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => selectClient(c)}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
-                  >
-                    <span className="font-medium">{c.full_name}</span>
-                    {c.phone && <span className="text-muted-foreground ml-2">{c.phone}</span>}
-                  </button>
-                ))}
-              </div>
-            )}
-            {clientSearch.length >= 2 && filteredClients.length === 0 && !selectedClientId && (
-              <div className="space-y-4 p-6 border border-dashed border-border rounded-lg bg-gray-50/50 flex flex-col items-center justify-center text-center">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-slate-700">Não encontrei este Cliente.</p>
-                  <p className="text-xs text-muted-foreground">Deseja cadastrá-lo agora?</p>
-                </div>
-                
-                <div className="w-full space-y-3">
-                  <Input
-                    placeholder="Nome do cliente"
-                    value={clientName}
-                    onChange={(e) => setClientName(e.target.value)}
-                  />
-                  <Input
-                    placeholder="Telefone"
-                    value={clientPhone}
-                    onChange={(e) => setClientPhone(maskPhone(e.target.value))}
-                  />
-                  
-                  <Button 
-                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold uppercase tracking-wider gap-2 shadow-sm h-11"
-                    onClick={() => createClientMutation.mutate()}
-                    disabled={createClientMutation.isPending || !clientName.trim() || !clientPhone.trim()}
-                  >
-                    {createClientMutation.isPending ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <UserPlus className="w-4 h-4" />
-                    )}
-                    Cadastrar Cliente
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Status and Recurrence */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="agendado">Agendado</SelectItem>
-                  <SelectItem value="atendendo">Atendendo</SelectItem>
-                  <SelectItem value="atendido">Atendido</SelectItem>
-                  <SelectItem value="atrasado">Atrasado</SelectItem>
-                  <SelectItem value="cancelado">Cancelado</SelectItem>
-                  <SelectItem value="confirmado">Confirmado</SelectItem>
-                  <SelectItem value="espera">Espera</SelectItem>
-                  <SelectItem value="faltou">Faltou</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Repetir?</Label>
-              <Select value={recurrence} onValueChange={setRecurrence}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Não repetir" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Não repetir</SelectItem>
-                  <SelectItem value="daily">Diariamente</SelectItem>
-                  <SelectItem value="weekly">Semanalmente</SelectItem>
-                  <SelectItem value="biweekly">Quinzenalmente</SelectItem>
-                  <SelectItem value="monthly">Mensalmente</SelectItem>
-                  <SelectItem value="quarterly">Trimestralmente</SelectItem>
-                  <SelectItem value="semiannual">Semestralmente</SelectItem>
-                  <SelectItem value="annual">Anualmente</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {recurrence !== "none" && (
-            <div className="space-y-2">
-              <Label>Número de repetições</Label>
-              <Select value={repeatCount} onValueChange={setRepeatCount}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Nunca" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">Nunca</SelectItem>
-                  {Array.from({ length: 29 }, (_, i) => i + 2).map((num) => (
-                    <SelectItem key={num} value={num.toString()}>
-                      {num}x
+                  {professionals.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name} — {p.role_description}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          )}
 
-          {recurrence !== "none" && (
-            <div className="bg-blue-50 border border-blue-100 p-3 rounded-md">
-              <div className="flex items-center gap-2 text-blue-700 text-xs font-medium mb-1">
-                <History className="w-3.5 h-3.5" />
-                Agendamento Recorrente
+            {/* 2. Services */}
+            {professionalId && (
+              <div className="space-y-2">
+                <Label>Serviços * {selectedServices.length > 0 && <span className="text-muted-foreground font-normal">({totalDuration} min)</span>}</Label>
+                {services.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhum serviço vinculado a esta profissional.</p>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                      <Input
+                        placeholder="Pesquisar serviço..."
+                        value={serviceSearch}
+                        onChange={(e) => setServiceSearch(e.target.value)}
+                        className="pl-8 h-8 text-xs"
+                      />
+                    </div>
+                    <div className="grid gap-2 max-h-40 overflow-y-auto border border-border rounded-lg p-3">
+                      {services
+                        .filter(s => s.name.toLowerCase().includes(serviceSearch.toLowerCase()))
+                        .map((s) => {
+                          const checked = selectedServices.some((ss) => ss.id === s.id);
+                          return (
+                            <label key={s.id} className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 rounded-md px-2 py-1.5 -mx-1">
+                              <Checkbox checked={checked} onCheckedChange={() => toggleService(s)} />
+                              <div className="flex-1 min-w-0">
+                                <span className="text-sm font-medium">{s.name}</span>
+                                <span className="text-xs text-muted-foreground ml-2">{s.duration_minutes} min</span>
+                              </div>
+                              {s.base_price != null && (
+                                <span className="text-xs text-muted-foreground shrink-0">
+                                  R$ {s.base_price.toFixed(2).replace(".", ",")}
+                                </span>
+                              )}
+                            </label>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
               </div>
-              <p className="text-[11px] text-blue-600/80 leading-relaxed">
-                O sistema criará automaticamente as próximas <strong>{parseInt(repeatCount) - 1}</strong> ocorrências deste agendamento nos mesmos horários (Total de {repeatCount} sessões).
-              </p>
+            )}
+
+            {/* 3. Date */}
+            <div className="space-y-2">
+              <Label>Data *</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date ? format(date, "PPP", { locale: ptBR }) : "Selecione a data"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={setDate}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
-          )}
 
-          {/* 7. Notes */}
-          <div className="space-y-2">
-            <Label>Observações</Label>
-            <Textarea
-              placeholder="Ex: 2/5, retorno, etc."
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={2}
-              maxLength={500}
-            />
+            {/* 4. Time */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Início *</Label>
+                <Select value={startTime} onValueChange={(v) => { setStartTime(v); setManualEndTime(null); }}>
+                  <SelectTrigger><SelectValue placeholder="Início" /></SelectTrigger>
+                  <SelectContent>
+                    {timeSlots.map((t) => {
+                      const conflict = totalDuration > 0 ? getConflict(t, totalDuration) : null;
+                      return (
+                        <SelectItem key={t} value={t}>
+                          <span className="flex items-center gap-2">
+                            {t}
+                            {conflict && (
+                              <span className="text-[10px] text-amber-500 font-normal">⚠ {conflict}</span>
+                            )}
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Término *</Label>
+                <Select value={endTime} onValueChange={setManualEndTime}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Término" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timeSlots.map((t) => {
+                      const isBeforeStart = startTime && t <= startTime;
+                      return (
+                        <SelectItem key={t} value={t} disabled={!!isBeforeStart}>
+                          {t} {t === suggestedEndTime && "(Sugerido)"}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* 5. Client */}
+            <div className="space-y-2">
+              <Label>Cliente *</Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar cliente por nome ou telefone..."
+                    value={selectedClientId ? clientName : clientSearch}
+                    onChange={(e) => {
+                      if (selectedClientId) {
+                        setSelectedClientId(null);
+                        setClientName("");
+                        setClientPhone("");
+                      }
+                      setClientSearch(e.target.value);
+                    }}
+                    className="pl-9"
+                  />
+                </div>
+                {selectedClientId && (
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="shrink-0"
+                    onClick={() => window.open(`/clientes/${selectedClientId}`, '_blank')}
+                    title="Ver perfil completo"
+                  >
+                    <User className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+
+              {selectedClientId && (
+                <div className="space-y-2">
+                  <Collapsible open={showRecentServices} onOpenChange={setShowRecentServices}>
+                    <CollapsibleTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="bg-purple-600 text-white hover:bg-purple-700 hover:text-white border-none h-7 px-2 text-[10px] uppercase font-bold tracking-wider"
+                      >
+                        <History className="w-3 h-3 mr-1.5" />
+                        Exibir Últimos Serviços
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-2 text-xs space-y-2 border rounded-md p-3 bg-muted/30">
+                      <p className="font-semibold text-muted-foreground flex items-center gap-1.5 uppercase text-[9px] tracking-tight">
+                        Últimos agendamentos:
+                      </p>
+                      {recentAppointments.length === 0 ? (
+                        <p className="italic text-muted-foreground">Nenhum histórico encontrado.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {recentAppointments.map(apt => (
+                            <div key={apt.id} className="border-b border-border last:border-0 pb-1.5 mb-1.5 last:mb-0 last:pb-0">
+                              <div className="flex justify-between font-medium">
+                                <span>{format(parseISO(apt.date), "dd/MM/yyyy")}</span>
+                                <span>{apt.start_time.slice(0, 5)}</span>
+                              </div>
+                              <p className="text-muted-foreground truncate">
+                                {(apt as any).appointment_services?.map((s: any) => s.service_name).join(", ") || apt.notes || "-"}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CollapsibleContent>
+                  </Collapsible>
+                </div>
+              )}
+
+              {filteredClients.length > 0 && !selectedClientId && (
+                <div className="border border-border rounded-lg max-h-32 overflow-y-auto">
+                  {filteredClients.slice(0, 8).map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => selectClient(c)}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
+                    >
+                      <span className="font-medium">{c.full_name}</span>
+                      {c.phone && <span className="text-muted-foreground ml-2">{c.phone}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Status and Recurrence */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={status} onValueChange={setStatus}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o status" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="agendado">Agendado</SelectItem>
+                    <SelectItem value="atendendo">Atendendo</SelectItem>
+                    <SelectItem value="atendido">Atendido</SelectItem>
+                    <SelectItem value="atrasado">Atrasado</SelectItem>
+                    <SelectItem value="cancelado">Cancelado</SelectItem>
+                    <SelectItem value="confirmado">Confirmado</SelectItem>
+                    <SelectItem value="espera">Espera</SelectItem>
+                    <SelectItem value="faltou">Faltou</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Repetir?</Label>
+                <Select value={recurrence} onValueChange={setRecurrence}>
+                  <SelectTrigger><SelectValue placeholder="Não repetir" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Não repetir</SelectItem>
+                    <SelectItem value="daily">Diariamente</SelectItem>
+                    <SelectItem value="weekly">Semanalmente</SelectItem>
+                    <SelectItem value="monthly">Mensalmente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Observações</Label>
+              <Textarea
+                placeholder="Ex: 2/5, retorno, etc."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={2}
+                maxLength={500}
+              />
+            </div>
+
+            <Button
+              onClick={() => mutation.mutate()}
+              disabled={!canSubmit || mutation.isPending}
+              className="w-full"
+            >
+              {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Agendar
+            </Button>
           </div>
-
-          {/* Submit */}
-          <Button
-            onClick={() => mutation.mutate()}
-            disabled={!canSubmit || mutation.isPending}
-            className="w-full"
-          >
-            {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            Agendar
-          </Button>
-        </div>
+        </motion.div>
       </DialogContent>
 
-      {/* Conflict confirmation dialog */}
       <AlertDialog open={!!conflictWarning} onOpenChange={(open) => { if (!open) setConflictWarning(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -728,8 +654,7 @@ const NewAppointmentDialog = ({
               Conflito de Horário
             </AlertDialogTitle>
             <AlertDialogDescription className="text-sm">
-              A profissional já possui um atendimento com{" "}
-              <strong>{conflictWarning}</strong> neste horário.
+              A profissional já possui um atendimento com <strong>{conflictWarning}</strong> neste horário.
               <br /><br />
               Deseja agendar mesmo assim? (encaixe)
             </AlertDialogDescription>

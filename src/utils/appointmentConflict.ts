@@ -50,17 +50,5 @@ export async function checkAppointmentConflict({
     return conflict.client_name || "outro cliente";
   }
 
-  // Check weekly blocked slots
-  const relevantWeekly = WEEKLY_BLOCKS.filter(wb => wb.professionalId === professionalId);
-  for (const block of relevantWeekly) {
-    // Basic overlap check: (start1 < end2) && (end1 > start2)
-    const blockStart = block.startTime.length === 5 ? `${block.startTime}:00` : block.startTime;
-    const blockEnd = block.endTime.length === 5 ? `${block.endTime}:00` : block.endTime;
-
-    if (startTime < blockEnd && endTime > blockStart) {
-      return block.reason || "Indisponibilidade fixa";
-    }
-  }
-
   return null;
 }

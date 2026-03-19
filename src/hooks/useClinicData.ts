@@ -145,12 +145,13 @@ export const useClients = (options: {
         .eq("is_active", is_active);
 
       if (search && search.trim().length > 0) {
-        const numericSearch = search.replace(/\D/g, '');
+        const cleanSearch = search.trim().normalize("NFC");
+        const numericSearch = cleanSearch.replace(/\D/g, '');
         if (numericSearch.length >= 8) {
           // If searching by number, try to match digits too
-          query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%,phone.ilike.%${numericSearch}%,cpf.ilike.%${search}%`);
+          query = query.or(`full_name.ilike.%${cleanSearch}%,phone.ilike.%${cleanSearch}%,phone.ilike.%${numericSearch}%,cpf.ilike.%${cleanSearch}%`);
         } else {
-          query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%,cpf.ilike.%${search}%`);
+          query = query.or(`full_name.ilike.%${cleanSearch}%,phone.ilike.%${cleanSearch}%,cpf.ilike.%${cleanSearch}%`);
         }
       }
 

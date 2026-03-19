@@ -55,6 +55,11 @@ interface PendingReschedule {
   newEndTime: string;
 }
 
+const SLOT_HEIGHT = 36; // 15 min slot in pixels
+const HOUR_HEIGHT = SLOT_HEIGHT * 4; // 144px
+const PX_PER_MINUTE = SLOT_HEIGHT / 15; // 2.4px/min
+const GRID_HEADER_HEIGHT = 48; // h-12
+
 const AgendaPage = () => {
   const getBrasiliaTime = () => {
     // Get UTC time and subtract 3 hours (Brasília standard time)
@@ -75,7 +80,7 @@ const AgendaPage = () => {
   const [selectedAppointment, setSelectedAppointment] = useState<DBAppointment | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
-  const [blockDefaults, setBlockDefaults] = useState<{ profId?: string; date?: Date; time?: string }>({});
+  const [blockDefaults, setBlockDefaults] = useState<{ id?: string; profId?: string; date?: Date; startTime?: string; endTime?: string; notes?: string }>({});
   const [apptDefaults, setApptDefaults] = useState<{ profId?: string; date?: Date; time?: string }>({});
 
   // Drag state
@@ -175,7 +180,7 @@ const AgendaPage = () => {
   const getBlockedForColumn = (dayStr: string, profId?: string) => {
     const dynamicBlocks = appointments.filter((b) => {
       const matchDay = b.date === dayStr;
-      const isBlocked = b.status === "bloqueado";
+      const isBlocked = b.status === "bloqueado" || b.client_name === "BLOQUEIO";
       if (!isBlocked) return false;
       
       if (viewMode === "day" && profId) return matchDay && b.professional_id === profId;
@@ -183,20 +188,7 @@ const AgendaPage = () => {
       return matchDay && matchProf;
     });
 
-    const weeklyBlocks = WEEKLY_BLOCKS.filter((wb) => {
-      if (viewMode === "day" && profId) return wb.professionalId === profId;
-      return selectedFilter === "all" || wb.professionalId === selectedFilter;
-    }).map(wb => ({
-      id: `weekly-${wb.professionalId}-${wb.startTime}`,
-      professional_id: wb.professionalId,
-      date: dayStr,
-      start_time: wb.startTime.length === 5 ? `${wb.startTime}:00` : wb.startTime,
-      end_time: wb.endTime.length === 5 ? `${wb.endTime}:00` : wb.endTime,
-      reason: wb.reason,
-      isWeekly: true
-    }));
-
-    return [...dynamicBlocks, ...weeklyBlocks];
+    return [...dynamicBlocks]; // All blocks are now in the database
   };
 
   const renderBlockedBlock = (block: any) => {
@@ -206,14 +198,12 @@ const AgendaPage = () => {
     } as DBAppointment);
 
     return (
-      <div
-        key={block.id}
-        className={cn(
-          "absolute left-1 right-1 overflow-hidden z-10 transition-all pointer-events-none hover:brightness-95 group",
-          "modern-agenda-card absence-block evento-agenda"
-        )}
-        style={{ top: `${top}px`, height: `${height}px` }}
+      <div 
+        key={block.id} 
+        className="absolute left-0 right-0 p-2 z-[2] border-l-4 border-l-black overflow-hidden absence-block"
+        style={{ top: `${top}px`, height: `${height}px`, cursor: 'default' }}
       >
+
         <div className="horario flex justify-between items-center" style={{ color: "#ffffff" }}>
           <span style={{ color: "#ffffff" }}>{block.start_time.slice(0, 5)}</span>
           {height >= 40 && (
@@ -225,9 +215,9 @@ const AgendaPage = () => {
         <div className="cliente font-medium flex items-center gap-1.5" style={{ fontSize: "11px", color: "#ffffff" }}>
           <span style={{ color: "#ffffff" }}>🚫</span>
           <span className="truncate uppercase tracking-tight" style={{ color: "#ffffff" }}>
-            {block.notes || "Horário Bloqueado"}
+            {block.notes || block.reason || "Horário Bloqueado"}
             {(() => {
-              const prof = professionals.find(p => p.id === block.professional_id);
+              const prof = professionals.find(p => p.id === (block.professional_id || block.professionalId));
               return prof && height >= 60 ? ` • ${prof.name.split(" ")[0]}` : "";
             })()}
           </span>
@@ -257,8 +247,9 @@ const AgendaPage = () => {
     const startMinutes = timeParts[0] * 60 + timeParts[1];
     const endMinutes = endParts[0] * 60 + endParts[1];
     const duration = endMinutes - startMinutes;
-    const top = (timeParts[0] - 7) * 132 + (timeParts[1] * (33 / 15)) + 48;
-    const height = Math.max((duration * (33 / 15)), 42);
+    // Calculate top: (hour - 7) * hour_height + (minutes * px/min)
+    const top = (timeParts[0] - 7) * HOUR_HEIGHT + (timeParts[1] * PX_PER_MINUTE);
+    const height = Math.max((duration * PX_PER_MINUTE), 42);
     return { top, height };
   };
 
@@ -273,9 +264,8 @@ const AgendaPage = () => {
 
   // Convert pixel position to time
   const pixelToTime = (px: number): { hours: number; minutes: number } => {
-    // 15 min = 33px, 1 min = 2.2px, 1 hour = 132px
-    // Subtract 48px header before calculating time
-    const minutesFromSeven = Math.round((px - 48) / (33 / 15));
+    // Calculate time from pixel position
+    const minutesFromSeven = Math.round(px / PX_PER_MINUTE);
     const totalMinutes = minutesFromSeven + 7 * 60;
     
     // Snap to 15-minute intervals (existing grid is 15-min based)
@@ -457,6 +447,7 @@ const AgendaPage = () => {
   const getApptsForColumn = (dayStr: string, profId?: string) => {
     const filtered = appointments.filter((a) => {
       if (a.status === "removido") return false;
+      if (a.status === "bloqueado" || a.client_name === "BLOQUEIO") return false;
       const matchDay = a.date === dayStr;
 
       // Search filter
@@ -703,7 +694,17 @@ const AgendaPage = () => {
             />
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="flex-1 sm:flex-none gap-1.5 h-9 sm:h-10 text-xs sm:text-sm" onClick={() => { setBlockDefaults({}); setBlockDialogOpen(true); }}>
+            <Button 
+                variant="outline" 
+                className="flex-1 sm:flex-none gap-1.5 h-9 sm:h-10 text-xs sm:text-sm" 
+                onClick={() => { 
+                    setBlockDefaults({
+                        profId: selectedFilter !== "all" ? selectedFilter : undefined,
+                        date: selectedDay
+                    }); 
+                    setBlockDialogOpen(true); 
+                }}
+            >
               <Ban className="w-4 h-4" /> Bloquear
             </Button>
             <Button className="flex-1 sm:flex-none gap-1.5 h-9 sm:h-10 text-xs sm:text-sm" onClick={() => setDialogOpen(true)}>
@@ -813,14 +814,18 @@ const AgendaPage = () => {
                     {hours.map((time) => {
                       const isHalf = time.endsWith(":30");
                       return (
-                        <div key={time} className={cn("h-8 flex items-start justify-end pr-2 pt-0.5 border-t", isHalf ? "border-slate-300" : "border-slate-400")}>
+                        <div 
+                          key={time} 
+                          className={cn("flex items-start justify-end pr-2 pt-0.5 border-t", isHalf ? "border-slate-300" : "border-slate-400")}
+                          style={{ height: SLOT_HEIGHT }}
+                        >
                           <span className={cn("text-[10px] font-medium", isHalf ? "text-muted-foreground/70" : "text-muted-foreground/90")}>{time}</span>
                         </div>
                       );
                     })}
                   </div>
 
-                  <div className="flex flex-1 relative h-[2028px]">
+                  <div className="flex flex-1 relative" style={{ height: HOUR_HEIGHT * 15 }}>
                     {/* Real-time Indicator Component (Week) */}
                     {(() => {
                       const h = currentTime.getHours();
@@ -829,7 +834,7 @@ const AgendaPage = () => {
                       const todayIdx = days.findIndex(d => isToday(d));
                       if (todayIdx === -1) return null;
 
-                      const topOffset = (h - 7) * 132 + (m * (33 / 15)) + 48;
+                      const topOffset = (h - 7) * HOUR_HEIGHT + (m * PX_PER_MINUTE) + GRID_HEADER_HEIGHT;
                       const colWidth = 100 / 7;
 
                       return (
@@ -885,14 +890,18 @@ const AgendaPage = () => {
                     {hours.map((time) => {
                       const isHalf = time.endsWith(":30");
                       return (
-                        <div key={time} className={cn("h-8 flex items-start justify-end pr-2 pt-0.5 border-t", isHalf ? "border-slate-300" : "border-slate-400")}>
+                        <div 
+                          key={time} 
+                          className={cn("flex items-start justify-end pr-2 pt-0.5 border-t", isHalf ? "border-slate-300" : "border-slate-400")}
+                          style={{ height: SLOT_HEIGHT }}
+                        >
                           <span className={cn("text-[10px] font-medium", isHalf ? "text-muted-foreground/70" : "text-muted-foreground/90")}>{time}</span>
                         </div>
                       );
                     })}
                   </div>
 
-                  <div className="flex flex-1 relative h-[2028px]">
+                  <div className="flex flex-1 relative" style={{ height: HOUR_HEIGHT * 15 }}>
                     {/* Real-time Indicator Component (Day) */}
                     {(() => {
                       const h = currentTime.getHours();
@@ -900,7 +909,7 @@ const AgendaPage = () => {
                       if (h < 7 || h >= 22) return null;
                       if (!isToday(selectedDay)) return null;
 
-                      const topOffset = (h - 7) * 132 + (m * (33 / 15)) + 48;
+                      const topOffset = (h - 7) * HOUR_HEIGHT + (m * PX_PER_MINUTE) + GRID_HEADER_HEIGHT;
                       console.error(`[TERMINAL_OFFSET_CHECK] h:${h} m:${m} offset:${topOffset}`);
 
                       return (
@@ -949,16 +958,20 @@ const AgendaPage = () => {
       <NewAppointmentDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        defaultDate={apptDefaults.date}
+        defaultDate={apptDefaults.date || selectedDay}
         defaultProfessionalId={apptDefaults.profId}
         defaultStartTime={apptDefaults.time}
+        onDateSelect={(date) => setSelectedDay(date)}
       />
       <BlockedSlotDialog
         open={blockDialogOpen}
         onOpenChange={setBlockDialogOpen}
+        blockId={blockDefaults.id}
         defaultProfessionalId={blockDefaults.profId}
         defaultDate={blockDefaults.date}
-        defaultStartTime={blockDefaults.time}
+        defaultStartTime={blockDefaults.startTime}
+        defaultEndTime={blockDefaults.endTime}
+        defaultNotes={blockDefaults.notes}
       />
       <AppointmentDetailDialog appointment={selectedAppointment} open={detailOpen} onOpenChange={setDetailOpen} />
 
@@ -1029,7 +1042,8 @@ function DayColumn({
         {hours.map((time) => (
           <div
             key={time}
-            className={cn("h-8 border-t hover:bg-accent/30 transition-colors", time.endsWith(":30") ? "border-slate-300" : "border-slate-400")}
+            className={cn("border-t hover:bg-accent/30 transition-colors", time.endsWith(":30") ? "border-slate-300" : "border-slate-400")}
+            style={{ height: SLOT_HEIGHT }}
           />
         ))}
         {blockedBlocks.map((block) => renderBlockedBlock(block))}
@@ -1058,7 +1072,8 @@ function ProfColumn({
         {hours.map((time) => (
           <div
             key={time}
-            className={cn("h-8 border-t hover:bg-accent/30 transition-colors cursor-pointer", time.endsWith(":30") ? "border-slate-300" : "border-slate-400")}
+            className={cn("border-t hover:bg-accent/30 transition-colors cursor-pointer", time.endsWith(":30") ? "border-slate-300" : "border-slate-400")}
+            style={{ height: SLOT_HEIGHT }}
             onDoubleClick={() => onSlotClick(time)}
           />
         ))}
