@@ -31,12 +31,24 @@ export function TableEditor({ value, onChange }: TableEditorProps) {
       
       const trimmed = cleanValue.trim();
       if (trimmed.length > 0) {
-        // Find if it starts with a date like 00/00
-        const dateMatch = trimmed.match(/^(\d{2}\/\d{2})\s*(.*)$/);
-        if (dateMatch) {
-          setRows([[dateMatch[1], dateMatch[2], ""]]);
+        // Split by dates (format DD/MM/YY or DD/MM/YYYY)
+        // Find all occurrences of dates
+        const dateRegex = /(\d{2}\/\d{2}(\/\d{2,4})?)/g;
+        const matches = [...trimmed.matchAll(dateRegex)];
+        
+        if (matches.length > 0) {
+          const newRows: string[][] = [];
+          for (let i = 0; i < matches.length; i++) {
+            const dateStr = matches[i][1];
+            const start = matches[i].index! + dateStr.length;
+            const end = i + 1 < matches.length ? matches[i + 1].index : trimmed.length;
+            const procStr = trimmed.substring(start, end).trim();
+            newRows.push([dateStr, procStr, ""]);
+          }
+          setRows(newRows);
           return;
         }
+
         setRows([["", trimmed, ""]]);
         return;
       }

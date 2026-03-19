@@ -103,12 +103,14 @@ const AnamneseFillDialog = ({
     const lines = text.split("\n");
     templateFields.forEach(field => {
       // Find a line that starts with the field label (or something similar)
-      const labelLower = field.label.toLowerCase().replace(/[?:.]/g, "").trim();
+      const cleanLabel = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "").trim();
+      const targetLabel = cleanLabel(field.label);
+      
       const line = lines.find(l => {
         const lineParts = l.split(":");
         if (lineParts.length < 2) return false;
-        const lineLabel = lineParts[0].toLowerCase().replace(/[?:.]/g, "").trim();
-        return lineLabel === labelLower || lineLabel.includes(labelLower) || labelLower.includes(lineLabel);
+        const lineLabel = cleanLabel(lineParts[0]);
+        return lineLabel === targetLabel || lineLabel.includes(targetLabel) || targetLabel.includes(lineLabel);
       });
 
       if (line) {
