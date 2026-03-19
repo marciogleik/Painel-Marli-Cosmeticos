@@ -554,19 +554,30 @@ const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
       )}
 
       {/* Edit dialog */}
-      {editingRecord && (
-        <AnamneseFillDialog
-          template={null}
-          clientId={clientId}
-          existingRecord={editingRecord}
-          onClose={() => setEditingRecord(null)}
-          onSaveAndSign={(recordId) => {
-            setEditingRecord(null);
-            setSigningRecordId(recordId);
-            setIsSigningOpen(true);
-          }}
-        />
-      )}
+      {(() => {
+        if (!editingRecord) return null;
+        
+        // Find the template for the editing record
+        const content = editingRecord.content as any;
+        const templateId = content?.templateId;
+        const template = templateId 
+          ? templates.find(t => t.id === templateId) 
+          : templates.find(t => t.name === editingRecord.title);
+
+        return (
+          <AnamneseFillDialog
+            template={template || null}
+            clientId={clientId}
+            existingRecord={editingRecord}
+            onClose={() => setEditingRecord(null)}
+            onSaveAndSign={(recordId) => {
+              setEditingRecord(null);
+              setSigningRecordId(recordId);
+              setIsSigningOpen(true);
+            }}
+          />
+        );
+      })()}
 
       {/* Integrated Signature Dialog */}
       {isSigningOpen && signingRecordId && (

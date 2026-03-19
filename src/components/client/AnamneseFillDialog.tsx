@@ -36,9 +36,11 @@ const AnamneseFillDialog = ({
   const isEditing = !!existingRecord;
 
   // Derive fields from template or existing record
-  const fields: TemplateField[] = isEditing
-    ? ((existingRecord.content as any)?.templateFields as TemplateField[]) ?? []
-    : (template?.fields ?? []).filter((f) => f.isActive);
+  const fields: TemplateField[] = (
+    isEditing
+      ? (((existingRecord.content as any)?.templateFields as TemplateField[]) || (template?.fields ?? []))
+      : (template?.fields ?? [])
+  ).filter((f) => f.isActive);
 
   const title = isEditing
     ? existingRecord.title ?? "Ficha"
