@@ -97,7 +97,12 @@ const AnamneseFillDialog = ({
       if (line) {
         const parts = line.split(":");
         if (parts.length >= 2) {
-          legacyAnswers[field.id] = parts.slice(1).join(":").trim();
+          let value = parts.slice(1).join(":").trim();
+          // Clean up legacy double colons or leading colons from values
+          while (value.startsWith(":")) {
+            value = value.substring(1).trim();
+          }
+          legacyAnswers[field.id] = value;
         }
       }
     });
