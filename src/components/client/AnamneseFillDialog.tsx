@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2, X, Check, Save } from "lucide-react";
+import { Loader2, X, Check, Save, ChevronDown, FileText } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import type { AnamnesisTemplate, TemplateField } from "@/components/settings/AnamnesesTab";
@@ -268,29 +268,49 @@ const AnamneseFillDialog = ({
 
       case "modelo_padrao":
         return (
-          <div className="space-y-3 col-span-full mt-4">
-            <Label className="text-base font-medium text-slate-700 border-b w-full block pb-2">{field.label}</Label>
-            <div className="rounded-lg border border-slate-200 overflow-hidden bg-slate-50">
-               {/* Toolbar placeholder to match UI image */}
-               <div className="bg-[#f0f2f5] border-b p-2 flex flex-wrap gap-1">
-                  <div className="flex gap-0.5 border-r pr-1 mr-1">
+          <div className="space-y-3 col-span-full mt-8">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+              <Label className="text-base font-semibold text-[#5c7cbe]">{field.label}</Label>
+            </div>
+            <div className="rounded-lg border border-slate-200 overflow-hidden bg-white shadow-sm">
+               {/* Professional Toolbar matching the UI image */}
+               <div className="bg-[#f8f9fa] border-b p-1.5 flex flex-wrap gap-1 items-center">
+                  <div className="flex gap-0.5 border-r border-slate-300 pr-1.5 mr-1">
                     {['B', 'I', 'U'].map(b => (
-                      <div key={b} className="w-8 h-8 flex items-center justify-center font-bold text-slate-600 hover:bg-white rounded cursor-pointer">{b}</div>
+                      <button key={b} className="w-8 h-8 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-200 rounded transition-colors text-xs">{b}</button>
+                    ))}
+                    <button className="w-8 h-8 flex items-center justify-center hover:bg-slate-200 rounded transition-colors">
+                      <div className="w-3 h-3 bg-slate-700 rounded-sm" />
+                    </button>
+                  </div>
+                  <div className="flex gap-0.5 border-r border-slate-300 pr-1.5 mr-1">
+                    {['S', 'X²', 'X₂'].map(b => (
+                      <button key={b} className="w-8 h-8 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-200 rounded transition-colors text-[10px]">{b}</button>
                     ))}
                   </div>
-                  <div className="flex gap-0.5 border-r pr-1 mr-1">
-                    {['S', 'X', 'Y'].map(b => (
-                      <div key={b} className="w-8 h-8 flex items-center justify-center font-bold text-slate-600 hover:bg-white rounded cursor-pointer">{b}</div>
-                    ))}
+                  <div className="flex gap-0.5 border-r border-slate-300 pr-1.5 mr-1 line-clamp-1">
+                    <button className="h-8 px-2 flex items-center justify-center font-medium text-slate-700 hover:bg-slate-200 rounded transition-colors text-[10px] gap-1">13 <ChevronDown className="w-3 h-3" /></button>
+                    <button className="h-8 px-2 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-200 rounded transition-colors text-[10px] gap-1"><span className="border-b-2 border-yellow-400">A</span> <ChevronDown className="w-3 h-3" /></button>
+                  </div>
+                  <div className="flex gap-0.5 mr-1">
+                    <button className="w-8 h-8 flex items-center justify-center hover:bg-slate-200 rounded transition-colors">
+                      <FileText className="w-4 h-4 text-slate-600" />
+                    </button>
+                    <button className="w-8 h-8 flex items-center justify-center hover:bg-slate-200 rounded transition-colors rotate-90">
+                      <ChevronDown className="w-4 h-4 text-slate-600" />
+                    </button>
                   </div>
                </div>
                <Textarea
                  value={value}
                  onChange={(e) => updateAnswer(field.id, e.target.value)}
                  placeholder="Digite aqui..."
-                 className="min-h-[300px] text-sm whitespace-pre border-none focus-visible:ring-0 bg-white rounded-none font-mono"
+                 className="min-h-[250px] text-sm whitespace-pre border-none focus-visible:ring-0 bg-white rounded-none font-sans p-4 leading-relaxed"
                  style={{ tabSize: 20 }}
                />
+               <div className="bg-[#f8f9fa] border-t h-2 flex items-center justify-center">
+                 <div className="w-12 h-1 bg-slate-200 rounded-full" />
+               </div>
             </div>
           </div>
         );
