@@ -16,6 +16,22 @@ import { TableEditor } from "./TableEditor";
 
 // PatientRecord is now imported from AnamneseTab
 
+const isTableField = (label: string, fieldType?: string, currentValue?: string) => {
+  if (fieldType === 'modelo_padrao') return true;
+  
+  // Check label
+  const lowerLabel = label.toLowerCase();
+  if (lowerLabel.includes('procedimento') || 
+      lowerLabel.includes('observação técnica') ||
+      lowerLabel.includes('evolução') ||
+      lowerLabel.includes('histórico')) return true;
+
+  // Check if label is just "Data" but it's at the end of the form or has legacy table content
+  if (lowerLabel === 'data' && currentValue?.toLowerCase().includes('procedimento realizado')) return true;
+
+  return false;
+};
+
 interface AnamneseFillDialogProps {
   template: AnamnesisTemplate | null;
   clientId: string;
@@ -134,7 +150,23 @@ const AnamneseFillDialog = ({
           }
         }
         
-        setAnswers(initialAnswers);
+        // Cleanup: If we have table-like data dumped into a non-table field (like "Data"), 
+        // move it to the actual table field and clear the source.
+        const cleanedAnswers = { ...initialAnswers };
+        const tableFieldId = fields.find(f => isTableField(f.label, f.type, initialAnswers[f.id]))?.id;
+        
+        if (tableFieldId) {
+          Object.keys(cleanedAnswers).forEach(fid => {
+            const val = cleanedAnswers[fid];
+            if (fid !== tableFieldId && val?.toLowerCase().includes("procedimento realizado")) {
+              // This is likely the "Data" field that was hijacked by legacy import
+              cleanedAnswers[tableFieldId] = val;
+              cleanedAnswers[fid] = "";
+            }
+          });
+        }
+        
+        setAnswers(cleanedAnswers);
         setHasInitializedModels(true);
       }
     } else if (!isEditing && client && !hasInitializedModels) {
