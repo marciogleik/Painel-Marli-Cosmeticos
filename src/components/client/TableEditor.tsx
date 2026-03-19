@@ -10,33 +10,31 @@ interface TableEditorProps {
 
 export function TableEditor({ value, onChange }: TableEditorProps) {
   const [rows, setRows] = useState<string[][]>([]);
-  const [headers, setHeaders] = useState<string[]>([]);
+  const headers = ["Data", "Procedimento Realizado", "Observação"];
 
   // Parse markdown table to rows
   useEffect(() => {
-    if (!value) {
-      setHeaders(["Data", "Procedimento Realizado", "Observação"]);
+    if (!value || value.trim().length === 0) {
       setRows([["", "", ""]]);
       return;
     }
 
     const lines = value.split("\n").filter(l => l.trim().length > 0);
-    if (lines.length === 0) return;
-
-    // First line is headers
-    const rawHeaders = lines[0].split("|").map(s => s.trim());
-    setHeaders(rawHeaders);
-
-    // Skip the separator line (contains ---)
-    const dataLines = lines.filter((l, i) => i > 0 && !l.includes("---"));
-    const newRows = dataLines.map(l => {
-      const cells = l.split("|").map(s => s.trim());
-      // Ensure row has same length as headers
-      while (cells.length < rawHeaders.length) cells.push("");
-      return cells.slice(0, rawHeaders.length);
+    // Skip header and separator lines
+    const dataLines = lines.filter((l, i) => {
+      const isHeader = i === 0 && (l.toLowerCase().includes("data") || l.includes("|"));
+      const isSeparator = l.includes("---");
+      return !isHeader && !isSeparator;
     });
 
-    if (newRows.length === 0) newRows.push(new Array(rawHeaders.length).fill(""));
+    const newRows = dataLines.map(l => {
+      const cells = l.split("|").map(s => s.trim());
+      // Ensure row has same length as headers (3)
+      while (cells.length < 3) cells.push("");
+      return cells.slice(0, 3);
+    });
+
+    if (newRows.length === 0) newRows.push(["", "", ""]);
     setRows(newRows);
   }, [value]);
 
@@ -44,75 +42,84 @@ export function TableEditor({ value, onChange }: TableEditorProps) {
     const newRows = [...rows];
     newRows[rowIndex][colIndex] = newValue;
     setRows(newRows);
-    save(headers, newRows);
+    save(newRows);
   };
 
   const addRow = () => {
-    const newRows = [...rows, new Array(headers.length).fill("")];
+    const newRows = [...rows, ["", "", ""]];
     setRows(newRows);
-    save(headers, newRows);
+    save(newRows);
   };
 
   const removeRow = (index: number) => {
     if (rows.length <= 1) {
-      const newRows = [new Array(headers.length).fill("")];
+      const newRows = [["", "", ""]];
       setRows(newRows);
-      save(headers, newRows);
+      save(newRows);
       return;
     }
     const newRows = rows.filter((_, i) => i !== index);
     setRows(newRows);
-    save(headers, newRows);
+    save(newRows);
   };
 
-  const save = (h: string[], r: string[][]) => {
-    const headerLine = h.join(" | ");
-    const separatorLine = h.map(() => "---").join("|");
+  const save = (r: string[][]) => {
+    const headerLine = headers.join(" | ");
+    const separatorLine = headers.map(() => "---").join("|");
     const dataLines = r.map(row => row.join(" | "));
     onChange([headerLine, separatorLine, ...dataLines].join("\n"));
   };
 
   return (
-    <div className="border rounded-lg overflow-hidden bg-white shadow-sm">
-      <div className="bg-slate-50 border-b p-2 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-slate-600 font-medium text-sm">
-          <TableIcon className="w-4 h-4" />
-          Tabela de Procedimentos
-        </div>
-        <Button variant="outline" size="sm" onClick={addRow} className="h-8 gap-1 text-xs">
-          <Plus className="w-3 h-3" /> Adicionar Linha
-        </Button>
-      </div>
+    <div className="border border-slate-200 rounded-md overflow-hidden bg-white shadow-sm">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm border-collapse">
+        <table className="w-full border-collapse table-fixed">
           <thead>
-            <tr className="bg-slate-50/50">
-              {headers.map((h, i) => (
-                <th key={i} className="border-b border-r last:border-r-0 p-2 text-left font-semibold text-slate-700 w-1/3">
-                  {h}
-                </th>
-              ))}
-              <th className="border-b p-2 w-10"></th>
+            <tr className="bg-slate-50 border-b border-slate-200">
+              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-600 border-r border-slate-200 w-[80px]">
+                Data
+              </th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-600 border-r border-slate-200">
+                Procedimento Realizado
+              </th>
+              <th className="px-4 py-2.5 text-left text-xs font-semibold text-slate-600 border-r border-slate-200 w-[200px]">
+                Observação
+              </th>
+              <th className="w-10 bg-slate-50"></th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-slate-100">
             {rows.map((row, rowIndex) => (
-              <tr key={rowIndex} className="hover:bg-slate-50/30 transition-colors">
-                {row.map((cell, colIndex) => (
-                  <td key={colIndex} className="border-b border-r last:border-r-0 p-0">
-                    <Input
-                      value={cell}
-                      onChange={(e) => updateCell(rowIndex, colIndex, e.target.value)}
-                      className="border-none shadow-none focus-visible:ring-0 rounded-none bg-transparent h-10 text-sm"
-                    />
-                  </td>
-                ))}
-                <td className="border-b p-1 text-center">
+              <tr key={rowIndex} className="group hover:bg-slate-50/50 transition-colors">
+                <td className="p-0 border-r border-slate-200 h-10">
+                  <Input
+                    value={row[0]}
+                    onChange={(e) => updateCell(rowIndex, 0, e.target.value)}
+                    placeholder="00/00"
+                    className="border-none shadow-none focus-visible:ring-0 rounded-none bg-transparent h-full text-sm px-4 text-center placeholder:text-slate-300"
+                  />
+                </td>
+                <td className="p-0 border-r border-slate-200 h-10">
+                  <Input
+                    value={row[1]}
+                    onChange={(e) => updateCell(rowIndex, 1, e.target.value)}
+                    placeholder="Descreva o procedimento..."
+                    className="border-none shadow-none focus-visible:ring-0 rounded-none bg-transparent h-full text-sm px-4 placeholder:text-slate-300"
+                  />
+                </td>
+                <td className="p-0 border-r border-slate-200 h-10">
+                  <Input
+                    value={row[2]}
+                    onChange={(e) => updateCell(rowIndex, 2, e.target.value)}
+                    className="border-none shadow-none focus-visible:ring-0 rounded-none bg-transparent h-full text-sm px-4 placeholder:text-slate-300"
+                  />
+                </td>
+                <td className="p-1 text-center bg-white">
                   <Button 
                     variant="ghost" 
                     size="icon" 
                     onClick={() => removeRow(rowIndex)}
-                    className="h-7 w-7 text-slate-400 hover:text-red-500"
+                    className="h-7 w-7 text-slate-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
@@ -121,6 +128,16 @@ export function TableEditor({ value, onChange }: TableEditorProps) {
             ))}
           </tbody>
         </table>
+      </div>
+      <div className="bg-slate-50 border-t border-slate-200 p-2 flex justify-center">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={addRow} 
+          className="h-8 gap-2 text-xs font-medium text-slate-600 hover:text-[#5c7cbe] hover:border-[#5c7cbe] bg-white transition-all shadow-sm"
+        >
+          <Plus className="w-3.5 h-3.5" /> Adicionar registro de evolução
+        </Button>
       </div>
     </div>
   );
