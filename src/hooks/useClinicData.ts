@@ -16,6 +16,7 @@ export const useProfessionals = (includeInactive = false) => {
       let query = supabase
         .from("professionals")
         .select("*")
+        .order("agenda_order")
         .order("name");
 
       if (!includeInactive) query = query.eq("is_active", true);

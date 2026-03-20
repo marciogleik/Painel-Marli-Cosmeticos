@@ -16,7 +16,12 @@ async function fetchYearRevenue(year: number, professionalId?: string) {
 
   let query = supabase
     .from("appointments")
-    .select("id, date, professional_id, status")
+    .select(`
+      id, 
+      date, 
+      status,
+      appointment_services(price)
+    `)
     .gte("date", from)
     .lte("date", to)
     .in("status", ["concluido", "confirmado", "agendado", "atendido"]);
@@ -27,22 +32,18 @@ async function fetchYearRevenue(year: number, professionalId?: string) {
   if (appErr) throw appErr;
   if (!appointments?.length) return new Map<number, number>();
 
-  const appointmentIds = appointments.map(a => a.id);
-
-  const { data: services, error: svcErr } = await supabase
-    .from("appointment_services")
-    .select("appointment_id, price")
-    .in("appointment_id", appointmentIds);
-  if (svcErr) throw svcErr;
-
-  const apptMap = new Map(appointments.map(a => [a.id, a]));
   const monthlyMap = new Map<number, number>();
 
-  for (const svc of (services ?? [])) {
-    const appt = apptMap.get(svc.appointment_id);
-    if (!appt) continue;
+  for (const appt of appointments) {
     const monthIdx = new Date(appt.date + "T12:00:00").getMonth();
-    monthlyMap.set(monthIdx, (monthlyMap.get(monthIdx) ?? 0) + (svc.price ?? 0));
+    const services = (appt.appointment_services as any[]) || [];
+    
+    let totalApptPrice = 0;
+    for (const svc of services) {
+      totalApptPrice += svc.price ?? 0;
+    }
+    
+    monthlyMap.set(monthIdx, (monthlyMap.get(monthIdx) ?? 0) + totalApptPrice);
   }
 
   return monthlyMap;

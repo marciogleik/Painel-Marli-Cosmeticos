@@ -29,7 +29,13 @@ export interface PreviousMonthComparison {
 async function fetchPeriodData(from: string, to: string, professionalId?: string) {
   let query = supabase
     .from("appointments")
-    .select("id, date, professional_id, status")
+    .select(`
+      id, 
+      date, 
+      professional_id, 
+      status,
+      appointment_services(price, service_name)
+    `)
     .gte("date", from)
     .lte("date", to)
     .in("status", ["concluido", "confirmado", "agendado", "atendido"]);
@@ -40,43 +46,37 @@ async function fetchPeriodData(from: string, to: string, professionalId?: string
   if (appErr) throw appErr;
   if (!appointments?.length) return { byProfessional: [], byService: [], daily: [] as DailyRevenue[], totalRevenue: 0, totalAppointments: 0 };
 
-  const appointmentIds = appointments.map(a => a.id);
-
-  const { data: services, error: svcErr } = await supabase
-    .from("appointment_services")
-    .select("appointment_id, service_name, price, duration_minutes")
-    .in("appointment_id", appointmentIds);
-  if (svcErr) throw svcErr;
-
   const { data: professionals, error: profErr } = await supabase
     .from("professionals")
     .select("id, name");
   if (profErr) throw profErr;
 
   const profMap = new Map(professionals?.map(p => [p.id, p.name]) ?? []);
-  const apptMap = new Map(appointments.map(a => [a.id, a]));
-
   const profRevenue = new Map<string, { total: number; count: number; name: string }>();
   const svcRevenue = new Map<string, { total: number; count: number }>();
   const dailyMap = new Map<string, number>();
 
-  for (const svc of (services ?? [])) {
-    const appt = apptMap.get(svc.appointment_id);
-    if (!appt) continue;
-    const price = svc.price ?? 0;
-
+  for (const appt of appointments) {
+    const services = (appt.appointment_services as any[]) || [];
     const profId = appt.professional_id;
-    const existing = profRevenue.get(profId) ?? { total: 0, count: 0, name: profMap.get(profId) ?? "Desconhecido" };
-    existing.total += price;
-    existing.count += 1;
-    profRevenue.set(profId, existing);
+    const date = appt.date;
 
-    const svcExisting = svcRevenue.get(svc.service_name) ?? { total: 0, count: 0 };
-    svcExisting.total += price;
-    svcExisting.count += 1;
-    svcRevenue.set(svc.service_name, svcExisting);
+    for (const svc of services) {
+      const price = svc.price ?? 0;
+      
+      const existing = profRevenue.get(profId) ?? { total: 0, count: 0, name: profMap.get(profId) ?? "Desconhecido" };
+      existing.total += price;
+      existing.count += 1;
+      profRevenue.set(profId, existing);
 
-    dailyMap.set(appt.date, (dailyMap.get(appt.date) ?? 0) + price);
+      const svcName = svc.service_name || "Outros";
+      const svcExisting = svcRevenue.get(svcName) ?? { total: 0, count: 0 };
+      svcExisting.total += price;
+      svcExisting.count += 1;
+      svcRevenue.set(svcName, svcExisting);
+
+      dailyMap.set(date, (dailyMap.get(date) ?? 0) + price);
+    }
   }
 
   const byProfessional: RevenueByProfessional[] = Array.from(profRevenue.entries())

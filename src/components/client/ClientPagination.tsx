@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const PAGE_SIZE_OPTIONS = [5, 10, 25, 50, 100];
 
@@ -40,25 +41,24 @@ const ClientPagination = ({
   };
 
   return (
-    <div className="flex items-center justify-between px-8 py-3 border-t border-border shrink-0 bg-background">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <span>Mostrando {startIndex + 1}–{Math.min(startIndex + pageSize, totalItems)} de {totalItems}</span>
-        <span className="mx-1">·</span>
+    <div className="flex flex-col sm:flex-row items-center justify-between px-4 sm:px-8 py-3 gap-4 border-t border-border/10 shrink-0 bg-background/80 backdrop-blur-sm">
+      <div className="flex items-center gap-3 text-[11px] sm:text-xs text-muted-foreground font-medium order-2 sm:order-1">
+        <span className="hidden xs:inline text-foreground/60">Mostrando {startIndex + 1}–{Math.min(startIndex + pageSize, totalItems)} de {totalItems}</span>
+        <span className="hidden xs:inline mx-1 opacity-30">|</span>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md border border-border bg-card text-sm font-medium hover:bg-muted transition-colors">
-              {pageSize} por página
-              <ChevronDown className="w-3.5 h-3.5" />
+            <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border/60 bg-card text-[10px] sm:text-xs font-bold hover:bg-muted transition-all shadow-sm active:scale-95">
+              {pageSize} / página
+              <ChevronDown className="w-3 h-3" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="bg-popover z-50">
+          <DropdownMenuContent align="start" className="bg-popover z-50 shadow-xl border-border/50">
             {PAGE_SIZE_OPTIONS.map(size => (
               <DropdownMenuItem
                 key={size}
                 onClick={() => onPageSizeChange(size)}
-                className={pageSize === size ? "font-semibold" : ""}
+                className={cn("text-xs font-medium", pageSize === size ? "bg-primary/10 text-primary font-bold" : "")}
               >
-                {pageSize === size && <span className="mr-1">✓</span>}
                 {size} por página
               </DropdownMenuItem>
             ))}
@@ -66,35 +66,48 @@ const ClientPagination = ({
         </DropdownMenu>
       </div>
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2 order-1 sm:order-2">
         <Button
           variant="outline"
           size="icon"
-          className="w-8 h-8"
+          className="w-8 h-8 rounded-full border-border/60 hover:border-primary/50 transition-colors"
           disabled={currentPage <= 1}
           onClick={() => onPageChange(currentPage - 1)}
         >
           <ChevronLeft className="w-4 h-4" />
         </Button>
-        {getPageNumbers().map((page, i) =>
-          page === 'ellipsis' ? (
-            <span key={`e${i}`} className="px-1 text-muted-foreground text-sm">…</span>
-          ) : (
-            <Button
-              key={page}
-              variant={page === currentPage ? "default" : "outline"}
-              size="icon"
-              className="w-8 h-8 text-xs"
-              onClick={() => onPageChange(page as number)}
-            >
-              {page}
-            </Button>
-          )
-        )}
+        
+        {/* Mobile Page Indicator */}
+        <div className="sm:hidden px-3 text-[11px] font-bold tracking-tight">
+          Pág. <span className="text-primary">{currentPage}</span> de {totalPages}
+        </div>
+
+        {/* Desktop Page Numbers */}
+        <div className="hidden sm:flex items-center gap-1.5">
+          {getPageNumbers().map((page, i) =>
+            page === 'ellipsis' ? (
+              <span key={`e${i}`} className="px-1 text-muted-foreground text-xs opacity-50">…</span>
+            ) : (
+              <Button
+                key={page}
+                variant={page === currentPage ? "default" : "outline"}
+                size="icon"
+                className={cn(
+                  "w-8 h-8 text-[11px] font-bold rounded-lg transition-all",
+                  page === currentPage ? "shadow-md shadow-primary/20 scale-105" : "border-border/60 hover:border-primary/30"
+                )}
+                onClick={() => onPageChange(page as number)}
+              >
+                {page}
+              </Button>
+            )
+          )}
+        </div>
+
         <Button
           variant="outline"
           size="icon"
-          className="w-8 h-8"
+          className="w-8 h-8 rounded-full border-border/60 hover:border-primary/50 transition-colors"
           disabled={currentPage >= totalPages}
           onClick={() => onPageChange(currentPage + 1)}
         >

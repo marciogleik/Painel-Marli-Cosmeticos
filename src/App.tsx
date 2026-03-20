@@ -12,6 +12,7 @@ import AgendaPage from "./pages/AgendaPage";
 import ClientsPage from "./pages/ClientsPage";
 import HistoricPage from "./pages/HistoricPage";
 import NotificationsPage from "./pages/NotificationsPage";
+import MergeClientsPage from "./pages/MergeClientsPage";
 
 import PlaceholderPage from "./pages/PlaceholderPage";
 import ClientDetailPage from "./pages/ClientDetailPage";
@@ -59,12 +60,13 @@ const App = () => (
               <Route path="/agenda" element={<AgendaPage />} />
               <Route path="/clientes" element={<ClientsPage />} />
               <Route path="/clientes/:id" element={<ClientDetailPage />} />
+              <Route path="/unificar-clientes" element={<RoleGuard denyRoles={["secretaria", "profissional"]}><MergeClientsPage /></RoleGuard>} />
               <Route path="/prontuarios" element={<Navigate to="/clientes" replace />} />
               <Route path="/prontuario/:recordId" element={<ProntuarioViewPage />} />
               <Route path="/financeiro" element={<FinanceiroPage />} />
               <Route path="/profissionais" element={<RoleGuard denyRoles={["secretaria"]}><ProfissionaisPage /></RoleGuard>} />
               <Route path="/profissionais/:id" element={<RoleGuard denyRoles={["secretaria"]}><ProfissionalDetailPage /></RoleGuard>} />
-              <Route path="/notificacoes" element={<PlaceholderPage title="Notificações" />} />
+              <Route path="/notificacoes" element={<NotificationsPage />} />
               <Route path="/faq" element={<FaqPage />} />
               <Route path="/configuracoes" element={<RoleGuard denyRoles={["secretaria"]}><ConfiguracoesPage /></RoleGuard>} />
               <Route path="/exportar" element={<RoleGuard denyRoles={["secretaria", "profissional"]}><ExportDataPage /></RoleGuard>} />

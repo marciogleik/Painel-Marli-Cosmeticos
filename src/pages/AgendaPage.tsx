@@ -422,24 +422,7 @@ const AgendaPage = () => {
       viewMode === "month" ? [] : // Month view handles its own day calculation
         [selectedDay];
 
-  // Professional sorting map (using IDs for stability)
-  const professionalOrder = [
-    "00000000-0000-0000-0000-000000000001", // Dhionara Sbrussi
-    "00000000-0000-0000-0000-000000000002", // Dhiani Sbrussi
-    "00000000-0000-0000-0000-000000000003", // Luciane Castanheira
-    "00000000-0000-0000-0000-000000000004", // Tais Pires
-    "00000000-0000-0000-0000-000000000005", // Bruna Castanheira
-    "00000000-0000-0000-0000-000000000006", // Michele Quintana
-    "00000000-0000-0000-0000-000000000007", // Patricia Armanda
-  ];
-
-  const sortedProfessionals = [...professionals]
-    .filter((p) => professionalOrder.includes(p.id))
-    .sort((a, b) => {
-      const indexA = professionalOrder.indexOf(a.id);
-      const indexB = professionalOrder.indexOf(b.id);
-      return indexA - indexB;
-    });
+  const sortedProfessionals = professionals;
 
   const filteredProfessionals =
     selectedFilter === "all" ? sortedProfessionals : sortedProfessionals.filter((p) => p.id === selectedFilter);
@@ -598,9 +581,9 @@ const AgendaPage = () => {
 
     return (
       <div className="flex-1 overflow-auto bg-background p-4">
-        <div className="grid grid-cols-7 gap-px bg-slate-300 border-2 border-slate-300 rounded-lg overflow-hidden shadow-sm">
+        <div className="grid grid-cols-7 gap-px bg-border/50 border border-border/50 rounded-2xl overflow-hidden shadow-sm">
           {weekDays.map(day => (
-            <div key={day} className="bg-muted/50 p-2 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            <div key={day} className="bg-muted/30 p-2.5 text-center text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
               {day}
             </div>
           ))}
@@ -615,9 +598,9 @@ const AgendaPage = () => {
               <div
                 key={idx}
                 className={cn(
-                  "min-h-[120px] bg-card p-2 transition-colors cursor-pointer group hover:bg-accent/5",
-                  !isCurrentMonth && "bg-muted/20 text-muted-foreground/50",
-                  isToday && "bg-primary/5"
+                  "min-h-[120px] bg-card p-2.5 transition-colors cursor-pointer group hover:bg-accent/5",
+                  !isCurrentMonth && "bg-muted/10 text-muted-foreground/40",
+                  isToday && "bg-primary/5 ring-1 ring-inset ring-primary/10"
                 )}
                 onDoubleClick={() => {
                   setApptDefaults({ date });
@@ -628,16 +611,16 @@ const AgendaPage = () => {
                   setViewMode("day");
                 }}
               >
-                <div className="flex justify-between items-center mb-1.5">
+                <div className="flex justify-between items-center mb-2">
                   <span className={cn(
-                    "text-xs font-semibold w-6 h-6 flex items-center justify-center rounded-full transition-colors",
-                    isToday ? "bg-primary text-primary-foreground" : "text-foreground group-hover:bg-muted"
+                    "text-xs font-black w-6 h-6 flex items-center justify-center rounded-lg transition-colors",
+                    isToday ? "bg-primary text-primary-foreground shadow-sm" : "text-foreground/80 group-hover:bg-muted"
                   )}>
                     {format(date, "d")}
                   </span>
                   {dayAppts.length > 0 && (
-                    <span className="text-[10px] font-medium text-muted-foreground px-1.5 py-0.5 bg-muted rounded-full">
-                      {dayAppts.length} {dayAppts.length === 1 ? 'agend.' : 'agends.'}
+                    <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/60 px-1.5 py-0.5 bg-muted/60 rounded-lg">
+                      {dayAppts.length}
                     </span>
                   )}
                 </div>
@@ -645,19 +628,19 @@ const AgendaPage = () => {
                   {sortedAppts.slice(0, 4).map(appt => (
                     <div
                       key={appt.id}
-                      className="text-[10px] truncate px-1.5 py-0.5 rounded-sm border border-border hover:border-border-foreground/20 transition-all flex items-center gap-1"
+                      className="text-[9px] truncate px-1.5 py-1 rounded-lg transition-all flex items-center gap-1"
                       style={{
-                        backgroundColor: getStatusBg(appt.status) + '20',
-                        borderLeft: `2px solid ${getStatusBg(appt.status)}`
+                        backgroundColor: getStatusBg(appt.status) + '15',
+                        borderLeft: `3px solid ${getStatusBg(appt.status)}`
                       }}
                     >
-                      <span className="font-bold shrink-0">{appt.start_time.slice(0, 5)}</span>
-                      <span className="truncate">{appt.client_name}</span>
+                      <span className="font-black shrink-0">{appt.start_time.slice(0, 5)}</span>
+                      <span className="truncate font-medium">{appt.client_name}</span>
                     </div>
                   ))}
                   {dayAppts.length > 4 && (
-                    <div className="text-[9px] font-bold text-muted-foreground pl-1.5 pt-0.5">
-                      + {dayAppts.length - 4} mais...
+                    <div className="text-[8px] font-black text-muted-foreground/50 pl-1.5 pt-0.5 uppercase tracking-widest">
+                      +{dayAppts.length - 4} mais
                     </div>
                   )}
                 </div>
@@ -678,25 +661,32 @@ const AgendaPage = () => {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 sm:px-8 pt-4 sm:pt-8 pb-2 shrink-0 gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-display font-bold">Agenda</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Gerencie seus agendamentos e horários</p>
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between px-4 sm:px-8 pt-6 sm:pt-10 pb-4 shrink-0 gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Calendar className="w-5 h-5 text-primary" />
+            </div>
+            <span className="text-xs font-black tracking-[0.3em] text-primary uppercase">Gestão Operacional</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-display font-black tracking-tighter text-foreground uppercase leading-none">
+            Agenda
+          </h1>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
           <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
             <Input
               placeholder="Pesquisar cliente..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 h-9 sm:h-10 text-sm"
+              className="pl-9 h-10 text-sm rounded-xl border-border/40 bg-background"
             />
           </div>
           <div className="flex gap-2">
             <Button 
                 variant="outline" 
-                className="flex-1 sm:flex-none gap-1.5 h-9 sm:h-10 text-xs sm:text-sm" 
+                className="flex-1 sm:flex-none gap-1.5 h-10 text-xs font-bold rounded-xl border-border/40" 
                 onClick={() => { 
                     setBlockDefaults({
                         profId: selectedFilter !== "all" ? selectedFilter : undefined,
@@ -707,35 +697,35 @@ const AgendaPage = () => {
             >
               <Ban className="w-4 h-4" /> Bloquear
             </Button>
-            <Button className="flex-1 sm:flex-none gap-1.5 h-9 sm:h-10 text-xs sm:text-sm" onClick={() => setDialogOpen(true)}>
+            <Button className="flex-1 sm:flex-none gap-1.5 h-10 text-xs font-bold rounded-xl shadow-lg shadow-primary/20" onClick={() => setDialogOpen(true)}>
               <Plus className="w-4 h-4" /> Novo
             </Button>
           </div>
         </div>
       </div>
 
-      <div className="flex items-center justify-between px-8 py-3 shrink-0 flex-wrap gap-2">
+      <div className="flex items-center justify-between px-4 sm:px-8 py-2 shrink-0 flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <button onClick={handlePrev} className="p-1.5 rounded-md hover:bg-muted">
+          <button onClick={handlePrev} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
             <ChevronLeft className="w-4 h-4 text-muted-foreground" />
           </button>
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <Calendar className="w-4 h-4 text-muted-foreground" />
+          <div className="flex items-center gap-2 text-sm font-bold">
+            <Calendar className="w-4 h-4 text-muted-foreground/60" />
             <span className="capitalize">{dateLabel}</span>
           </div>
-          <button onClick={handleNext} className="p-1.5 rounded-md hover:bg-muted">
+          <button onClick={handleNext} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </button>
-          <button onClick={handleToday} className="ml-2 px-3 py-1 rounded-md border border-border text-xs font-medium hover:bg-muted">
+          <button onClick={handleToday} className="ml-1 px-3 py-1 rounded-lg border border-border/40 text-[10px] font-black uppercase tracking-widest hover:bg-muted transition-colors">
             Hoje
           </button>
 
           {/* View toggle */}
-          <div className="flex items-center rounded-full border border-border overflow-hidden shrink-0">
+          <div className="flex items-center rounded-xl border border-border/40 overflow-hidden shrink-0 ml-1">
             <button
               onClick={() => setViewMode("month")}
               className={cn(
-                "px-2.5 sm:px-3 py-1 text-[10px] sm:text-xs font-medium transition-colors",
+                "px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors",
                 viewMode === "month" ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"
               )}
             >
@@ -744,7 +734,7 @@ const AgendaPage = () => {
             <button
               onClick={() => setViewMode("week")}
               className={cn(
-                "px-2.5 sm:px-3 py-1 text-[10px] sm:text-xs font-medium transition-colors",
+                "px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors",
                 viewMode === "week" ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"
               )}
             >
@@ -756,7 +746,7 @@ const AgendaPage = () => {
                 setSelectedDay(new Date());
               }}
               className={cn(
-                "px-2.5 sm:px-3 py-1 text-[10px] sm:text-xs font-medium transition-colors",
+                "px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors",
                 viewMode === "day" ? "bg-primary text-primary-foreground" : "hover:bg-muted text-muted-foreground"
               )}
             >
@@ -769,7 +759,7 @@ const AgendaPage = () => {
           <button
             onClick={() => setSelectedFilter("all")}
             className={cn(
-              "px-3 py-1.5 rounded-full text-xs font-medium transition-colors shrink-0",
+              "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors shrink-0",
               selectedFilter === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"
             )}
           >
@@ -780,7 +770,7 @@ const AgendaPage = () => {
               key={p.id}
               onClick={() => setSelectedFilter(p.id)}
               className={cn(
-                "px-3 py-1.5 rounded-full text-xs font-medium transition-colors shrink-0",
+                "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors shrink-0",
                 selectedFilter === p.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"
               )}
             >
@@ -791,16 +781,16 @@ const AgendaPage = () => {
       </div>
 
       {/* Status legend */}
-      <div className="flex items-center gap-3 sm:gap-4 px-4 sm:px-8 pb-3 shrink-0 overflow-x-auto scrollbar-hide whitespace-nowrap">
+      <div className="flex items-center gap-3 px-4 sm:px-8 pb-2 shrink-0 overflow-x-auto scrollbar-hide whitespace-nowrap">
         {Object.entries(statusConfig).map(([key, cfg]) => (
-          <div key={key} className="flex items-center gap-1.5 shrink-0">
-            <div className={cn("w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-sm", cfg.color)} />
-            <span className="text-[10px] sm:text-[11px] text-muted-foreground">{cfg.label}</span>
+          <div key={key} className="flex items-center gap-1 shrink-0">
+            <div className={cn("w-2 h-2 rounded-full", cfg.color)} />
+            <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/70">{cfg.label}</span>
           </div>
         ))}
       </div>
 
-      <div className="flex-1 overflow-hidden flex flex-col relative px-4 sm:px-8 pb-4">
+      <div className="flex-1 overflow-hidden flex flex-col relative px-1 sm:px-8 pb-4">
         <div className="flex-1 border border-border rounded-lg overflow-hidden bg-[#fffdf5] relative flex flex-col">
           {viewMode === "month" ? (
             renderMonthView()
@@ -809,7 +799,7 @@ const AgendaPage = () => {
               {viewMode === "week" ? (
                 /* ============ WEEK VIEW ============ */
                 <div className="flex min-w-[1200px] relative h-full">
-                  <div className="w-16 shrink-0 border-r border-border bg-background/50 sticky left-0 z-20">
+                  <div className="w-16 shrink-0 border-r border-slate-300 bg-muted/40 sticky left-0 z-20 font-bold">
                     <div className="h-12" />
                     {hours.map((time) => {
                       const isHalf = time.endsWith(":30");
@@ -846,9 +836,9 @@ const AgendaPage = () => {
                             width: `${colWidth}%`
                           }}
                         >
-                          <div className="w-2 h-2 rounded-full bg-destructive -ml-1 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse" />
-                          <div className="h-[2px] flex-1 bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
-                          <span className="absolute -top-5 left-2 bg-destructive text-white text-[9px] px-1 rounded font-bold">
+                          <div className="w-2 h-2 rounded-full bg-destructive -ml-1 shadow-[0_0_6px_rgba(239,68,68,0.6)] animate-pulse" />
+                          <div className="h-px flex-1 bg-destructive/80" />
+                          <span className="absolute -top-4 left-2 text-destructive text-[8px] px-1 font-black uppercase tracking-widest opacity-70">
                             {format(currentTime, "HH:mm")}
                           </span>
                         </div>
@@ -885,7 +875,7 @@ const AgendaPage = () => {
               ) : (
                 /* ============ DAY VIEW ============ */
                 <div className="flex h-full w-full">
-                  <div className="w-16 shrink-0 border-r border-border bg-background/50 sticky left-0 z-20">
+                  <div className="w-11 sm:w-16 shrink-0 border-r border-slate-300 bg-muted/40 sticky left-0 z-20 font-bold">
                     <div className="h-12" />
                     {hours.map((time) => {
                       const isHalf = time.endsWith(":30");
@@ -917,9 +907,9 @@ const AgendaPage = () => {
                           className="absolute left-0 right-0 z-50 pointer-events-none flex items-center"
                           style={{ top: `${topOffset}px` }}
                         >
-                          <div className="w-2.5 h-2.5 rounded-full bg-destructive -ml-1.5 shadow-[0_0_10px_rgba(239,68,68,0.8)] animate-pulse" />
-                          <div className="h-[2px] flex-1 bg-destructive shadow-[0_0_10px_rgba(239,68,68,0.6)]" />
-                          <span className="absolute -top-5 left-2 bg-destructive text-white text-[10px] px-1.5 py-0.5 rounded font-bold shadow-sm">
+                          <div className="w-2 h-2 rounded-full bg-destructive -ml-1 shadow-[0_0_6px_rgba(239,68,68,0.6)] animate-pulse" />
+                          <div className="h-px flex-1 bg-destructive/80" />
+                          <span className="absolute -top-4 left-2 text-destructive text-[8px] px-1 font-black uppercase tracking-widest opacity-70">
                             {format(currentTime, "HH:mm")}
                           </span>
                         </div>
@@ -1031,10 +1021,10 @@ function DayColumn({
   const colRef = useRef<HTMLDivElement>(null);
   return (
     <div
-      className="flex-1 min-w-0 border-r border-border last:border-r-0 cursor-pointer"
+      className="flex-1 min-w-0 border-r border-slate-300 last:border-r-0 cursor-pointer"
       onDoubleClick={onDoubleClick}
     >
-      <div className="h-12 flex flex-col items-center justify-center border-b border-border bg-muted/30">
+      <div className="h-12 flex flex-col items-center justify-center border-b border-slate-300 bg-muted/30">
         <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{dayAbbr}</span>
         <span className={cn("text-sm font-bold", today ? "text-primary" : "text-foreground")}>{dayNum}</span>
       </div>
@@ -1042,7 +1032,7 @@ function DayColumn({
         {hours.map((time) => (
           <div
             key={time}
-            className={cn("border-t hover:bg-accent/30 transition-colors", time.endsWith(":30") ? "border-slate-300" : "border-slate-400")}
+            className={cn("border-t hover:bg-accent/30 transition-colors cursor-pointer", time.endsWith(":30") ? "border-slate-300" : "border-slate-400")}
             style={{ height: SLOT_HEIGHT }}
           />
         ))}
@@ -1064,9 +1054,11 @@ function ProfColumn({
 }) {
   const colRef = useRef<HTMLDivElement>(null);
   return (
-    <div className="flex-1 min-w-0 border-r border-border last:border-r-0">
-      <div className="h-12 flex items-center justify-center border-b border-border bg-muted/30 px-2">
-        <span className="text-[10px] sm:text-xs font-bold text-foreground truncate">{profName}</span>
+    <div className="flex-1 min-w-0 border-r border-slate-300 last:border-r-0">
+      <div className="h-12 flex items-center justify-center border-b border-slate-300 bg-muted/20 px-2 text-center">
+        <span className="text-[9px] sm:text-[10px] font-black text-foreground/80 truncate text-center leading-tight uppercase tracking-[0.15em]">
+          {profName.split(" ")[0]}
+        </span>
       </div>
       <div className="relative" ref={colRef}>
         {hours.map((time) => (

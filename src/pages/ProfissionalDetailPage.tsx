@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { useRef, useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const ProfissionalDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -228,40 +229,44 @@ const ProfissionalDetailPage = () => {
   }: { 
     label: string; value: boolean; onChange: (v: boolean) => void; yesLabel?: string; noLabel?: string; tooltip?: string;
   }) => (
-    <div className="space-y-1.5">
-      <Label className="text-xs text-muted-foreground flex items-center gap-1">
-        {label}
-        {tooltip && (
-          <TooltipProvider delayDuration={200}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/60 cursor-help" />
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-[220px] text-xs">
-                {tooltip}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-      </Label>
-      <div className="flex gap-0.5">
+    <div className="flex items-center justify-between gap-4 p-3 rounded-lg border border-border/40 bg-muted/5">
+      <div className="flex items-center gap-2">
+        <Label className="text-[11px] sm:text-xs font-bold text-foreground/80 cursor-help flex items-center gap-1.5">
+          {label}
+          {tooltip && (
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="w-3 h-3 text-muted-foreground/40 hover:text-primary transition-colors" />
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[240px] text-[10px] bg-popover/95 backdrop-blur-sm border-border/50">
+                  {tooltip}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </Label>
+      </div>
+      <div className="flex p-0.5 bg-muted rounded-lg border border-border/10 shrink-0">
         <button
           onClick={() => onChange(true)}
-          className={`px-3 py-1.5 text-xs font-medium rounded-l-md border transition-colors ${
+          className={cn(
+            "px-4 py-2 text-[10px] font-bold rounded-md transition-all duration-200",
             value
-              ? "bg-primary text-primary-foreground border-primary"
-              : "bg-background text-muted-foreground border-input hover:bg-accent"
-          }`}
+              ? "bg-emerald-500 text-white shadow-sm"
+              : "text-muted-foreground hover:bg-muted-foreground/5"
+          )}
         >
           {yesLabel}
         </button>
         <button
           onClick={() => onChange(false)}
-          className={`px-3 py-1.5 text-xs font-medium rounded-r-md border transition-colors ${
+          className={cn(
+            "px-4 py-2 text-[10px] font-bold rounded-md transition-all duration-200",
             !value
-              ? "bg-destructive text-destructive-foreground border-destructive"
-              : "bg-background text-muted-foreground border-input hover:bg-accent"
-          }`}
+              ? "bg-destructive text-white shadow-sm"
+              : "text-muted-foreground hover:bg-muted-foreground/5"
+          )}
         >
           {noLabel}
         </button>
@@ -271,197 +276,231 @@ const ProfissionalDetailPage = () => {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="px-8 pt-8 pb-4 shrink-0">
-        <button onClick={() => navigate("/profissionais")} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors mb-3">
-          <ArrowLeft className="w-4 h-4" /> Voltar
+      <div className="px-4 sm:px-8 pt-4 sm:pt-6 pb-2 shrink-0">
+        <button 
+          onClick={() => navigate("/profissionais")} 
+          className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold text-muted-foreground hover:text-primary transition-all mb-2 uppercase tracking-wider"
+        >
+          <ArrowLeft className="w-3 h-3" /> Voltar para lista
         </button>
-        <h1 className="text-2xl font-display font-bold text-primary">CADASTRO DO PROFISSIONAL</h1>
+        <h1 className="text-xl sm:text-2xl font-display font-bold tracking-tight">Cadastro do Profissional</h1>
+        <p className="text-[10px] sm:text-xs text-muted-foreground font-medium uppercase tracking-wider opacity-70">
+          Gerencie permissões e dados da equipe
+        </p>
       </div>
 
-      <div className="flex-1 overflow-auto px-8 pb-8">
-        <div className="flex flex-col lg:flex-row gap-8">
+      <div className="flex-1 overflow-auto px-4 sm:px-8 pb-8 mt-4">
+        <div className="flex flex-col lg:flex-row gap-6 sm:gap-8">
           {/* Photo column */}
-          <div className="flex flex-col items-center gap-3 shrink-0">
-            <div
-              className="relative group cursor-pointer w-48 h-56 rounded-lg overflow-hidden bg-muted border"
-              onClick={() => professional.user_id ? fileInputRef.current?.click() : toast.error("Vincule uma conta primeiro")}
-            >
-              {avatarUrl ? (
-                <img src={avatarUrl} alt={professional.name} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <span className="text-4xl font-bold text-muted-foreground">
-                    {professional.avatar_initials || professional.name.slice(0, 2).toUpperCase()}
-                  </span>
-                </div>
-              )}
-              {professional.user_id && (
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  {uploading ? <Loader2 className="w-6 h-6 text-white animate-spin" /> : <Camera className="w-6 h-6 text-white" />}
-                </div>
+          <div className="flex flex-col items-center gap-4 shrink-0">
+            <div className="relative group">
+              <div
+                className="relative cursor-pointer w-48 h-56 rounded-2xl overflow-hidden bg-muted border-2 border-dashed border-border/60 hover:border-primary/50 transition-all shadow-sm group-hover:shadow-md"
+                onClick={() => professional.user_id ? fileInputRef.current?.click() : toast.error("Vincule uma conta primeiro")}
+              >
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={professional.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-2 opacity-40">
+                    <Camera className="w-8 h-8" />
+                    <span className="text-2xl font-display font-bold">
+                      {professional.avatar_initials || professional.name.slice(0, 2).toUpperCase()}
+                    </span>
+                  </div>
+                )}
+                {professional.user_id && (
+                  <div className="absolute inset-0 bg-primary/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="bg-background/90 p-2 rounded-full shadow-lg">
+                      {uploading ? <Loader2 className="w-5 h-5 text-primary animate-spin" /> : <Camera className="w-5 h-5 text-primary" />}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={uploading} />
+            <div className="text-center space-y-2">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase opacity-60">JPG, PNG — máx. 2 MB</p>
+              {avatarUrl && professional.user_id && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-1.5 text-[10px] font-bold text-destructive hover:text-destructive hover:bg-destructive/5 rounded-full"
+                  onClick={() => setConfirmDeletePhoto(true)}
+                  disabled={deletingPhoto}
+                >
+                  {deletingPhoto ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                  EXCLUIR FOTO
+                </Button>
               )}
             </div>
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={uploading} />
-            <p className="text-[10px] text-muted-foreground">JPG, PNG — máx. 2 MB</p>
-            {avatarUrl && professional.user_id && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 text-xs text-destructive hover:text-destructive"
-                onClick={() => setConfirmDeletePhoto(true)}
-                disabled={deletingPhoto}
-              >
-                {deletingPhoto ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
-                Excluir Foto
-              </Button>
-            )}
           </div>
 
           {/* Fields column */}
           <div className="flex-1 space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Nome do Profissional *</Label>
-                <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+            <div className="grid grid-cols-1 gap-6">
+              {/* Section: Basic Data */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 border-b border-border/10 pb-2">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-primary/80">Dados Básicos</h3>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1fr_120px] gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Nome Comercial *</Label>
+                    <Input 
+                      value={form.name} 
+                      onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                      className="bg-card border-border/60 focus:ring-primary/20 transition-all font-medium"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Ordem na Agenda</Label>
+                    <Input 
+                      type="number" 
+                      value={form.agenda_order} 
+                      onChange={e => setForm(f => ({ ...f, agenda_order: parseInt(e.target.value) || 0 }))}
+                      className="bg-card border-border/60 font-medium"
+                    />
+                  </div>
+                  <div className="space-y-1.5 lg:col-span-2">
+                    <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Função / Especialidade</Label>
+                    <Input 
+                      value={form.role_description} 
+                      onChange={e => setForm(f => ({ ...f, role_description: e.target.value }))} 
+                      placeholder="Ex: Estética / Depilação" 
+                      className="bg-card border-border/60 font-medium"
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Ordem na Agenda</Label>
-                <Input type="number" value={form.agenda_order} onChange={e => setForm(f => ({ ...f, agenda_order: parseInt(e.target.value) || 0 }))} />
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Função / Especialidade</Label>
-                <Input value={form.role_description} onChange={e => setForm(f => ({ ...f, role_description: e.target.value }))} placeholder="Ex: Estética / Depilação" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Grupo de Acesso</Label>
+              {/* Section: System Access */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 border-b border-border/10 pb-2">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-primary/80">Acesso ao Sistema</h3>
+                </div>
                 {professional.user_id ? (
-                  <div className="flex items-center gap-2">
-                    <Select
-                      value={selectedRole || ""}
-                      onValueChange={async (value) => {
-                        if (!professional.user_id) return;
-                        setSavingRole(true);
-                        setSelectedRole(value);
-                        try {
-                          const { error } = await supabase
-                            .from("user_roles")
-                            .update({ role: value as "gestor" | "profissional" | "secretaria" })
-                            .eq("user_id", professional.user_id);
-                          if (error) throw error;
-                          queryClient.invalidateQueries({ queryKey: ["professional-role", professional.user_id] });
-                          toast.success("Grupo de acesso atualizado!");
-                        } catch (err: any) {
-                          toast.error("Erro: " + err.message);
-                          setSelectedRole(userRole || null);
-                        } finally {
-                          setSavingRole(false);
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecione..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="gestor">Administrador</SelectItem>
-                        <SelectItem value="secretaria">Secretária(o)</SelectItem>
-                        <SelectItem value="profissional">Profissional</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {savingRole && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Grupo de Acesso</Label>
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={selectedRole || ""}
+                          onValueChange={async (value) => {
+                            if (!professional.user_id) return;
+                            setSavingRole(true);
+                            setSelectedRole(value);
+                            try {
+                              const { error } = await supabase
+                                .from("user_roles")
+                                .update({ role: value as "gestor" | "profissional" | "secretaria" })
+                                .eq("user_id", professional.user_id);
+                              if (error) throw error;
+                              queryClient.invalidateQueries({ queryKey: ["professional-role", professional.user_id] });
+                              toast.success("Grupo de acesso atualizado!");
+                            } catch (err: any) {
+                              toast.error("Erro: " + err.message);
+                              setSelectedRole(userRole || null);
+                            } finally {
+                              setSavingRole(false);
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="w-full bg-card border-border/60 font-medium text-xs h-10">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover z-50">
+                            <SelectItem value="gestor">Administrador</SelectItem>
+                            <SelectItem value="secretaria">Secretária(o)</SelectItem>
+                            <SelectItem value="profissional">Profissional</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {savingRole && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+                      </div>
+                    </div>
+                    {linkedProfile?.email && (
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Redefinir Senha</Label>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-2 w-full h-10 border-border/60 text-xs font-bold bg-card active:scale-95 transition-all"
+                          onClick={handleSendPasswordReset}
+                          disabled={sendingReset}
+                        >
+                          {sendingReset ? <Loader2 className="w-3 h-3 animate-spin" /> : <KeyRound className="w-3.5 h-3.5" />}
+                          ENVIAR E-MAIL DE RESET
+                        </Button>
+                      </div>
+                    )}
+                    {linkedProfile?.email && (
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">E-mail Vinculado</Label>
+                        <Input value={linkedProfile.email} disabled className="opacity-60 bg-muted/30 font-medium text-xs border-border/40" />
+                      </div>
+                    )}
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Último Acesso</Label>
+                      <Input
+                        value={professional.last_login_at ? format(new Date(professional.last_login_at), "dd/MM/yyyy HH:mm") : "Nunca acessou"}
+                        disabled
+                        className="opacity-60 bg-muted/30 font-medium text-xs border-border/40 h-10"
+                      />
+                    </div>
                   </div>
                 ) : (
-                  <Input value="Sem conta vinculada" disabled className="opacity-60" />
+                  <div className="bg-amber-500/5 border border-amber-500/20 p-4 rounded-xl">
+                    <p className="text-xs font-medium text-amber-700/80">Este profissional ainda não possui uma conta de usuário vinculada.</p>
+                  </div>
                 )}
+              </div>
+
+              {/* Section: Permissions */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 border-b border-border/10 pb-2">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-primary/80">Permissões e Status</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <ToggleButton
+                    label="Status do Cadastro"
+                    value={form.is_active}
+                    onChange={v => setForm(f => ({ ...f, is_active: v }))}
+                    yesLabel="ATIVO"
+                    noLabel="INATIVO"
+                    tooltip="ATIVO: acessa o sistema e aparece no Calendário. INATIVO: sem acesso e não aparece no Calendário."
+                  />
+                  <ToggleButton
+                    label="Receber Agendamento?"
+                    value={form.can_receive_appointments}
+                    onChange={v => setForm(f => ({ ...f, can_receive_appointments: v }))}
+                    tooltip="Se SIM, o nome deste Profissional aparecerá no Calendário para receber agendamentos."
+                  />
+                  <ToggleButton
+                    label="Ver todas Agendas?"
+                    value={form.can_view_all_agendas}
+                    onChange={v => setForm(f => ({ ...f, can_view_all_agendas: v }))}
+                    tooltip="Se SIM, o profissional consegue ver a agenda de todos. Se NÃO, vê somente a própria agenda."
+                  />
+                  <ToggleButton
+                    label="Receber E-mail de Avisos?"
+                    value={form.can_receive_email_appointments}
+                    onChange={v => setForm(f => ({ ...f, can_receive_email_appointments: v }))}
+                    tooltip="Se SIM, o profissional receberá e-mail avisando os agendamentos dos clientes."
+                  />
+                </div>
               </div>
             </div>
 
-            {professional.user_id && linkedProfile?.email && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">E-mail</Label>
-                  <Input value={linkedProfile.email} disabled className="opacity-60" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Senha</Label>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 w-full"
-                    onClick={handleSendPasswordReset}
-                    disabled={sendingReset}
-                  >
-                    {sendingReset ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
-                    Enviar E-mail de Redefinição
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Toggle options */}
-            <Card>
-              <CardContent className="flex flex-wrap gap-6 p-4 items-end">
-                <ToggleButton
-                  label="Status"
-                  value={form.is_active}
-                  onChange={v => setForm(f => ({ ...f, is_active: v }))}
-                  yesLabel="ATIVO"
-                  noLabel="INATIVO"
-                  tooltip="ATIVO: acessa o sistema e aparece no Calendário. INATIVO: sem acesso e não aparece no Calendário."
-                />
-                <ToggleButton
-                  label="Receber Agendamento?"
-                  value={form.can_receive_appointments}
-                  onChange={v => setForm(f => ({ ...f, can_receive_appointments: v }))}
-                  tooltip="Se SIM, o nome deste Profissional aparecerá no Calendário para receber agendamentos."
-                />
-                <ToggleButton
-                  label="Ver todas Agendas?"
-                  value={form.can_view_all_agendas}
-                  onChange={v => setForm(f => ({ ...f, can_view_all_agendas: v }))}
-                  tooltip="Se SIM, o profissional consegue ver a agenda de todos. Se NÃO, vê somente a própria agenda."
-                />
-                <ToggleButton
-                  label="Receber E-mail do Agendamento?"
-                  value={form.can_receive_email_appointments}
-                  onChange={v => setForm(f => ({ ...f, can_receive_email_appointments: v }))}
-                  tooltip="Se SIM, o profissional receberá e-mail avisando os agendamentos dos clientes, seja pela Agenda Online ou pelo Calendário."
-                />
-                <ToggleButton
-                  label="Permite alternar entre os Caixas?"
-                  value={form.can_switch_registers}
-                  onChange={v => setForm(f => ({ ...f, can_switch_registers: v }))}
-                  tooltip="Utilizado quando há mais de uma recepcionista. Se SIM, as duas podem trabalhar com o mesmo caixa."
-                />
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                    Último Acesso
-                    <TooltipProvider delayDuration={200}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <HelpCircle className="w-3.5 h-3.5 text-muted-foreground/60 cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-[220px] text-xs">
-                          Data e hora do último acesso ao sistema. Quando 00:00 indica que ainda não acessou.
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </Label>
-                  <Input
-                    value={professional.last_login_at ? format(new Date(professional.last_login_at), "dd/MM/yyyy HH:mm") : "00:00:00"}
-                    disabled
-                    className="opacity-60 w-40"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Button onClick={handleSave} disabled={saving || !form.name.trim()} className="gap-1.5">
-              {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-              Salvar Alterações
-            </Button>
+            <div className="pt-6">
+              <Button 
+                onClick={handleSave} 
+                disabled={saving || !form.name.trim()} 
+                className="gap-2 w-full sm:w-auto h-12 px-8 rounded-full shadow-lg shadow-primary/20 active:scale-95 transition-all text-xs font-bold uppercase tracking-widest"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                Salvar Alterações
+              </Button>
+            </div>
           </div>
         </div>
       </div>

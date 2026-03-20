@@ -7,6 +7,8 @@ import ServicosTab from "@/components/settings/ServicosTab";
 import VinculosTab from "@/components/settings/VinculosTab";
 import AnamnesesTab from "@/components/settings/AnamnesesTab";
 import ConvitesTab from "@/components/settings/ConvitesTab";
+import MinhaContaTab from "@/components/settings/MinhaContaTab";
+import { User, Users, Scissors, Link2, FileText, Mail, Sparkles } from "lucide-react";
 
 const ConfiguracoesPage = () => {
   const { user } = useAuth();
@@ -25,43 +27,102 @@ const ConfiguracoesPage = () => {
   });
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className="px-8 pt-8 pb-2 shrink-0">
-        <h1 className="text-2xl font-display font-bold">Configurações</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Gerencie profissionais, serviços, vínculos e templates</p>
+    <div className="flex flex-col h-full overflow-hidden bg-background">
+      <div className="px-4 sm:px-8 pt-6 sm:pt-10 pb-6 shrink-0 bg-gradient-to-b from-primary/[0.02] to-transparent">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-sm shadow-primary/10 border border-primary/20">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-display font-bold tracking-tight text-foreground/90">Configurações</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 font-medium opacity-70">
+              Personalize sua experiência e gerencie os recursos da clínica
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-auto px-8 py-4">
-        <Tabs defaultValue="profissionais" className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="profissionais">Profissionais</TabsTrigger>
-            <TabsTrigger value="servicos">Serviços</TabsTrigger>
-            <TabsTrigger value="vinculos">Vínculos</TabsTrigger>
-            <TabsTrigger value="anamneses">Anamneses</TabsTrigger>
-            {isGestor && <TabsTrigger value="convites">Convites</TabsTrigger>}
-          </TabsList>
+      <div className="flex-1 overflow-auto px-4 sm:px-8 py-2">
+        <Tabs defaultValue="profissionais" className="w-full h-full flex flex-col">
+          <div className="relative mb-8 shrink-0">
+            <div className="flex overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1 pt-1">
+              <TabsList className="inline-flex h-12 w-max items-center justify-center rounded-2xl bg-muted/40 p-1.5 text-muted-foreground border border-border/40 shadow-sm backdrop-blur-sm">
+                <TabsTrigger 
+                  value="profissionais" 
+                  className="rounded-xl px-5 py-2 text-xs font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-primary/10 gap-2"
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  Profissionais
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="servicos"
+                  className="rounded-xl px-5 py-2 text-xs font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-primary/10 gap-2"
+                >
+                  <Scissors className="w-3.5 h-3.5" />
+                  Serviços
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="vinculos"
+                  className="rounded-xl px-5 py-2 text-xs font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-primary/10 gap-2"
+                >
+                  <Link2 className="w-3.5 h-3.5" />
+                  Vínculos
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="anamneses"
+                  className="rounded-xl px-5 py-2 text-xs font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-primary/10 gap-2"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  Anamneses
+                </TabsTrigger>
+                {isGestor && (
+                  <TabsTrigger 
+                    value="convites"
+                    className="rounded-xl px-5 py-2 text-xs font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-primary/10 gap-2"
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    Convites
+                  </TabsTrigger>
+                )}
+                <div className="w-[1px] h-6 bg-border/40 mx-2" />
+                <TabsTrigger 
+                  value="minha-conta"
+                  className="rounded-xl px-5 py-2 text-xs font-bold transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-md data-[state=active]:ring-1 data-[state=active]:ring-primary/10 gap-2"
+                >
+                  <User className="w-3.5 h-3.5" />
+                  Minha Conta
+                </TabsTrigger>
+              </TabsList>
+            </div>
+          </div>
 
-          <TabsContent value="profissionais">
-            <ProfissionaisTab />
-          </TabsContent>
-
-          <TabsContent value="servicos">
-            <ServicosTab />
-          </TabsContent>
-
-          <TabsContent value="vinculos">
-            <VinculosTab />
-          </TabsContent>
-
-          <TabsContent value="anamneses">
-            <AnamnesesTab />
-          </TabsContent>
-
-          {isGestor && (
-            <TabsContent value="convites">
-              <ConvitesTab />
+          <div className="flex-1 animate-in fade-in duration-500">
+            <TabsContent value="profissionais" className="mt-0 focus-visible:outline-none">
+              <ProfissionaisTab />
             </TabsContent>
-          )}
+
+            <TabsContent value="servicos" className="mt-0 focus-visible:outline-none">
+              <ServicosTab />
+            </TabsContent>
+
+            <TabsContent value="vinculos" className="mt-0 focus-visible:outline-none">
+              <VinculosTab />
+            </TabsContent>
+
+            <TabsContent value="anamneses" className="mt-0 focus-visible:outline-none">
+              <AnamnesesTab />
+            </TabsContent>
+
+            {isGestor && (
+              <TabsContent value="convites" className="mt-0 focus-visible:outline-none">
+                <ConvitesTab />
+              </TabsContent>
+            )}
+
+            <TabsContent value="minha-conta" className="mt-0 focus-visible:outline-none">
+              <MinhaContaTab />
+            </TabsContent>
+          </div>
         </Tabs>
       </div>
     </div>

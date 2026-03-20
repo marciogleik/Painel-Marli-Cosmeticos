@@ -7,11 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Camera, Loader2 } from "lucide-react";
+import { Camera, Loader2, User, Mail, Phone, ShieldCheck, Sparkles, LogOut } from "lucide-react";
 import { toast } from "sonner";
 
 const MinhaContaTab = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -27,12 +27,10 @@ const MinhaContaTab = () => {
         .select("full_name, avatar_url, phone")
         .eq("user_id", user.id)
         .single();
-      if (data) setFullName(data.full_name);
+      if (data) setFullName(data.full_name || "");
       return data;
     },
     enabled: !!user,
-    staleTime: 1000 * 60 * 5,
-    placeholderData: (prev) => prev,
   });
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -100,31 +98,37 @@ const MinhaContaTab = () => {
     }
   };
 
-  if (isLoading) return <div className="text-sm text-muted-foreground">Carregando...</div>;
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-primary/40" />
+        <p className="text-sm text-muted-foreground font-medium">Carregando informações da conta...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-md space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Foto de perfil</CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center gap-5">
-          <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-            <Avatar className="w-20 h-20">
+    <div className="max-w-3xl space-y-8 pb-24">
+      <div className="flex flex-col md:flex-row gap-8 items-start">
+        <div className="w-full md:w-64 flex flex-col items-center gap-4 bg-muted/5 p-8 rounded-[2.5rem] border border-border/40">
+          <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-tr from-primary/40 to-primary/10 rounded-full blur-sm opacity-50 group-hover:opacity-100 transition duration-500" />
+            <Avatar className="w-32 h-32 relative cursor-pointer border-4 border-background ring-1 ring-primary/20 shadow-2xl transition-transform duration-500 hover:scale-105" onClick={() => fileInputRef.current?.click()}>
               {profile?.avatar_url ? (
-                <AvatarImage src={profile.avatar_url} alt={profile.full_name} />
+                <AvatarImage src={profile.avatar_url} alt={profile.full_name || ""} className="object-cover" />
               ) : null}
-              <AvatarFallback className="text-lg font-bold">
-                {profile?.full_name?.slice(0, 2).toUpperCase()}
+              <AvatarFallback className="text-3xl font-black bg-primary/5 text-primary">
+                {profile?.full_name?.slice(0, 2).toUpperCase() || <User className="w-10 h-10 opacity-40" />}
               </AvatarFallback>
             </Avatar>
-            <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              {uploading ? (
-                <Loader2 className="w-5 h-5 text-white animate-spin" />
-              ) : (
-                <Camera className="w-5 h-5 text-white" />
-              )}
-            </div>
+            
+            <button 
+              className="absolute bottom-1 right-1 w-10 h-10 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all outline-none border-4 border-background"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Camera className="w-5 h-5" />}
+            </button>
+            
             <input
               ref={fileInputRef}
               type="file"
@@ -134,32 +138,87 @@ const MinhaContaTab = () => {
               disabled={uploading}
             />
           </div>
-          <div className="text-sm text-muted-foreground">
-            <p>Clique para alterar</p>
-            <p className="text-xs mt-0.5">JPG, PNG — máx. 2 MB</p>
-          </div>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Informações</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-1.5">
-            <Label>Nome completo</Label>
-            <Input value={fullName} onChange={e => setFullName(e.target.value)} />
+          <div className="text-center space-y-1">
+            <h3 className="font-display font-bold text-xl text-foreground/90">{profile?.full_name || "Usuário"}</h3>
+            <p className="text-xs font-bold text-muted-foreground/60 uppercase tracking-widest leading-none">Minha Conta</p>
           </div>
-          <div className="space-y-1.5">
-            <Label>E-mail</Label>
-            <Input value={user?.email ?? ""} disabled className="opacity-60" />
+          
+          <div className="w-full pt-4 space-y-2">
+             <Button variant="ghost" className="w-full h-11 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/5 gap-2 font-bold text-xs uppercase tracking-widest" onClick={() => signOut()}>
+               <LogOut className="w-4 h-4" /> Sair da Conta
+             </Button>
           </div>
-          <Button onClick={handleSaveName} disabled={savingName || fullName === profile?.full_name} size="sm">
-            {savingName ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
-            Salvar alterações
-          </Button>
-        </CardContent>
-      </Card>
+        </div>
+
+        <div className="flex-1 w-full space-y-6">
+          <Card className="rounded-[2.5rem] border-border/40 overflow-hidden shadow-sm hover:shadow-md transition-all">
+            <CardHeader className="bg-muted/5 border-b border-border/40 py-5 px-8">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                  <User className="w-4 h-4" />
+                </div>
+                <CardTitle className="text-xl font-display font-bold">Dados Pessoais</CardTitle>
+                <Sparkles className="w-4 h-4 text-primary opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
+              </div>
+            </CardHeader>
+            <CardContent className="p-8 space-y-6">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-px">Nome Completo</Label>
+                <Input 
+                  value={fullName} 
+                  onChange={e => setFullName(e.target.value)} 
+                  className="h-12 rounded-2xl bg-muted/20 border-border/30 focus:border-primary/30 focus:ring-primary/20 font-medium transition-all"
+                  placeholder="Seu nome completo"
+                />
+              </div>
+              
+              <div className="grid sm:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-px flex items-center gap-1.5">
+                    <Mail className="w-2.5 h-2.5" /> E-mail de Acesso
+                  </Label>
+                  <div className="h-12 rounded-2xl bg-muted/10 border border-border/30 px-4 flex items-center text-sm font-medium text-muted-foreground/70 select-none">
+                    {user?.email}
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-px flex items-center gap-1.5">
+                    <Phone className="w-2.5 h-2.5" /> Telefone Vinculado
+                  </Label>
+                  <div className="h-12 rounded-2xl bg-muted/10 border border-border/30 px-4 flex items-center text-sm font-medium text-muted-foreground/70 select-none">
+                    {profile?.phone || "Não informado"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <Button 
+                  onClick={handleSaveName} 
+                  disabled={savingName || fullName.trim() === profile?.full_name} 
+                  className="h-12 rounded-2xl px-8 font-bold gap-2 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all w-full sm:w-auto"
+                >
+                  {savingName ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                  Salvar Alterações
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <div className="p-6 rounded-3xl bg-primary/[0.03] border border-primary/10 flex items-start gap-4">
+            <div className="w-10 h-10 rounded-2xl bg-white border border-primary/20 flex items-center justify-center text-primary shrink-0 shadow-sm">
+              <ShieldCheck className="w-6 h-6" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="font-display font-bold text-foreground/80 leading-tight">Segurança e Privacidade</h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Seus dados estão protegidos por criptografia de ponta a ponta. Para alterar sua senha ou e-mail de acesso, entre em contato com o suporte da clínica.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

@@ -108,17 +108,28 @@ const ClientsPage = () => {
   const handleFilterDateTo = (v: string) => { setFilterDateTo(v); setCurrentPage(1); };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 sm:px-8 pt-4 sm:pt-8 pb-2 shrink-0 gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-display font-bold">Clientes</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            {totalItems} clientes {search ? 'encontrados' : 'cadastrados'}
+    <div className="flex flex-col h-full overflow-hidden bg-transparent">
+      {/* Header Hub Style */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between px-4 sm:px-8 pt-8 sm:pt-12 pb-6 shrink-0 gap-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Plus className="w-5 h-5 text-primary" />
+            </div>
+            <span className="text-xs font-black tracking-[0.3em] text-primary uppercase">Base de Dados</span>
+          </div>
+          <h1 className="text-4xl sm:text-5xl font-display font-black tracking-tighter text-foreground uppercase leading-none">
+            Clientes
+          </h1>
+          <p className="text-muted-foreground font-medium max-w-md pt-1">
+            Gerencie sua base de {totalItems} clientes com inteligência e agilidade.
           </p>
         </div>
-        <Button className="gap-1.5 h-9 sm:h-10 text-xs sm:text-sm w-full sm:w-auto" onClick={() => setShowNewClient(true)}>
-          <Plus className="w-4 h-4" /> Novo Cliente
+        <Button 
+          className="gap-3 h-14 px-8 rounded-2xl text-xs font-black uppercase tracking-[0.2em] w-full md:w-auto shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all bg-primary text-primary-foreground" 
+          onClick={() => setShowNewClient(true)}
+        >
+          <Plus className="w-5 h-5" /> Novo Cliente
         </Button>
       </div>
 

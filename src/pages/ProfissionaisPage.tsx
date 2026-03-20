@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 const ProfissionaisPage = () => {
@@ -39,36 +40,57 @@ const ProfissionaisPage = () => {
         <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">Gerencie a equipe da clínica</p>
       </div>
 
-      <div className="flex-1 overflow-auto px-4 sm:px-8 py-4">
-        <div className="flex items-center gap-3 mb-4">
-          <p className="text-sm text-muted-foreground">{active.length} profissionais ativos</p>
-          <label className="flex items-center gap-1.5 cursor-pointer text-xs text-muted-foreground">
-            <Switch checked={showInactive} onCheckedChange={setShowInactive} className="scale-75" />
-            Mostrar inativos
-          </label>
+      <div className="flex-1 overflow-auto px-4 sm:px-8 py-4 sm:py-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 bg-muted/20 p-4 rounded-xl border border-border/10">
+          <p className="text-[11px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-70">
+            {active.length} {active.length === 1 ? 'Profissional Ativo' : 'Profissionais Ativos'}
+          </p>
+          <div className="flex items-center gap-2 self-end sm:self-auto">
+            <span className="text-[10px] font-bold text-muted-foreground whitespace-nowrap">Mostrar inativos</span>
+            <Switch checked={showInactive} onCheckedChange={setShowInactive} className="scale-90" />
+          </div>
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
+          <div className="flex justify-center py-16">
+            <Loader2 className="w-8 h-8 animate-spin text-primary/40" />
+          </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {active.map(p => (
               <Card
                 key={p.id}
-                className="cursor-pointer hover:border-primary/50 transition-colors"
+                className="group relative overflow-hidden cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border-border/50 bg-card"
                 onClick={() => navigate(`/profissionais/${p.id}`)}
               >
-                <CardContent className="flex items-center gap-3 p-4">
-                  {getAvatarUrl(p) ? (
-                    <img src={getAvatarUrl(p)} alt={p.name} className="w-10 h-10 rounded-full object-cover shrink-0" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <span className="text-sm font-bold text-primary">{p.avatar_initials || p.name.slice(0, 2).toUpperCase()}</span>
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/40 to-primary/10" />
+                <CardContent className="flex flex-col items-center gap-4 p-6 pt-8 text-center">
+                  <div className="relative">
+                    {getAvatarUrl(p) ? (
+                      <img src={getAvatarUrl(p)} alt={p.name} className="w-20 h-20 rounded-2xl object-cover ring-4 ring-background shadow-lg group-hover:scale-105 transition-transform duration-300" />
+                    ) : (
+                      <div className="w-20 h-20 rounded-2xl bg-primary/5 flex items-center justify-center ring-4 ring-background shadow-lg group-hover:scale-105 transition-transform duration-300">
+                        <span className="text-2xl font-display font-bold text-primary/60">{p.avatar_initials || p.name.slice(0, 2).toUpperCase()}</span>
+                      </div>
+                    )}
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-4 border-background shadow-sm" />
+                  </div>
+                  
+                  <div className="min-w-0 space-y-1">
+                    <p className="font-display font-bold text-base tracking-tight text-foreground group-hover:text-primary transition-colors">{p.name}</p>
+                    <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide opacity-80">{p.role_description || "Equipe Marli"}</p>
+                  </div>
+
+                  <div className="w-full h-px bg-border/40 my-1" />
+                  
+                  <div className="flex items-center justify-center gap-3 w-full">
+                    <div className="flex flex-col items-center px-3 py-1 bg-muted/30 rounded-lg">
+                      <span className="text-[9px] font-bold text-muted-foreground uppercase">Agenda</span>
+                      <span className="text-xs font-bold text-foreground">#{p.agenda_order ?? 0}</span>
                     </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-sm truncate">{p.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{p.role_description || "—"}</p>
+                    <Button variant="ghost" size="sm" className="text-[10px] h-8 font-bold text-primary group-hover:bg-primary/5">
+                      VER PERFIL
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -77,17 +99,25 @@ const ProfissionaisPage = () => {
             {showInactive && inactive.map(p => (
               <Card
                 key={p.id}
-                className="opacity-50 border-dashed cursor-pointer hover:border-primary/50 transition-colors"
+                className="group relative overflow-hidden grayscale opacity-60 border-dashed cursor-pointer hover:grayscale-0 hover:opacity-100 transition-all duration-300 hover:border-primary/50"
                 onClick={() => navigate(`/profissionais/${p.id}`)}
               >
-                <CardContent className="flex items-center gap-3 p-4">
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                    <span className="text-sm font-bold text-muted-foreground">{p.avatar_initials || p.name.slice(0, 2).toUpperCase()}</span>
+                <CardContent className="flex flex-col items-center gap-4 p-6 pt-8 text-center">
+                  <div className="relative">
+                    <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center ring-4 ring-background shadow-md">
+                      <span className="text-2xl font-display font-bold text-muted-foreground/60">{p.avatar_initials || p.name.slice(0, 2).toUpperCase()}</span>
+                    </div>
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-muted-foreground/30 border-4 border-background" />
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-sm truncate">{p.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">Inativo</p>
+                  
+                  <div className="min-w-0 space-y-1">
+                    <p className="font-display font-bold text-base tracking-tight text-foreground">{p.name}</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">Inativo</p>
                   </div>
+                  
+                  <Button variant="ghost" size="sm" className="mt-2 text-[10px] font-bold">
+                    REATIVAR PERFIL
+                  </Button>
                 </CardContent>
               </Card>
             ))}

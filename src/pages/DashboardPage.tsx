@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 
 const DashboardPage = () => {
   const { user } = useAuth();
@@ -90,69 +91,77 @@ const DashboardPage = () => {
   const firstName = displayName.split(" ")[0];
 
   return (
-    <div className="flex flex-col h-full overflow-auto">
-      {/* Header */}
-      <div className="px-4 sm:px-8 pt-4 sm:pt-8 pb-2">
-        <h1 className="text-xl sm:text-2xl font-display font-bold">
-          Olá, {displayName}
+    <div className="flex flex-col h-full overflow-auto bg-transparent">
+      {/* Header Hub Style */}
+      <div className="px-4 sm:px-8 pt-8 sm:pt-12 pb-6 space-y-2">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Calendar className="w-5 h-5 text-primary" />
+          </div>
+          <span className="text-xs font-black tracking-[0.3em] text-primary uppercase">Painel de Controle</span>
+        </div>
+        <h1 className="text-4xl sm:text-5xl font-display font-black tracking-tighter text-foreground uppercase leading-none">
+          Olá, {firstName}
         </h1>
-        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-          {format(new Date(), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-          {" · "}Esses são seus resumos de hoje.
+        <p className="text-muted-foreground font-medium max-w-md pt-1">
+          {format(new Date(), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+          <span className="hidden sm:inline text-primary/50"> • </span>
+          Sua clínica em um relance rápido.
         </p>
       </div>
 
-      <div className="mx-4 sm:mx-8 h-[1.5px] bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
-
-      <div className="px-4 sm:px-8 py-4 sm:py-6 space-y-6">
-        {/* Quick stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-          <div className="p-3 sm:p-5 rounded-xl border border-border/60 bg-card">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                <Calendar className="w-4 h-4 text-primary" />
+      <div className="px-4 sm:px-8 py-4 sm:py-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        {/* Quick stats Glass cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6">
+          <div className="p-6 rounded-[2rem] border border-white/10 bg-background/40 backdrop-blur-md shadow-2xl ring-1 ring-white/5 transition-all hover:ring-primary/30 group">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20 group-hover:bg-primary transition-all duration-500">
+                <Calendar className="w-6 h-6 text-primary group-hover:text-primary-foreground transition-colors" />
               </div>
               <div className="min-w-0">
-                <p className="text-lg sm:text-xl font-semibold leading-tight">{todayAppointments.length}</p>
-                <p className="text-[9px] sm:text-[11px] text-muted-foreground tracking-wide uppercase truncate">Agends</p>
+                <p className="text-3xl font-display font-black leading-none mb-1 group-hover:text-primary transition-colors">{todayAppointments.length}</p>
+                <p className="text-[10px] text-muted-foreground font-black tracking-[0.2em] uppercase truncate opacity-60">Agenda</p>
               </div>
             </div>
           </div>
-          <div className="p-3 sm:p-5 rounded-xl border border-border/60 bg-card">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-accent flex items-center justify-center shrink-0">
-                <Clock className="w-4 h-4 text-accent-foreground" />
+          <div className="p-6 rounded-[2rem] border border-white/10 bg-background/40 backdrop-blur-md shadow-2xl ring-1 ring-white/5 transition-all hover:ring-emerald-500/30 group">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center shrink-0 border border-emerald-500/20 group-hover:bg-emerald-500 transition-all duration-500">
+                <Clock className="w-6 h-6 text-emerald-600 group-hover:text-white transition-colors" />
               </div>
               <div className="min-w-0">
-                <p className="text-lg sm:text-xl font-semibold leading-tight">{confirmed}</p>
-                <p className="text-[9px] sm:text-[11px] text-muted-foreground tracking-wide uppercase truncate">Confirms</p>
+                <p className="text-3xl font-display font-black leading-none mb-1 group-hover:text-emerald-600 transition-colors">{confirmed}</p>
+                <p className="text-[10px] text-muted-foreground font-black tracking-[0.2em] uppercase truncate opacity-60">Confirmados</p>
               </div>
             </div>
           </div>
-          <div className="p-3 sm:p-5 rounded-xl border border-border/60 bg-card col-span-2 sm:col-span-1">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-md bg-secondary flex items-center justify-center shrink-0">
-                <Clock className="w-4 h-4 text-secondary-foreground" />
+          <div className="p-6 rounded-[2rem] border border-white/10 bg-background/40 backdrop-blur-md shadow-2xl ring-1 ring-white/5 transition-all hover:ring-amber-500/30 group col-span-2 sm:col-span-1">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center shrink-0 border border-amber-500/20 group-hover:bg-amber-500 transition-all duration-500">
+                <Clock className="w-6 h-6 text-amber-600 group-hover:text-white transition-colors" />
               </div>
               <div className="min-w-0">
-                <p className="text-lg sm:text-xl font-semibold leading-tight">{pending}</p>
-                <p className="text-[9px] sm:text-[11px] text-muted-foreground tracking-wide uppercase truncate">Pendentes</p>
+                <p className="text-3xl font-display font-black leading-none mb-1 group-hover:text-amber-600 transition-colors">{pending}</p>
+                <p className="text-[10px] text-muted-foreground font-black tracking-[0.2em] uppercase truncate opacity-60">Pendentes</p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Agenda de Hoje */}
-          <div className="lg:col-span-2 bg-card rounded-xl border border-border p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display font-bold text-lg">Agenda de Hoje</h2>
-              <span className="text-xs font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">
-                {todayAppointments.length} agendamento{todayAppointments.length !== 1 ? "s" : ""}
-              </span>
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Agenda de Hoje Glass Container */}
+          <div className="lg:col-span-2 bg-background/40 backdrop-blur-md rounded-[2.5rem] border border-white/10 p-6 sm:p-8 shadow-2xl ring-1 ring-white/5">
+            <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/5">
+              <div className="space-y-1">
+                <h2 className="font-display font-black text-2xl uppercase tracking-tight">Agenda de Hoje</h2>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">Fluxo Operacional</p>
+              </div>
+              <Badge variant="outline" className="px-4 py-1.5 text-[10px] font-black uppercase tracking-widest border-primary/20 bg-primary/5 rounded-xl">
+                {todayAppointments.length} Registros
+              </Badge>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               {todayAppointments.map((appt) => {
                 const prof = professionals.find((p) => p.id === appt.professional_id);
                 const cfg = statusConfig[appt.status as keyof typeof statusConfig] || statusConfig.agendado;
@@ -161,75 +170,87 @@ const DashboardPage = () => {
                   <div
                     key={appt.id}
                     className={cn(
-                      "p-4 rounded-lg border bg-background",
-                      appt.status === "cancelado" && "opacity-50"
+                      "p-5 rounded-2xl border border-white/5 bg-white/5 hover:bg-white/10 transition-all duration-300 group",
+                      appt.status === "cancelado" && "opacity-40"
                     )}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span className="font-semibold">{appt.start_time?.slice(0, 5)}</span>
-                          <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-medium border", cfg.bgClass)}>
-                            {cfg.label}
-                          </span>
-                        </div>
-                        <div className="flex flex-col gap-0.5 mt-1">
-                          <p className="text-sm font-medium leading-tight">{appt.client_name}</p>
-                          <p className="text-xs text-primary font-medium">
-                            {getServiceNames(appt.id) || appt.notes || "Sem serviço registrado"}
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-6 flex-1">
+                        <div className="text-center shrink-0 min-w-[60px]">
+                          <p className="text-xl font-display font-black tracking-tighter text-primary">
+                            {appt.start_time?.slice(0, 5)}
                           </p>
-                          {isGestor && prof && (
-                            <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                              <UserCog className="w-2.5 h-2.5" />
-                              {prof.name}
-                            </p>
-                          )}
+                          <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 mt-0.5">Início</p>
+                        </div>
+                        <div className="w-px h-10 bg-white/10 hidden sm:block" />
+                        <div className="space-y-1">
+                          <p className="text-lg font-display font-black uppercase tracking-tight leading-none group-hover:text-primary transition-colors">
+                            {appt.client_name}
+                          </p>
+                          <div className="flex items-center gap-2">
+                             <Badge className={cn("text-[9px] font-black px-2 py-0 rounded-md border-none uppercase tracking-tighter", cfg.bgClass)}>
+                                {cfg.label}
+                             </Badge>
+                             <span className="text-[11px] font-bold text-primary/70">
+                                {getServiceNames(appt.id) || appt.notes || "Sem serviço"}
+                             </span>
+                          </div>
                         </div>
                       </div>
+                      
+                      {isGestor && prof && (
+                        <div className="hidden sm:flex flex-col items-end gap-1 px-4 py-2 bg-black/5 rounded-xl border border-white/5">
+                          <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/40">Profissional</span>
+                          <div className="flex items-center gap-1.5">
+                            <UserCog className="w-3 h-3 text-primary" />
+                            <span className="text-[10px] font-black uppercase tracking-tighter">{prof.name}</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
               })}
               {todayAppointments.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  Nenhum agendamento para hoje.
-                </p>
+                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+                  <Calendar className="w-12 h-12 mb-4 opacity-10" />
+                  <p className="font-display font-black text-lg uppercase tracking-tight">Nenhum agendamento hoje</p>
+                  <p className="text-xs opacity-50 font-medium">Sua agenda está livre por enquanto.</p>
+                </div>
               )}
             </div>
           </div>
 
-          {/* Aniversariantes */}
-          <div className="bg-card rounded-xl border border-border p-5">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Cake className="w-4 h-4 text-primary" />
+          {/* Aniversariantes Glass Container */}
+          <div className="bg-background/40 backdrop-blur-md rounded-[2.5rem] border border-white/10 p-6 sm:p-8 shadow-2xl ring-1 ring-white/5 h-fit">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shadow-inner border border-primary/20">
+                <Cake className="w-7 h-7 text-primary" />
               </div>
-              <div>
-                <p className="font-semibold text-sm">Aniversariantes de Hoje</p>
-                <p className="text-[10px] text-muted-foreground">
-                  {birthdays.length > 0
-                    ? `${birthdays.length} aniversariante${birthdays.length > 1 ? "s" : ""}`
-                    : "Nenhum hoje"}
+              <div className="space-y-0.5">
+                <h3 className="font-display font-black text-xl uppercase tracking-tight">Parabéns!</h3>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">
+                   {birthdays.length} Hoje
                 </p>
               </div>
             </div>
+            
             {birthdays.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {birthdays.map((client) => {
                   const year = client.birth_date
                     ? new Date().getFullYear() - parseInt(client.birth_date.slice(0, 4))
                     : null;
                   return (
-                    <div key={client.id} className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Cake className="w-3.5 h-3.5 text-primary" />
+                    <div key={client.id} className="p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <User className="w-5 h-5 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{client.full_name}</p>
-                        <p className="text-[10px] text-muted-foreground">
-                          {year ? `${year} anos` : ""}
-                          {client.phone ? ` · ${client.phone}` : ""}
+                        <p className="text-sm font-black uppercase tracking-tight truncate">{client.full_name}</p>
+                        <p className="text-[10px] font-bold text-muted-foreground/60 flex items-center gap-1.5">
+                          {year ? <span className="text-primary">{year} anos</span> : ""}
+                          {client.phone && <span>• {client.phone}</span>}
                         </p>
                       </div>
                     </div>
@@ -237,10 +258,21 @@ const DashboardPage = () => {
                 })}
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground text-center py-3">
-                Nenhum aniversariante hoje
-              </p>
+              <div className="text-center py-12 space-y-4">
+                <div className="w-12 h-12 rounded-full bg-muted/20 flex items-center justify-center mx-auto opacity-20">
+                    <Cake className="w-6 h-6" />
+                </div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">
+                  Nenhum aniversariante hoje
+                </p>
+              </div>
             )}
+
+            <div className="mt-8 pt-6 border-t border-white/5">
+                <button className="w-full py-3 bg-primary text-primary-foreground rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-primary/20 hover:scale-105 transition-all">
+                    Ver Calendário Mensal
+                </button>
+            </div>
           </div>
         </div>
       </div>
