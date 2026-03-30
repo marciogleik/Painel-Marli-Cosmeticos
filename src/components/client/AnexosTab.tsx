@@ -55,7 +55,7 @@ const AnexosTab = ({ clientId }: AnexosTabProps) => {
   const updatePrivacy = async (id: string, privacy: string) => {
     const { error } = await supabase
       .from("client_attachments")
-      .update({ privacy_type: privacy })
+      .update({ privacy_type: privacy } as any)
       .eq("id", id);
     
     if (error) {
@@ -75,7 +75,7 @@ const AnexosTab = ({ clientId }: AnexosTabProps) => {
   const userRole = (user as any)?.app_metadata?.role;
   const currentUserId = user?.id;
 
-  const visibleAttachments = attachments?.filter(att => {
+  const visibleAttachments = (attachments as any[])?.filter(att => {
     if (userRole === 'gestor') return true;
     if (att.privacy_type === 'public' || !att.privacy_type) return true;
     if (att.privacy_type === 'private') return true;
@@ -100,7 +100,7 @@ const AnexosTab = ({ clientId }: AnexosTabProps) => {
   }
 
   // Group by ficha_type
-  const grouped = visibleAttachments.reduce<Record<string, typeof visibleAttachments>>((acc, att) => {
+  const grouped = visibleAttachments.reduce<Record<string, any[]>>((acc, att) => {
     const key = att.ficha_type || "Sem categoria";
     if (!acc[key]) acc[key] = [];
     acc[key].push(att);

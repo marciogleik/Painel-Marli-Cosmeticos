@@ -13,6 +13,7 @@ import ClientsPage from "./pages/ClientsPage";
 import HistoricPage from "./pages/HistoricPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import MergeClientsPage from "./pages/MergeClientsPage";
+import DeduplicarFichasPage from "./pages/DeduplicarFichasPage";
 
 import PlaceholderPage from "./pages/PlaceholderPage";
 import ClientDetailPage from "./pages/ClientDetailPage";
@@ -61,6 +62,7 @@ const App = () => (
               <Route path="/clientes" element={<ClientsPage />} />
               <Route path="/clientes/:id" element={<ClientDetailPage />} />
               <Route path="/unificar-clientes" element={<RoleGuard denyRoles={["secretaria", "profissional"]}><MergeClientsPage /></RoleGuard>} />
+              <Route path="/deduplicar-fichas" element={<RoleGuard denyRoles={["secretaria", "profissional"]}><DeduplicarFichasPage /></RoleGuard>} />
               <Route path="/prontuarios" element={<Navigate to="/clientes" replace />} />
               <Route path="/prontuario/:recordId" element={<ProntuarioViewPage />} />
               <Route path="/financeiro" element={<FinanceiroPage />} />

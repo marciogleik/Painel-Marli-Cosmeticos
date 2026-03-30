@@ -16,9 +16,15 @@ interface ProfForm {
   name: string;
   role_description: string;
   avatar_initials: string;
+  can_receive_appointments: boolean;
 }
 
-const emptyForm: ProfForm = { name: "", role_description: "", avatar_initials: "" };
+const emptyForm: ProfForm = { 
+  name: "", 
+  role_description: "", 
+  avatar_initials: "", 
+  can_receive_appointments: true 
+};
 
 const ProfissionaisTab = () => {
   const queryClient = useQueryClient();
@@ -87,7 +93,8 @@ const ProfissionaisTab = () => {
       const payload = { 
         name: form.name.trim(), 
         role_description: form.role_description.trim() || null, 
-        avatar_initials: initials 
+        avatar_initials: initials,
+        can_receive_appointments: form.can_receive_appointments
       };
 
       if (editingId) {
@@ -124,7 +131,12 @@ const ProfissionaisTab = () => {
 
   const openEdit = (p: any) => {
     setEditingId(p.id);
-    setForm({ name: p.name, role_description: p.role_description || "", avatar_initials: p.avatar_initials || "" });
+    setForm({ 
+      name: p.name, 
+      role_description: p.role_description || "", 
+      avatar_initials: p.avatar_initials || "",
+      can_receive_appointments: p.can_receive_appointments ?? true
+    });
     setDialogOpen(true);
   };
 
@@ -301,6 +313,17 @@ const ProfissionaisTab = () => {
                 <Input value={form.avatar_initials} onChange={e => setForm(f => ({ ...f, avatar_initials: e.target.value.toUpperCase().slice(0, 3) }))} placeholder="Auto" maxLength={3} className="w-20 rounded-xl font-bold text-center" />
                 <p className="text-[10px] text-muted-foreground leading-tight">Deixe em branco para gerar automaticamente baseado no nome.</p>
               </div>
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-xl border border-border/40 bg-muted/5">
+              <div className="space-y-0.5">
+                <Label className="text-xs font-bold">Exibir na Agenda</Label>
+                <p className="text-[10px] text-muted-foreground">Define se o profissional aparece como coluna na Agenda.</p>
+              </div>
+              <Switch 
+                checked={form.can_receive_appointments} 
+                onCheckedChange={v => setForm(f => ({ ...f, can_receive_appointments: v }))} 
+              />
             </div>
             <Button className="w-full h-11 rounded-xl font-bold gap-2 mt-2" disabled={!canSubmit || mutation.isPending} onClick={() => mutation.mutate()}>
               {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : editingId ? <Pencil className="w-3.5 h-3.5" /> : <Plus className="w-4 h-4" />}

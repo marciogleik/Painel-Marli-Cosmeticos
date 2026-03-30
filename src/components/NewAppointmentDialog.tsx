@@ -52,7 +52,7 @@ import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Loader2, Search, AlertTriangle, UserPlus, User, History, GripVertical, X } from "lucide-react";
 import { toast } from "sonner";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { motion } from "framer-motion";
+import { motion, useDragControls } from "framer-motion";
 
 interface NewAppointmentDialogProps {
   open: boolean;
@@ -82,7 +82,7 @@ const NewAppointmentDialog = ({
   onDateSelect
 }: NewAppointmentDialogProps) => {
   const queryClient = useQueryClient();
-  const { data: professionals = [] } = useProfessionals();
+  const { data: professionals = [] } = useProfessionals({ onlyVisibleInAgenda: true });
 
   // Form state
   const [professionalId, setProfessionalId] = useState(defaultProfessionalId || "");
@@ -102,22 +102,22 @@ const NewAppointmentDialog = ({
   const [recurrence, setRecurrence] = useState("none");
   const [repeatCount, setRepeatCount] = useState("1");
   const [status, setStatus] = useState("agendado");
+  const [showQuickRegister, setShowQuickRegister] = useState(false);
+  const [newClientName, setNewClientName] = useState("");
+  const [newClientPhone, setNewClientPhone] = useState("");
 
   // Update states when props change (sync)
   useEffect(() => {
     if (open) {
       if (defaultProfessionalId) setProfessionalId(defaultProfessionalId);
       if (defaultStartTime) setStartTime(defaultStartTime);
-      if (defaultDate) setDate(defaultDate);
+      
+      // Only update local state if the incoming defaultDate is different from the current local date
+      if (defaultDate && (!date || defaultDate.getTime() !== date.getTime())) {
+        setDate(defaultDate);
+      }
     }
   }, [open, defaultProfessionalId, defaultStartTime, defaultDate]);
-
-  // Notify date change to parent (Agenda)
-  useEffect(() => {
-    if (open && date && onDateSelect) {
-      onDateSelect(date);
-    }
-  }, [date, open, onDateSelect]);
 
   const services = useServicesForProfessional(professionalId);
   const { data: clientsData } = useClients({ search: clientSearch, pageSize: 20 });
@@ -178,19 +178,22 @@ const NewAppointmentDialog = ({
     setRecurrence("none");
     setRepeatCount("1");
     setStatus("agendado");
+    setShowQuickRegister(false);
+    setNewClientName("");
+    setNewClientPhone("");
   };
 
   const createClientMutation = useMutation({
     mutationFn: async () => {
-      if (!clientName.trim() || !clientPhone.trim()) {
+      if (!newClientName.trim() || !newClientPhone.trim()) {
         throw new Error("Preencha o nome e o telefone do cliente.");
       }
 
       const { data, error } = await supabase
         .from("clients")
         .insert({
-          full_name: clientName.trim(),
-          phone: clientPhone.trim(),
+          full_name: newClientName.trim(),
+          phone: newClientPhone.trim(),
           is_active: true
         })
         .select("id, full_name, phone")
@@ -202,10 +205,13 @@ const NewAppointmentDialog = ({
     onSuccess: (newClient) => {
       selectClient(newClient);
       queryClient.invalidateQueries({ queryKey: ["clients"] });
-      toast.success("Cliente foi incluído com sucesso.", {
+      toast.success("Cliente cadastrado com sucesso!", {
         icon: <UserPlus className="w-4 h-4 text-white" />,
         className: "bg-green-600 text-white border-none",
       });
+      setShowQuickRegister(false);
+      setNewClientName("");
+      setNewClientPhone("");
     },
     onError: (err: Error) => {
       toast.error(err.message);
@@ -353,20 +359,27 @@ const NewAppointmentDialog = ({
 
   const canSubmit = professionalId && selectedServices.length > 0 && date && startTime && clientName.trim() && clientPhone.trim();
 
+  const dragControls = useDragControls();
+
   return (
     <Dialog modal={false} open={open} onOpenChange={(v) => { if (!v) resetForm(); onOpenChange(v); }}>
       <DialogContent 
         hideOverlay={true}
         hideCloseButton={true}
-        className="max-w-lg p-0 bg-transparent border-none shadow-none pointer-events-none"
+        className="sm:max-w-lg w-[min(calc(100vw-2rem),32rem)] p-0 bg-transparent border-none shadow-none pointer-events-none flex items-center justify-center translate-y-[-50%] translate-x-[-50%]"
         onInteractOutside={(e) => e.preventDefault()}
       >
         <motion.div 
           drag
+          dragControls={dragControls}
+          dragListener={false}
           dragMomentum={false}
-          className="relative bg-background border-2 rounded-xl shadow-2xl p-6 pointer-events-auto flex flex-col gap-4 max-h-[90vh] overflow-y-auto cursor-default"
+          className="relative bg-background border-2 rounded-xl shadow-2xl p-4 sm:p-6 pointer-events-auto flex flex-col gap-4 max-h-[85vh] w-full overflow-y-auto cursor-default scrollbar-thin"
         >
-          <DialogHeader className="cursor-move select-none border-b pb-3 mb-2 flex flex-row items-center gap-2">
+          <DialogHeader 
+            className="cursor-move select-none border-b pb-3 mb-2 flex flex-row items-center gap-2"
+            onPointerDown={(e) => dragControls.start(e)}
+          >
             <GripVertical className="w-5 h-5 text-muted-foreground" />
             <DialogTitle className="font-display">Novo Agendamento</DialogTitle>
           </DialogHeader>
@@ -449,7 +462,12 @@ const NewAppointmentDialog = ({
                   <Calendar
                     mode="single"
                     selected={date}
-                    onSelect={setDate}
+                    onSelect={(newDate) => {
+                      if (newDate) {
+                        setDate(newDate);
+                        if (onDateSelect) onDateSelect(newDate);
+                      }
+                    }}
                     initialFocus
                     className={cn("p-3 pointer-events-auto")}
                   />
@@ -458,7 +476,7 @@ const NewAppointmentDialog = ({
             </div>
 
             {/* 4. Time */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Início *</Label>
                 <Select value={startTime} onValueChange={(v) => { setStartTime(v); setManualEndTime(null); }}>
@@ -521,7 +539,7 @@ const NewAppointmentDialog = ({
                     className="pl-9"
                   />
                 </div>
-                {selectedClientId && (
+                {selectedClientId ? (
                   <Button
                     variant="secondary"
                     size="icon"
@@ -531,8 +549,63 @@ const NewAppointmentDialog = ({
                   >
                     <User className="w-4 h-4" />
                   </Button>
+                ) : (
+                  <Button
+                    variant={showQuickRegister ? "default" : "outline"}
+                    size="icon"
+                    className={cn("shrink-0", showQuickRegister && "bg-purple-600 hover:bg-purple-700 text-white border-purple-600")}
+                    onClick={() => setShowQuickRegister(!showQuickRegister)}
+                    title="Cadastrar Novo Cliente Rápido"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                  </Button>
                 )}
               </div>
+
+              {showQuickRegister && !selectedClientId && (
+                <div className="bg-muted/40 border border-border rounded-lg p-3 space-y-3 mt-2 animate-in slide-in-from-top-2 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-purple-600" />
+                  <div className="flex items-center justify-between pb-1 border-b">
+                    <span className="text-xs font-semibold uppercase text-muted-foreground flex items-center gap-1.5">
+                      <UserPlus className="w-3.5 h-3.5 text-purple-600" /> Cadastro Rápido
+                    </span>
+                    <button onClick={() => setShowQuickRegister(false)} className="text-muted-foreground hover:text-foreground transition-colors">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-muted-foreground uppercase font-semibold">Nome Completo *</Label>
+                      <Input 
+                        placeholder="Ex: Maria Alice" 
+                        value={newClientName} 
+                        onChange={e => setNewClientName(e.target.value)} 
+                        className="h-8 text-sm bg-background border-muted"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[11px] text-muted-foreground uppercase font-semibold">Telefone (WhatsApp) *</Label>
+                      <Input 
+                        placeholder="(66) 99999-9999" 
+                        value={newClientPhone} 
+                        onChange={e => setNewClientPhone(maskPhone(e.target.value))} 
+                        className="h-8 text-sm bg-background border-muted"
+                        maxLength={15}
+                      />
+                    </div>
+                  </div>
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="w-full h-8 text-xs font-semibold bg-purple-600 hover:bg-purple-700 text-white transition-all shadow-md shadow-purple-500/20"
+                    onClick={() => createClientMutation.mutate()}
+                    disabled={createClientMutation.isPending || !newClientName.trim() || newClientPhone.length < 14}
+                  >
+                    {createClientMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <UserPlus className="w-3.5 h-3.5 mr-1.5" />}
+                    {createClientMutation.isPending ? "Cadastrando e Vinculando..." : "Salvar e Selecionar Cliente"}
+                  </Button>
+                </div>
+              )}
 
               {selectedClientId && (
                 <div className="space-y-2">
@@ -562,7 +635,7 @@ const NewAppointmentDialog = ({
                                 <span>{apt.start_time.slice(0, 5)}</span>
                               </div>
                               <p className="text-muted-foreground truncate">
-                                {(apt as any).appointment_services?.map((s: any) => s.service_name).join(", ") || apt.notes || "-"}
+                                {(apt as any).appointment_services?.map((s: any) => s.service_name).join(", ") || "Sem serviço registrado"}
                               </p>
                             </div>
                           ))}
@@ -591,7 +664,7 @@ const NewAppointmentDialog = ({
             </div>
 
             {/* Status and Recurrence */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Status</Label>
                 <Select value={status} onValueChange={setStatus}>

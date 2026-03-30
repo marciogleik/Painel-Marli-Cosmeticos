@@ -6,3 +6,6 @@
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule . /index.html [L]
 </IfModule>
+
+# Fallback adicional para garantir que erros 404 internos do Apache também caiam no index.html
+ErrorDocument 404 /index.html

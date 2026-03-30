@@ -42,6 +42,7 @@ import {
   Pencil,
   ExternalLink,
   AlertTriangle,
+  Timer,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import AppointmentEditForm from "@/components/AppointmentEditForm";
@@ -55,12 +56,16 @@ interface AppointmentDetailDialogProps {
 const statusActions: Record<string, { label: string; icon: React.ReactNode; next: string }[]> = {
   agendado: [
     { label: "Confirmar", icon: <CalendarCheck className="w-4 h-4" />, next: "confirmado" },
+    { label: "Em Espera", icon: <Timer className="w-4 h-4" />, next: "espera" },
+    { label: "Atrasado", icon: <AlertCircle className="w-4 h-4" />, next: "atrasado" },
     { label: "Atendendo", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendendo" },
     { label: "Atendido", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendido" },
     { label: "Cancelar", icon: <XCircle className="w-4 h-4" />, next: "cancelado" },
     { label: "Faltou", icon: <XCircle className="w-4 h-4" />, next: "falta" },
   ],
   confirmado: [
+    { label: "Em Espera", icon: <Timer className="w-4 h-4" />, next: "espera" },
+    { label: "Atrasado", icon: <AlertCircle className="w-4 h-4" />, next: "atrasado" },
     { label: "Atendendo", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendendo" },
     { label: "Atendido", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendido" },
     { label: "Cancelar", icon: <XCircle className="w-4 h-4" />, next: "cancelado" },
@@ -68,9 +73,11 @@ const statusActions: Record<string, { label: string; icon: React.ReactNode; next
   ],
   espera: [
     { label: "Confirmar", icon: <CalendarCheck className="w-4 h-4" />, next: "confirmado" },
+    { label: "Atrasado", icon: <AlertCircle className="w-4 h-4" />, next: "atrasado" },
     { label: "Atendendo", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendendo" },
     { label: "Atendido", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendido" },
     { label: "Cancelar", icon: <XCircle className="w-4 h-4" />, next: "cancelado" },
+    { label: "Faltou", icon: <XCircle className="w-4 h-4" />, next: "falta" },
   ],
   atendendo: [
     { label: "Atendido", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendido" },
@@ -80,6 +87,8 @@ const statusActions: Record<string, { label: string; icon: React.ReactNode; next
     { label: "Reagendar", icon: <CalendarCheck className="w-4 h-4" />, next: "agendado" },
   ],
   atrasado: [
+    { label: "Confirmar", icon: <CalendarCheck className="w-4 h-4" />, next: "confirmado" },
+    { label: "Em Espera", icon: <Timer className="w-4 h-4" />, next: "espera" },
     { label: "Atendendo", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendendo" },
     { label: "Atendido", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendido" },
     { label: "Cancelar", icon: <XCircle className="w-4 h-4" />, next: "cancelado" },
@@ -298,34 +307,26 @@ const AppointmentDetailDialog = ({
             </div>
 
             {/* Services */}
-            {appointmentServices.length > 0 ? (
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2.5">
-                  <Scissors className="w-4 h-4 text-muted-foreground shrink-0" />
-                  <span className="text-sm font-medium">Serviços</span>
-                </div>
-                <div className="ml-6.5 space-y-1">
-                  {appointmentServices.map((svc) => (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2.5">
+                <Scissors className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="text-sm font-medium">Serviços</span>
+              </div>
+              <div className="ml-6.5 space-y-1">
+                {appointmentServices.length > 0 ? (
+                  appointmentServices.map((svc) => (
                     <div key={svc.id} className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">{svc.service_name} <span className="text-xs">({svc.duration_minutes} min)</span></span>
                       {svc.price != null && (
                         <span className="text-xs text-muted-foreground">R$ {Number(svc.price).toFixed(2).replace(".", ",")}</span>
                       )}
                     </div>
-                  ))}
-                </div>
+                  ))
+                ) : (
+                  <span className="text-sm text-muted-foreground italic">Nenhum serviço registrado</span>
+                )}
               </div>
-            ) : (
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2.5">
-                  <Scissors className="w-4 h-4 text-muted-foreground shrink-0" />
-                  <span className="text-sm font-medium text-primary">Serviço</span>
-                </div>
-                <div className="ml-6.5">
-                  <span className="text-sm text-muted-foreground">{appointment.notes || "Sem serviço registrado"}</span>
-                </div>
-              </div>
-            )}
+            </div>
 
             {appointment.notes && (
               <div className="flex items-start gap-2.5">

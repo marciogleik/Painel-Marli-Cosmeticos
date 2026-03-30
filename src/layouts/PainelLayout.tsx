@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from "react-router-dom";
 import AppSidebar from "@/components/AppSidebar";
+import { GlobalSearch } from "@/components/GlobalSearch";
 import marliLogo from "@/assets/marli-logo.jpg";
 
 // Map routes to display names for the mobile header
@@ -12,6 +13,7 @@ const routeNameMap: Record<string, string> = {
   "/configuracoes": "Configurações",
   "/historico": "Histórico",
   "/unificar-clientes": "Unificar",
+  "/deduplicar-fichas": "Deduplicar",
   "/exportar": "Exportar",
   "/notificacoes": "Notificações",
   "/faq": "Dúvidas",
@@ -24,6 +26,7 @@ const PainelLayout = () => {
     return (
         <div className="flex h-screen bg-background overflow-hidden font-sans">
             <AppSidebar />
+            <GlobalSearch />
             <main className="flex-1 flex flex-col min-w-0 w-full overflow-hidden relative">
                 {/* Mobile Header - only visible when sidebar is collapsed/mobile */}
                 <div className="lg:hidden h-14 shrink-0 flex items-center px-4 bg-background/50 backdrop-blur-md border-b border-border/40 z-30 sticky top-0">

@@ -141,6 +141,19 @@ const ProntuarioViewPage = () => {
         value: answers[f.id] ?? "",
         type: f.type,
       }));
+
+    // Add hidden/legacy fields that have content, like 'proced_realizado'
+    const specialKeys = ["proced_realizado", "observacoes_tecnicas", "evolucao"];
+    specialKeys.forEach(key => {
+      if (answers[key] && !fields.find(f => f.id === key)) {
+        fields.push({
+          id: key,
+          label: key === "proced_realizado" ? "Observações Técnicas / Procedimento" : key.charAt(0).toUpperCase() + key.slice(1),
+          value: answers[key],
+          type: "modelo_padrao"
+        });
+      }
+    });
   }
 
   const handlePrint = (withHeader: boolean) => {

@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { NavLink } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const SYSTEM_UPDATES = [
@@ -342,9 +343,11 @@ const NotificationsPage = () => {
                                 <p className="text-muted-foreground font-medium max-w-lg">
                                     Preparamos estas dicas rápidas para você aproveitar ao máximo todas as funcionalidades do Painel Marli.
                                 </p>
-                                <button className="px-6 py-2.5 bg-primary text-primary-foreground rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-primary/20 hover:scale-105 transition-transform">
-                                    Explorar Base de Conhecimento
-                                </button>
+                                <NavLink to="/faq">
+                                    <button className="px-6 py-2.5 bg-primary text-primary-foreground rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-primary/20 hover:scale-105 transition-transform">
+                                        Explorar Base de Conhecimento
+                                    </button>
+                                </NavLink>
                             </div>
                             <div className="relative z-10 p-8 bg-white/5 backdrop-blur-md rounded-full border border-white/10 shrink-0">
                                 <Info className="w-16 h-16 text-primary" />

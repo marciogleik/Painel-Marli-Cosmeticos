@@ -13,21 +13,27 @@ import { toast } from "@/hooks/use-toast";
 import type { AnamnesisTemplate, TemplateField } from "@/components/settings/AnamnesesTab";
 import type { PatientRecord } from "./AnamneseTab";
 import { TableEditor } from "./TableEditor";
+import { TechnicalObservationsGrid } from "./TechnicalObservationsGrid";
 
 // PatientRecord is now imported from AnamneseTab
 
 const isTableField = (label: string, fieldType?: string, currentValue?: string) => {
-  if (fieldType === 'modelo_padrao') return true;
+  const l = label.toLowerCase();
   
-  // Check label
-  const lowerLabel = label.toLowerCase();
-  if (lowerLabel.includes('procedimento') || 
-      lowerLabel.includes('observação técnica') ||
-      lowerLabel.includes('evolução') ||
-      lowerLabel.includes('histórico')) return true;
+  // Condição Especial para "Laser" que salva num formato legado com muitos espaços
+  if (l.includes('laser')) return true;
+
+  if (currentValue && !currentValue.includes('{') && (currentValue.includes('Sessão') || currentValue.includes('Data') || currentValue.includes('Parâmetros'))) {
+    const spacesCount = (currentValue.match(/\s{3,}/g) || []).length;
+    if (spacesCount > 2) return true; // Detect mock tables
+  }
+
+  if (l.includes('observação') || l.includes('observações') || 
+      l.includes('evolução') || l.includes('técnica') || l.includes('descrição') || l.includes('histórico') ||
+      l.includes('procedimento')) return true;
 
   // Check if label is just "Data" but it's at the end of the form or has legacy table content
-  if (lowerLabel === 'data' && currentValue?.toLowerCase().includes('procedimento realizado')) return true;
+  if (l === 'data' && currentValue?.toLowerCase().includes('procedimento realizado')) return true;
 
   return false;
 };
@@ -263,6 +269,21 @@ const AnamneseFillDialog = ({
 
   const renderField = (field: TemplateField) => {
     const value = answers[field.id] ?? "";
+
+    if (isTableField(field.label, field.type, value)) {
+      return (
+        <div className="space-y-3 col-span-full mt-6 mb-4">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+            <Label className="text-base font-semibold text-[#5c7cbe]">{field.label}</Label>
+          </div>
+          <TechnicalObservationsGrid 
+            label={field.label}
+            value={value} 
+            onChange={(v) => updateAnswer(field.id, v)} 
+          />
+        </div>
+      );
+    }
 
     switch (field.type) {
       case "multiple_choice":

@@ -9,9 +9,15 @@ type Views = Database["public"]["Views"];
 // ========== PROFESSIONALS ==========
 export type DBProfessional = Tables["professionals"]["Row"];
 
-export const useProfessionals = (includeInactive = false) => {
+export const useProfessionals = (optionsOrIncludeInactive: boolean | { includeInactive?: boolean, onlyVisibleInAgenda?: boolean } = false) => {
+  const options = typeof optionsOrIncludeInactive === "boolean" 
+    ? { includeInactive: optionsOrIncludeInactive } 
+    : optionsOrIncludeInactive;
+    
+  const { includeInactive = false, onlyVisibleInAgenda = false } = options;
+
   return useQuery({
-    queryKey: ["professionals", includeInactive],
+    queryKey: ["professionals", includeInactive, onlyVisibleInAgenda],
     queryFn: async () => {
       let query = supabase
         .from("professionals")
@@ -20,6 +26,7 @@ export const useProfessionals = (includeInactive = false) => {
         .order("name");
 
       if (!includeInactive) query = query.eq("is_active", true);
+      if (onlyVisibleInAgenda) query = query.eq("can_receive_appointments", true);
 
       const { data, error } = await query;
       if (error) throw error;
@@ -101,6 +108,13 @@ export interface DBAppointment {
   client_phone: string | null;
   executed_by: string | null;
   cancellation_reason: string | null;
+  appointment_services?: {
+    id: string;
+    service_name: string;
+    service_id: string | null;
+    duration_minutes: number;
+    price: number | null;
+  }[];
 }
 
 export const useAppointments = (dateFrom?: string, dateTo?: string) => {
@@ -110,7 +124,7 @@ export const useAppointments = (dateFrom?: string, dateTo?: string) => {
     queryFn: async () => {
       let query = supabase
         .from("appointments")
-        .select("*")
+        .select("*, appointment_services(*)")
         .order("date")
         .order("start_time");
 
@@ -126,7 +140,8 @@ export const useAppointments = (dateFrom?: string, dateTo?: string) => {
 };
 
 // ========== CLIENTS ==========
-export type DBClient = Views["client_details_view"]["Row"];
+export type DBClient = Tables["clients"]["Row"];
+export type DBClientDetail = Views["client_details_view"]["Row"];
 
 export const useClients = (options: {
   search?: string;
@@ -134,11 +149,25 @@ export const useClients = (options: {
   pageSize?: number;
   sortBy?: string;
   is_active?: boolean;
+  filterIncomplete?: boolean;
+  filterCity?: string;
+  filterDateFrom?: string;
+  filterDateTo?: string;
 } = {}) => {
-  const { search, page = 1, pageSize = 50, sortBy, is_active = true } = options;
+  const { 
+    search, 
+    page = 1, 
+    pageSize = 50, 
+    sortBy, 
+    is_active = true,
+    filterIncomplete,
+    filterCity,
+    filterDateFrom,
+    filterDateTo
+  } = options;
 
   return useQuery({
-    queryKey: ["clients", search, page, pageSize, sortBy, is_active],
+    queryKey: ["clients", search, page, pageSize, sortBy, is_active, filterIncomplete, filterCity, filterDateFrom, filterDateTo],
     queryFn: async () => {
       let query = supabase
         .from("client_details_view")
@@ -149,11 +178,26 @@ export const useClients = (options: {
         const cleanSearch = search.trim().normalize("NFC");
         const numericSearch = cleanSearch.replace(/\D/g, '');
         if (numericSearch.length >= 8) {
-          // If searching by number, try to match digits too
           query = query.or(`full_name.ilike.%${cleanSearch}%,phone.ilike.%${cleanSearch}%,phone.ilike.%${numericSearch}%,cpf.ilike.%${cleanSearch}%`);
         } else {
           query = query.or(`full_name.ilike.%${cleanSearch}%,phone.ilike.%${cleanSearch}%,cpf.ilike.%${cleanSearch}%`);
         }
+      }
+
+      if (filterCity) {
+        query = query.eq("city", filterCity);
+      }
+
+      if (filterDateFrom) {
+        query = query.gte("created_at", filterDateFrom);
+      }
+
+      if (filterDateTo) {
+        query = query.lte("created_at", filterDateTo + 'T23:59:59');
+      }
+
+      if (filterIncomplete) {
+        query = query.or('cpf.is.null,address.is.null,city.is.null');
       }
 
       if (sortBy === 'last_visit') {
@@ -172,7 +216,7 @@ export const useClients = (options: {
       if (error) throw error;
 
       return {
-        data: data || [],
+        data: (data || []) as DBClientDetail[],
         count: count || 0,
       };
     },
@@ -191,6 +235,65 @@ export const useInactiveClients = () => {
 
       if (error) throw error;
       return (data ?? []) as DBClient[];
+    },
+  });
+};
+
+// ========== PATIENT RECORDS (ANAMNESIS) ==========
+export interface DBPatientRecord {
+  id: string;
+  client_id: string;
+  professional_id: string | null;
+  record_type: string;
+  title: string | null;
+  created_at: string;
+  updated_at: string;
+  clients?: { full_name: string };
+  professionals?: { name: string };
+}
+
+export const usePatientRecords = (options: {
+  search?: string;
+  page?: number;
+  pageSize?: number;
+  typeFilter?: string;
+} = {}) => {
+  const { search, page = 1, pageSize = 20, typeFilter } = options;
+
+  return useQuery({
+    queryKey: ["patient_records", search, page, pageSize, typeFilter],
+    queryFn: async () => {
+      let query = supabase
+        .from("patient_records")
+        .select("*, clients(full_name), professionals(name)", { count: "exact" })
+        .order("created_at", { ascending: false });
+
+      if (typeFilter && typeFilter !== "all" && typeFilter !== "") {
+        query = query.eq("title", typeFilter);
+      }
+
+      if (search && search.trim().length > 0) {
+        // Search on title or record_type. For searching client names, 
+        // we'd ideally need a View or a separate client-side filter if search is small,
+        // but since we want server-side, we search on what's available in the table.
+        query = query.or(`title.ilike.%${search}%,record_type.ilike.%${search}%`);
+      }
+
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+
+      const { data, error, count } = await query.range(from, to);
+
+      if (error) throw error;
+
+      return {
+        data: (data || []).map(r => ({
+          ...r,
+          client_name: (r as any).clients?.full_name || "Cliente",
+          professional_name: (r as any).professionals?.name || null
+        })),
+        count: count || 0,
+      };
     },
   });
 };

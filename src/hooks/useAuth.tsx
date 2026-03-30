@@ -3,54 +3,82 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import type { User, Session } from "@supabase/supabase-js";
 
+interface UserProfile {
+  full_name: string;
+  avatar_url: string | null;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
+  profile: UserProfile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
+const PROFILE_CACHE_KEY = "user_profile_cache";
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(() => {
+    const cached = localStorage.getItem(PROFILE_CACHE_KEY);
+    return cached ? JSON.parse(cached) : null;
+  });
   const [loading, setLoading] = useState(true);
   const queryClient = useQueryClient();
 
-  const prefetchProfile = (userId: string) => {
-    queryClient.prefetchQuery({
-      queryKey: ["my-profile", userId],
-      queryFn: async () => {
-        const { data } = await supabase
-          .from("profiles")
-          .select("full_name, avatar_url")
-          .eq("user_id", userId)
-          .single();
-        return data;
-      },
-      staleTime: 1000 * 60 * 5,
-    });
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("full_name, avatar_url")
+        .eq("user_id", userId)
+        .single();
+      
+      if (error) throw error;
+      
+      if (data) {
+        const newProfile = {
+          full_name: data.full_name || "",
+          avatar_url: data.avatar_url
+        };
+        setProfile(newProfile);
+        localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(newProfile));
+      }
+    } catch (err) {
+      console.error("Error fetching profile:", err);
+    }
+  };
+
+  const refreshProfile = async () => {
+    if (user?.id) await fetchProfile(user.id);
   };
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // Prefetch profile on sign in
-        if (_event === "SIGNED_IN" && session?.user) {
-          prefetchProfile(session.user.id);
-          setTimeout(() => {
+        if (session?.user) {
+          fetchProfile(session.user.id);
+          
+          if (_event === "SIGNED_IN") {
             supabase
               .from("professionals")
               .update({ last_login_at: new Date().toISOString() })
               .eq("user_id", session.user.id)
               .then(() => {});
-          }, 0);
+          }
+        } else {
+          setProfile(null);
+          localStorage.removeItem(PROFILE_CACHE_KEY);
         }
       }
     );
@@ -59,7 +87,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-      if (session?.user) prefetchProfile(session.user.id);
+      if (session?.user) fetchProfile(session.user.id);
     });
 
     return () => subscription.unsubscribe();
@@ -72,10 +100,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    setProfile(null);
+    localStorage.removeItem(PROFILE_CACHE_KEY);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, profile, loading, signIn, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

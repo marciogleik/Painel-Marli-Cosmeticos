@@ -1,4 +1,4 @@
-import { useProfessionals, useAppointments, statusConfig } from "@/hooks/useClinicData";
+import { useProfessionals, useAppointments, statusConfig, type DBAppointment } from "@/hooks/useClinicData";
 import { useAuth } from "@/hooks/useAuth";
 import { Calendar, Clock, User, Cake, UserCog } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -6,10 +6,12 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 
 const DashboardPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const today = format(new Date(), "yyyy-MM-dd");
   const todayMMDD = format(new Date(), "MM-dd");
   const { data: professionals = [] } = useProfessionals();
@@ -62,23 +64,9 @@ const DashboardPage = () => {
     },
   });
 
-  const appointmentIds = appointments.map((a) => a.id);
-  const { data: appointmentServices = [] } = useQuery({
-    queryKey: ["appointment_services_today", appointmentIds],
-    queryFn: async () => {
-      if (appointmentIds.length === 0) return [];
-      const { data, error } = await supabase
-        .from("appointment_services")
-        .select("appointment_id, service_name")
-        .in("appointment_id", appointmentIds);
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: appointmentIds.length > 0,
-  });
 
-  const getServiceNames = (appointmentId: string): string => {
-    const services = appointmentServices.filter((s) => s.appointment_id === appointmentId);
+  const getServiceNames = (appt: DBAppointment): string => {
+    const services = appt.appointment_services || [];
     if (services.length === 0) return "";
     return services.map((s) => s.service_name).join(", ");
   };
@@ -192,7 +180,7 @@ const DashboardPage = () => {
                                 {cfg.label}
                              </Badge>
                              <span className="text-[11px] font-bold text-primary/70">
-                                {getServiceNames(appt.id) || appt.notes || "Sem serviço"}
+                                {getServiceNames(appt) || "Sem serviço"}
                              </span>
                           </div>
                         </div>
@@ -269,7 +257,10 @@ const DashboardPage = () => {
             )}
 
             <div className="mt-8 pt-6 border-t border-white/5">
-                <button className="w-full py-3 bg-primary text-primary-foreground rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-primary/20 hover:scale-105 transition-all">
+                <button 
+                  onClick={() => navigate("/agenda?view=month")}
+                  className="w-full py-3 bg-primary text-primary-foreground rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-primary/20 hover:scale-105 transition-all"
+                >
                     Ver Calendário Mensal
                 </button>
             </div>

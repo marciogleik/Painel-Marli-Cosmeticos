@@ -31,7 +31,11 @@ const ClientsPage = () => {
     page: currentPage,
     pageSize,
     sortBy,
-    is_active: !showInactive
+    is_active: !showInactive,
+    filterIncomplete,
+    filterCity,
+    filterDateFrom,
+    filterDateTo
   });
 
   const clients = clientsData?.data ?? [];
@@ -69,6 +73,9 @@ const ClientsPage = () => {
     },
   });
 
+  // Cities are now fetched globally or we can still derive from current page as suggestion, 
+  // but for a true filter we should have a separate query for unique cities.
+  // For now, keeping the current derivation but it will only show cities from the current page.
   const availableCities = useMemo(() => {
     const cities = new Set<string>();
     for (const c of clients) {
@@ -77,23 +84,10 @@ const ClientsPage = () => {
     return Array.from(cities).sort();
   }, [clients]);
 
-  // Simplified display logic (filters still applied on the paginated result if needed, 
-  // but ideally we should move more filters to the server if they are frequent)
-  const displayClients = useMemo(() => {
-    let list = [...clients];
-
-    if (filterIncomplete) list = list.filter(c => isIncomplete(c));
-    if (filterCity) list = list.filter(c => c.city === filterCity);
-    if (filterDateFrom) list = list.filter(c => c.created_at >= filterDateFrom);
-    if (filterDateTo) list = list.filter(c => c.created_at <= filterDateTo + 'T23:59:59');
-
-    return list;
-  }, [clients, filterIncomplete, filterCity, filterDateFrom, filterDateTo]);
-
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const safePage = Math.min(currentPage, totalPages);
   const startIndex = (safePage - 1) * pageSize;
-  const paginatedClients = displayClients; // Already limited by server
+  const paginatedClients = clients; 
 
   const handleSearchChange = (value: string) => { setSearch(value); setCurrentPage(1); };
   const handlePageSizeChange = (size: number) => { setPageSize(size); setCurrentPage(1); };
@@ -154,18 +148,18 @@ const ClientsPage = () => {
       <ClientList
         clients={paginatedClients}
         isLoading={isLoading}
-        isEmpty={displayClients.length === 0}
+        isEmpty={clients.length === 0}
         search={search}
         sortBy={sortBy}
         inactiveClients={inactiveClients}
         showInactive={showInactive}
         onShowInactiveChange={setShowInactive}
-        onReactivate={(id) => reactivateMutation.mutate(id)}
+        onReactivate={(id: string) => reactivateMutation.mutate(id)}
         isReactivating={reactivateMutation.isPending}
         listRef={listRef as React.RefObject<HTMLDivElement>}
       />
 
-      {!isLoading && displayClients.length > 0 && (
+      {!isLoading && clients.length > 0 && (
         <ClientPagination
           startIndex={startIndex}
           pageSize={pageSize}

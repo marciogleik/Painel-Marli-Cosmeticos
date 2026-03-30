@@ -45,12 +45,25 @@ import { ptBR } from "date-fns/locale";
 import { CalendarIcon, Loader2, Ban, Repeat, Trash2, Edit2, Clock, Calendar as CalIcon } from "lucide-react";
 import { toast } from "sonner";
 
+// Helper to extract series_id from notes
+const getSeriesId = (notes: string | null) => {
+  if (!notes) return null;
+  const match = notes.match(/<!--series_id:([a-f0-9-]+)-->/);
+  return match ? match[1] : null;
+};
+
+// Helper to remove series_id tag from notes for display
+const stripSeriesId = (notes: string | null) => {
+  if (!notes) return "";
+  return notes.replace(/<!--series_id:[a-f0-9-]+-->/, "").trim();
+};
+
 type RecurrenceType = "pontual" | "semanal" | "mensal";
 
-const timeSlots = Array.from({ length: 30 }, (_, i) => {
-  const hour = Math.floor(i / 2) + 7;
-  const min = i % 2 === 0 ? "00" : "30";
-  return `${hour.toString().padStart(2, "0")}:${min}`;
+const timeSlots = Array.from({ length: 60 }, (_, i) => {
+  const hour = Math.floor(i / 4) + 7;
+  const min = (i % 4) * 15;
+  return `${hour.toString().padStart(2, "0")}:${min.toString().padStart(2, "0")}`;
 });
 
 interface BlockedSlotDialogProps {
@@ -82,10 +95,28 @@ const BlockedSlotDialog = ({
   const [startTime, setStartTime] = useState(defaultStartTime || "");
   const [endTime, setEndTime] = useState(defaultEndTime || "");
   const [reason, setReason] = useState(defaultNotes || "");
+  
+  const quickReasons = ["Almoço", "Reunião", "Médico", "Particular", "Folga", "Evento"];
+
+  const handleStartTimeChange = (val: string) => {
+    setStartTime(val);
+    // Auto-suggest end time (+1 hour if not set)
+    if (val && !endTime) {
+      const [h, m] = val.split(":").map(Number);
+      const endH = (h + 1).toString().padStart(2, "0");
+      const endTimeVal = `${endH}:${m.toString().padStart(2, "0")}`;
+      if (timeSlots.includes(endTimeVal)) {
+        setEndTime(endTimeVal);
+      }
+    }
+  };
   const [recurrence, setRecurrence] = useState<RecurrenceType>("pontual");
+  const [selectedDays, setSelectedDays] = useState<number[]>([]); // 0=Sun, 1=Mon...
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [internalBlockId, setInternalBlockId] = useState(blockId || null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmDeleteSeries, setConfirmDeleteSeries] = useState<boolean>(false);
+  const [editingSeriesId, setEditingSeriesId] = useState<string | null>(null);
 
   // Fetch existing blocks for this professional
   const { data: existingBlocks = [], isLoading: isLoadingBlocks } = useQuery({
@@ -124,15 +155,31 @@ const BlockedSlotDialog = ({
     onOpenChange(v);
   };
 
-  const generateDates = (start: Date, end: Date, type: RecurrenceType): Date[] => {
-    const dates: Date[] = [start];
-    if (type === "pontual") return dates;
-    const addFn = type === "semanal" ? (d: Date) => addWeeks(d, 1) : (d: Date) => addMonths(d, 1);
-    let current = addFn(start);
+  const generateDates = (start: Date, end: Date, type: RecurrenceType, days: number[]): Date[] => {
+    const dates: Date[] = [];
+    let current = new Date(start);
+    
     while (isBefore(current, end) || isEqual(current, end)) {
-      dates.push(current);
-      current = addFn(current);
+      if (type === "pontual") {
+        dates.push(current);
+        break;
+      }
+      
+      const dayOfWeek = current.getDay();
+      
+      if (type === "semanal") {
+        if (days.length === 0 || days.includes(dayOfWeek)) {
+          dates.push(new Date(current));
+        }
+      } else if (type === "mensal") {
+        dates.push(new Date(current));
+      }
+      
+      current = addDays(current, 1);
+      // Safety break to prevent infinite loops (max 1 year)
+      if (dates.length > 366) break;
     }
+    
     return dates;
   };
 
@@ -148,18 +195,23 @@ const BlockedSlotDialog = ({
         throw new Error("Selecione a data final da recorrência");
       }
 
+      const seriesId = recurrence !== "pontual" ? crypto.randomUUID() : null;
+      const notesWithSeries = seriesId 
+        ? `${reason.trim()} <!--series_id:${seriesId}-->`
+        : reason.trim();
+
       const commonData = {
         professional_id: professionalId,
         date: format(date, "yyyy-MM-dd"),
         start_time: startTime + ":00",
         end_time: endTime + ":00",
-        notes: reason.trim() || null,
+        notes: notesWithSeries || null,
         client_name: "BLOQUEIO",
         status: "bloqueado",
       };
 
-      if (internalBlockId) {
-        // Update existing block
+      if (internalBlockId && !editingSeriesId) {
+        // Update single existing block
         const { error } = await supabase
           .from("appointments")
           .update(commonData)
@@ -167,12 +219,26 @@ const BlockedSlotDialog = ({
         if (error) throw error;
         return 1;
       } else {
+        // Handle New Block or Series Update
+        if (editingSeriesId) {
+          // Delete old series first
+          const { error: delError } = await supabase
+            .from("appointments")
+            .delete()
+            .like("notes", `%<!--series_id:${editingSeriesId}-->%`);
+          if (delError) throw delError;
+        }
+
         // Insert new block(s)
-        const dates = generateDates(date, endDate || date, recurrence);
+        const dates = generateDates(date, endDate || date, recurrence, selectedDays);
         const rows = dates.map((d) => ({
           ...commonData,
           date: format(d, "yyyy-MM-dd"),
         }));
+
+        if (rows.length === 0) {
+          throw new Error("Nenhuma data encontrada para os dias selecionados");
+        }
 
         const { error } = await supabase.from("appointments").insert(rows);
         if (error) throw error;
@@ -189,12 +255,15 @@ const BlockedSlotDialog = ({
             ? "Horário bloqueado com sucesso!"
             : `${count} bloqueios criados com sucesso!`
       );
-      if (internalBlockId) {
+      if (internalBlockId || editingSeriesId) {
         // Reset after edit
         setInternalBlockId(null);
+        setEditingSeriesId(null);
         setStartTime("");
         setEndTime("");
         setReason("");
+        setRecurrence("pontual");
+        setSelectedDays([]);
       } else {
         onOpenChange(false);
       }
@@ -213,9 +282,19 @@ const BlockedSlotDialog = ({
     (internalBlockId || recurrence === "pontual" || endDate);
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("appointments").delete().eq("id", id);
-      if (error) throw error;
+    mutationFn: async ({ id, sid }: { id: string; sid?: string | null }) => {
+      if (sid) {
+        // Delete entire series
+        const { error } = await supabase
+          .from("appointments")
+          .delete()
+          .like("notes", `%<!--series_id:${sid}-->%`);
+        if (error) throw error;
+      } else {
+        // Delete single block
+        const { error } = await supabase.from("appointments").delete().eq("id", id);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
@@ -229,12 +308,24 @@ const BlockedSlotDialog = ({
   });
 
   const handleEdit = (block: any) => {
+    const sid = getSeriesId(block.notes);
     setInternalBlockId(block.id);
+    setEditingSeriesId(sid);
     setProfessionalId(block.professional_id);
     setDate(parseISO(block.date));
     setStartTime(block.start_time.slice(0, 5));
     setEndTime(block.end_time.slice(0, 5));
-    setReason(block.notes || "");
+    setReason(stripSeriesId(block.notes));
+    
+    if (sid) {
+      setRecurrence("semanal");
+      // Note: We don't have the original selectedDays or EndDate easily.
+      // We could infer them or just let the user re-select.
+      // For now, let's just set the recurrence to weekly.
+      setEndDate(undefined); 
+    } else {
+      setRecurrence("pontual");
+    }
   };
 
   const handleDeleteClick = (id: string) => {
@@ -245,20 +336,30 @@ const BlockedSlotDialog = ({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-display flex items-center gap-2">
-            <Ban className="w-5 h-5 text-destructive" />
-            {internalBlockId ? "Editar Bloqueio" : "Bloquear Horário"}
-          </DialogTitle>
-          <DialogDescription>
-            Gerencie as ausências e bloqueios de horário das profissionais.
-          </DialogDescription>
+          <div className="flex items-center gap-3 mb-1">
+            <div className="p-2.5 bg-destructive/10 rounded-xl">
+              <Ban className="w-5 h-5 text-destructive" />
+            </div>
+            <div>
+              <DialogTitle className="text-xl font-display font-black tracking-tighter uppercase">
+                {internalBlockId ? "Editar Bloqueio" : "Bloquear Horário"}
+              </DialogTitle>
+              <DialogDescription className="text-[10px] font-bold uppercase tracking-widest opacity-70">
+                Gestão de Ausências e Intervalos
+              </DialogDescription>
+            </div>
+          </div>
         </DialogHeader>
 
         <div className="space-y-4 pt-2">
           <div className="space-y-2">
-            <Label>Profissional *</Label>
+            <Label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider opacity-70">
+              <Clock className="w-3.5 h-3.5" /> Profissional *
+            </Label>
             <Select value={professionalId} onValueChange={setProfessionalId}>
-              <SelectTrigger><SelectValue placeholder="Selecione a profissional" /></SelectTrigger>
+              <SelectTrigger className="h-11 rounded-xl border-border/60 focus:ring-primary/20">
+                <SelectValue placeholder="Selecione a profissional" />
+              </SelectTrigger>
               <SelectContent>
                 {professionals.map((p) => (
                   <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
@@ -268,11 +369,13 @@ const BlockedSlotDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label>Data *</Label>
+            <Label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider opacity-70">
+              <CalIcon className="w-3.5 h-3.5" /> Data *
+            </Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}>
-                  <CalendarIcon className="mr-2 h-4 w-4" />
+                <Button variant="outline" className={cn("w-full h-11 justify-start text-left font-normal rounded-xl border-border/60 hover:bg-muted/50", !date && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
                   {date ? format(date, "PPP", { locale: ptBR }) : "Selecione a data"}
                 </Button>
               </PopoverTrigger>
@@ -282,26 +385,34 @@ const BlockedSlotDialog = ({
             </Popover>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Início *</Label>
-              <Select value={startTime} onValueChange={setStartTime}>
-                <SelectTrigger><SelectValue placeholder="Início" /></SelectTrigger>
+              <Label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider opacity-70">
+                <Clock className="w-3.5 h-3.5" /> Início *
+              </Label>
+              <Select value={startTime} onValueChange={handleStartTimeChange}>
+                <SelectTrigger className="h-11 rounded-xl border-border/60"><SelectValue placeholder="Início" /></SelectTrigger>
                 <SelectContent>
-                  {timeSlots.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
+                  <ScrollArea className="h-[200px]">
+                    {timeSlots.map((t) => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </ScrollArea>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Fim *</Label>
+              <Label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider opacity-70">
+                <Clock className="w-3.5 h-3.5" /> Fim *
+              </Label>
               <Select value={endTime} onValueChange={setEndTime}>
-                <SelectTrigger><SelectValue placeholder="Fim" /></SelectTrigger>
+                <SelectTrigger className="h-11 rounded-xl border-border/60"><SelectValue placeholder="Fim" /></SelectTrigger>
                 <SelectContent>
-                  {timeSlots.filter((t) => t > startTime).map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
+                  <ScrollArea className="h-[200px]">
+                    {timeSlots.filter((t) => t > startTime).map((t) => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </ScrollArea>
                 </SelectContent>
               </Select>
             </div>
@@ -315,7 +426,12 @@ const BlockedSlotDialog = ({
                 </Label>
                 <RadioGroup
                   value={recurrence}
-                  onValueChange={(v) => setRecurrence(v as RecurrenceType)}
+                  onValueChange={(v) => {
+                    setRecurrence(v as RecurrenceType);
+                    if (v === "semanal" && selectedDays.length === 0 && date) {
+                      setSelectedDays([date.getDay()]);
+                    }
+                  }}
                   className="flex gap-4"
                 >
                   <div className="flex items-center gap-1.5">
@@ -324,14 +440,39 @@ const BlockedSlotDialog = ({
                   </div>
                   <div className="flex items-center gap-1.5">
                     <RadioGroupItem value="semanal" id="rec-semanal" />
-                    <Label htmlFor="rec-semanal" className="font-normal cursor-pointer">Semanal</Label>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <RadioGroupItem value="mensal" id="rec-mensal" />
-                    <Label htmlFor="rec-mensal" className="font-normal cursor-pointer">Mensal</Label>
+                    <Label htmlFor="rec-semanal" className="font-normal cursor-pointer">Recorrente</Label>
                   </div>
                 </RadioGroup>
               </div>
+
+              {recurrence === "semanal" && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <Label className="text-[10px] font-bold uppercase tracking-widest opacity-60">Dias da Semana</Label>
+                  <div className="flex justify-between gap-1">
+                    {["D", "S", "T", "Q", "Q", "S", "S"].map((day, idx) => {
+                      const isSelected = selectedDays.includes(idx);
+                      return (
+                        <Button
+                          key={idx}
+                          type="button"
+                          variant={isSelected ? "default" : "outline"}
+                          className={cn(
+                            "w-9 h-9 p-0 text-[10px] font-bold rounded-lg transition-all",
+                            isSelected ? "bg-primary shadow-sm" : "border-border/60 text-muted-foreground hover:bg-muted"
+                          )}
+                          onClick={() => {
+                            setSelectedDays(prev => 
+                              prev.includes(idx) ? prev.filter(d => d !== idx) : [...prev, idx]
+                            );
+                          }}
+                        >
+                          {day}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {recurrence !== "pontual" && (
                 <div className="space-y-2">
@@ -360,11 +501,27 @@ const BlockedSlotDialog = ({
           )}
 
           <div className="space-y-2">
-            <Label>Motivo (opcional)</Label>
+            <Label className="text-xs font-bold uppercase tracking-wider opacity-70">Motivo (opcional)</Label>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {quickReasons.map(r => (
+                <Badge
+                  key={r}
+                  variant="outline"
+                  className={cn(
+                    "cursor-pointer hover:bg-primary/10 hover:border-primary/50 transition-all text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-lg",
+                    reason === r && "bg-primary/20 border-primary/50 text-primary"
+                  )}
+                  onClick={() => setReason(r)}
+                >
+                  {r}
+                </Badge>
+              ))}
+            </div>
             <Input
               placeholder="Ex: Almoço, reunião, folga..."
               value={reason}
               onChange={(e) => setReason(e.target.value)}
+              className="h-11 rounded-xl border-border/60 focus:ring-primary/20 placeholder:text-muted-foreground/30"
               maxLength={100}
             />
           </div>
@@ -372,11 +529,13 @@ const BlockedSlotDialog = ({
           <Button
             onClick={() => mutation.mutate()}
             disabled={!canSubmit || mutation.isPending}
-            className="w-full"
-            variant={internalBlockId ? "default" : "destructive"}
+            className={cn(
+                "w-full h-12 text-xs font-black uppercase tracking-widest rounded-xl transition-all active:scale-[0.98]",
+                internalBlockId ? "bg-primary shadow-lg shadow-primary/20" : "bg-destructive hover:bg-destructive/90 shadow-lg shadow-destructive/20"
+            )}
           >
             {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Ban className="w-4 h-4 mr-2" />}
-            {internalBlockId ? "Salvar Alterações" : "Bloquear Horário"}
+            {internalBlockId ? "Salvar Alterações" : "Confirmar Bloqueio"}
           </Button>
 
           {internalBlockId && (
@@ -407,12 +566,32 @@ const BlockedSlotDialog = ({
 
               <ScrollArea className="h-[180px] pr-3 -mr-3">
                 <div className="space-y-2">
-                  {existingBlocks.length === 0 ? (
-                    <p className="text-xs text-muted-foreground italic text-center py-4">
-                      Nenhum bloqueio futuro encontrado.
-                    </p>
-                  ) : (
-                    existingBlocks.map((block: any) => (
+                  {(() => {
+                    // Group blocks by series_id
+                    const groupedBlocks: any[] = [];
+                    const seriesProcessed = new Set();
+
+                    existingBlocks.forEach((block: any) => {
+                      const sid = getSeriesId(block.notes);
+                      if (sid) {
+                        if (!seriesProcessed.has(sid)) {
+                          groupedBlocks.push({ ...block, isSeries: true, sid });
+                          seriesProcessed.add(sid);
+                        }
+                      } else {
+                        groupedBlocks.push({ ...block, isSeries: false });
+                      }
+                    });
+
+                    if (groupedBlocks.length === 0) {
+                      return (
+                        <p className="text-xs text-muted-foreground italic text-center py-4">
+                          Nenhum bloqueio futuro encontrado.
+                        </p>
+                      );
+                    }
+
+                    return groupedBlocks.map((block: any) => (
                       <div 
                         key={block.id}
                         className={cn(
@@ -423,18 +602,30 @@ const BlockedSlotDialog = ({
                         <div className="flex items-start justify-between gap-2">
                           <div className="space-y-1 flex-1">
                             <div className="flex items-center gap-2">
-                              <Badge variant="outline" className="text-[10px] py-0 px-1 font-normal bg-muted">
-                                <CalIcon className="w-2.5 h-2.5 mr-1" />
-                                {format(parseISO(block.date), "dd/MM/yy")}
-                              </Badge>
+                              {block.isSeries ? (
+                                <Badge variant="secondary" className="text-[9px] py-0 px-1 font-black uppercase tracking-tighter bg-primary/10 text-primary">
+                                  <Repeat className="w-2.5 h-2.5 mr-1" />
+                                  Série
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-[10px] py-0 px-1 font-normal bg-muted">
+                                  <CalIcon className="w-2.5 h-2.5 mr-1" />
+                                  {format(parseISO(block.date), "dd/MM/yy")}
+                                </Badge>
+                              )}
                               <Badge variant="outline" className="text-[10px] py-0 px-1 font-normal bg-muted">
                                 <Clock className="w-2.5 h-2.5 mr-1" />
                                 {block.start_time.slice(0, 5)} - {block.end_time.slice(0, 5)}
                               </Badge>
                             </div>
                             <p className="text-xs font-medium leading-none mt-1">
-                              {block.notes || "Sem observações"}
+                              {stripSeriesId(block.notes) || "Sem observações"}
                             </p>
+                            {block.isSeries && (
+                              <p className="text-[9px] text-muted-foreground mt-1 italic">
+                                * Bloqueio recorrente (várias datas)
+                              </p>
+                            )}
                           </div>
                           <div className="flex items-center gap-1">
                             <Button 
@@ -442,7 +633,7 @@ const BlockedSlotDialog = ({
                               size="icon" 
                               className="w-7 h-7 hover:bg-muted"
                               onClick={() => handleEdit(block)}
-                              title="Editar"
+                              title={block.isSeries ? "Editar Série" : "Editar"}
                             >
                               <Edit2 className="w-3.5 h-3.5" />
                             </Button>
@@ -450,16 +641,20 @@ const BlockedSlotDialog = ({
                               variant="ghost" 
                               size="icon" 
                               className="w-7 h-7 hover:bg-destructive/10 text-destructive"
-                              onClick={() => handleDeleteClick(block.id)}
-                              title="Excluir"
+                              onClick={() => {
+                                const sid = getSeriesId(block.notes);
+                                setConfirmDeleteId(block.id);
+                                setConfirmDeleteSeries(!!sid);
+                              }}
+                              title={block.isSeries ? "Excluir Série" : "Excluir"}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </Button>
                           </div>
                         </div>
                       </div>
-                    ))
-                  )}
+                    ));
+                  })()}
                 </div>
               </ScrollArea>
             </div>
@@ -469,18 +664,27 @@ const BlockedSlotDialog = ({
         <AlertDialog open={!!confirmDeleteId} onOpenChange={(v) => !v && setConfirmDeleteId(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Excluir Bloqueio?</AlertDialogTitle>
+              <AlertDialogTitle>{confirmDeleteSeries ? "Excluir Série de Bloqueios?" : "Excluir Bloqueio?"}</AlertDialogTitle>
               <AlertDialogDescription>
-                Esta ação não pode ser desfeita. O horário voltará a ficar disponível na agenda.
+                {confirmDeleteSeries 
+                  ? "Este bloqueio faz parte de uma recorrência. Deseja excluir TODOS os bloqueios desta série?" 
+                  : "Esta ação não pode ser desfeita. O horário voltará a ficar disponível na agenda."}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction 
-                onClick={() => confirmDeleteId && deleteMutation.mutate(confirmDeleteId)}
+                onClick={() => {
+                  if (confirmDeleteId) {
+                    const block = existingBlocks.find((b: any) => b.id === confirmDeleteId);
+                    const sid = confirmDeleteSeries ? getSeriesId(block?.notes) : null;
+                    deleteMutation.mutate({ id: confirmDeleteId, sid });
+                  }
+                  setConfirmDeleteId(null);
+                }}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                Excluir
+                Excluir {confirmDeleteSeries ? "Série" : "Bloqueio"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

@@ -181,7 +181,7 @@ const FinanceiroPage = () => {
         ) : (
           <div className="space-y-8">
             {/* Stats cards Glass */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               <div className="p-6 rounded-[2rem] border border-white/10 bg-background/40 backdrop-blur-md shadow-2xl ring-1 ring-white/5 group hover:ring-primary/40 transition-all duration-500">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20 group-hover:bg-primary transition-all duration-500">
@@ -212,7 +212,7 @@ const FinanceiroPage = () => {
                 </div>
               </div>
 
-              <div className="p-6 rounded-[2rem] border border-white/10 bg-background/40 backdrop-blur-md shadow-2xl ring-1 ring-white/5 group hover:ring-amber-500/40 transition-all duration-500 col-span-2 sm:col-span-1">
+              <div className="p-6 rounded-[2rem] border border-white/10 bg-background/40 backdrop-blur-md shadow-2xl ring-1 ring-white/5 group hover:ring-amber-500/40 transition-all duration-500 col-span-1 sm:col-span-2 lg:col-span-1">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center shrink-0 border border-amber-500/20 group-hover:bg-amber-500 transition-all duration-500">
                     <TrendingUp className="w-6 h-6 text-amber-600 group-hover:text-white" />
@@ -285,7 +285,7 @@ const FinanceiroPage = () => {
                         <XAxis type="number" tick={{ fontSize: 10, fontWeight: 'bold' }} tickFormatter={v => `R$${v}`} axisLine={false} />
                         <YAxis dataKey="name" type="category" tick={{ fontSize: 10, fontWeight: 'bold' }} width={80} axisLine={false} />
                         <Tooltip
-                          contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', borderRadius: '12px', shadow: 'none', border: 'none' }}
+                          contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', borderRadius: '12px', boxShadow: 'none', border: 'none' }}
                           itemStyle={{ fontSize: '10px', fontWeight: 'bold', color: '#fff', textTransform: 'uppercase' }}
                           formatter={(v: number) => [formatCurrency(v), "Receita"]}
                           labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName ?? label}

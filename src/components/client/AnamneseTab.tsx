@@ -41,6 +41,7 @@ type Tables = Database["public"]["Tables"];
 export type PatientRecord = Tables["patient_records"]["Row"];
 import AnamneseFillDialog from "./AnamneseFillDialog";
 import { RecordOptionsMenu } from "./RecordOptionsMenu";
+import { parseLegacyTechnicalObservation } from "@/utils/legacyProcedureParser";
 
 // PatientRecord is now imported from types
 
@@ -98,6 +99,22 @@ interface QARow {
 const flattenFields = (fields: { label: string; value: string }[]): QARow[] => {
   const rows: QARow[] = [];
   for (const f of fields) {
+    if (!f.value) continue;
+
+    // Se for o JSON estruturado da nova grid, ou um campo puramente técnico legado,
+    // não podemos dar split por \n, senão destruímos a string (e geramos a lista vertical repetitiva).
+    const isTech = ["observação", "observações", "técnica", "procedimento", "descrição", "histórico"].some(k => (f.label || "").toLowerCase().includes(k));
+    let isStructuredJson = false;
+    try {
+      const parsed = JSON.parse(f.value);
+      if (parsed?.isStructured) isStructuredJson = true;
+    } catch (e) {}
+
+    if (isStructuredJson || isTech) {
+      rows.push({ question: f.label, answer: f.value });
+      continue;
+    }
+
     const lines = f.value ? f.value.split("\n").filter(Boolean) : [];
     const hasMultipleQA = lines.length > 1 && lines.some((l) => /\?.*:/.test(l));
 
@@ -122,60 +139,119 @@ const flattenFields = (fields: { label: string; value: string }[]): QARow[] => {
   return rows;
 };
 
-const RecordFields = ({
-  fields,
-  recordId,
-  isExpanded,
-  onToggle,
-  collapsedLimit,
-}: {
-  fields: { label: string; value: string }[];
-  recordId: string;
-  isExpanded: boolean;
-  onToggle: () => void;
-  collapsedLimit: number;
-}) => {
-  const rows = useMemo(() => flattenFields(fields), [fields]);
-
-  if (rows.length === 0) {
-    return (
-      <p className="text-xs text-muted-foreground italic">Sem dados preenchidos</p>
-    );
-  }
-
-  const needsCollapse = rows.length > collapsedLimit;
-  const visibleRows = needsCollapse && !isExpanded ? rows.slice(0, collapsedLimit) : rows;
-  const hiddenCount = rows.length - collapsedLimit;
+  const RecordFields = ({
+    fields,
+    recordId,
+    isExpanded,
+    onToggle,
+    collapsedLimit,
+  }: {
+    fields: { label: string; value: string }[];
+    recordId: string;
+    isExpanded: boolean;
+    onToggle: () => void;
+    collapsedLimit: number;
+  }) => {
+    const rows = useMemo(() => flattenFields(fields), [fields]);
+  
+    if (rows.length === 0) {
+      return (
+        <p className="text-xs text-muted-foreground italic">Sem dados preenchidos</p>
+      );
+    }
+  
+    const needsCollapse = rows.length > collapsedLimit;
+    const visibleRows = needsCollapse && !isExpanded ? rows.slice(0, collapsedLimit) : rows;
+    const hiddenCount = rows.length - collapsedLimit;
+  
+    // Separate regular fields from technical tables to render tables at the bottom
+    const regularRows: typeof visibleRows = [];
+    const tableRows: Array<{ question: string; parsed: any }> = [];
+  
+    const renderedTableHashes = new Set<string>();
+  
+    visibleRows.forEach(row => {
+      const isTechnicalField = ["observação", "observações", "técnica", "procedimento", "descrição", "histórico", "laser"].some(k => row.question.toLowerCase().includes(k)) || 
+                               (!row.answer.includes('{') && (row.answer.match(/\s{3,}/g) || []).length > 2 && (row.answer.includes('Sessão') || row.answer.includes('Data'))) || 
+                               row.answer.includes('{"isStructured":true');
+                               
+      if (isTechnicalField) {
+        const parsed = parseLegacyTechnicalObservation(row.answer, row.question);
+        if (parsed.isTable) {
+          const rowHash = JSON.stringify(parsed.rows);
+          if (!renderedTableHashes.has(rowHash)) {
+            tableRows.push({ question: row.question, parsed });
+            renderedTableHashes.add(rowHash);
+          }
+          return;
+        }
+      }
+      regularRows.push(row);
+    });
 
   return (
-    <div className="space-y-1">
-      <div className="rounded-lg border border-border overflow-hidden">
-        <table className="w-full text-sm">
-          <tbody>
-            {visibleRows.map((row, i) => (
-              <tr
-                key={i}
-                className={i % 2 === 1 ? "bg-muted/40" : "bg-card"}
-              >
-                {row.isRaw ? (
-                  <td colSpan={2} className="px-4 py-2 text-foreground">
-                    {row.answer}
-                  </td>
-                ) : (
-                  <>
-                    <td className="px-4 py-2 font-semibold text-foreground w-[45%] align-top">
-                      {row.question}
+    <div className="space-y-4">
+      {regularRows.length > 0 && (
+        <div className="rounded-lg border border-border overflow-hidden">
+          <table className="w-full text-sm">
+            <tbody>
+              {regularRows.map((row, i) => (
+                <tr key={i} className={i % 2 === 1 ? "bg-muted/40" : "bg-card"}>
+                  {row.isRaw ? (
+                    <td colSpan={2} className="px-4 py-2 text-foreground break-words whitespace-pre-wrap">
+                      {row.answer}
                     </td>
-                    <td className="px-4 py-2 text-muted-foreground align-top">
-                      {row.answer || <span className="italic opacity-50">—</span>}
-                    </td>
-                  </>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                  ) : (
+                    <>
+                      <td className="px-4 py-3 font-semibold text-foreground w-[35%] align-top whitespace-pre-wrap">
+                        {row.question}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground align-top break-words whitespace-pre-wrap">
+                        {row.answer || <span className="italic opacity-50">—</span>}
+                      </td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Render Technical Tables at the bottom */}
+      {tableRows.map((item, i) => (
+        <div key={`table-${i}`} className="bg-card w-full pt-2 pb-4 border-t border-border mt-4 first:border-0 first:mt-0">
+          <p className="font-semibold text-foreground mb-3 text-sm">{item.question}</p>
+          <div className="rounded-md border border-border overflow-hidden mb-3">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-muted">
+                <tr>
+                  {item.parsed.columns.map((col, cIdx) => (
+                      <th key={cIdx} className="px-3 py-2 font-semibold whitespace-nowrap">{col}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {item.parsed.rows.map((r, idx) => (
+                  <tr key={idx} className="hover:bg-muted/30 group">
+                    {item.parsed.columns.map((col, cIdx) => (
+                        <td key={cIdx} className={col.toLowerCase().includes('data') ? "px-3 py-2 whitespace-nowrap font-medium text-primary" : "px-3 py-2 text-muted-foreground"}>
+                            {r[cIdx]}
+                        </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {item.parsed.notes && (
+            <div className="bg-amber-50/50 dark:bg-amber-900/10 p-3 rounded text-xs text-muted-foreground border border-amber-100 dark:border-amber-900/30">
+              <span className="font-semibold block mb-0.5 text-amber-800 dark:text-amber-500">Notas Adicionais:</span>
+              <div className="whitespace-pre-wrap">{item.parsed.notes}</div>
+            </div>
+          )}
+        </div>
+      ))}
 
       {needsCollapse && (
         <button
@@ -380,12 +456,25 @@ const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
     const templateFields = (contentObj.templateFields as TemplateField[]) ?? [];
     const answers = (contentObj.answers as Record<string, string>) ?? {};
 
-    return templateFields
+    const fieldsData = templateFields
       .filter((f) => f.isActive)
       .map((f) => ({
         label: f.label,
         value: answers[f.id] ?? "",
       }));
+
+    // Add hidden/legacy fields that have content, like 'proced_realizado'
+    const specialKeys = ["proced_realizado", "observacoes_tecnicas", "evolucao"];
+    specialKeys.forEach(key => {
+      if (answers[key] && !fieldsData.find(f => f.label.includes("Procedimento") || f.label.includes("Observações Técnicas"))) {
+        fieldsData.push({
+          label: key === "proced_realizado" ? "Observações Técnicas / Procedimento" : key.charAt(0).toUpperCase() + key.slice(1).replace("_", " "),
+          value: answers[key],
+        });
+      }
+    });
+
+    return fieldsData;
   };
 
   return (

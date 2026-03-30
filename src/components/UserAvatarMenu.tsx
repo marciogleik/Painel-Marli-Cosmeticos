@@ -5,49 +5,22 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 const UserAvatarMenu = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-
-  const { data: profile } = useQuery({
-    queryKey: ["my-profile", user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data } = await supabase
-        .from("profiles")
-        .select("full_name, avatar_url")
-        .eq("user_id", user.id)
-        .single();
-      return data;
-    },
-    enabled: !!user,
-    staleTime: 1000 * 60 * 5,
-    placeholderData: (prev) => prev,
-  });
-
-  const [stableProfile, setStableProfile] = useState<{ full_name: string; avatar_url: string | null } | null>(null);
   const [imgError, setImgError] = useState(false);
   const [imgRetries, setImgRetries] = useState(0);
-  const [avatarCacheKey, setAvatarCacheKey] = useState(() => Date.now());
 
-  useEffect(() => {
-    if (profile) {
-      setStableProfile(profile);
-      setImgError(false);
-      setImgRetries(0);
-      setAvatarCacheKey(Date.now());
-    }
-  }, [profile]);
-
+  // Reset error state if profile changes
   useEffect(() => {
     setImgError(false);
     setImgRetries(0);
-    setAvatarCacheKey(Date.now());
-  }, [location.pathname]);
+  }, [profile?.avatar_url]);
 
-  const displayName = stableProfile?.full_name || user?.email?.split("@")[0] || "Usuário";
-  const displayAvatarUrl = stableProfile?.avatar_url
-    ? `${stableProfile.avatar_url.split("?")[0]}?t=${avatarCacheKey}-${imgRetries}`
+  const displayName = profile?.full_name || user?.email?.split("@")[0] || "Usuário";
+  const displayAvatarUrl = profile?.avatar_url
+    ? (imgRetries > 0 
+        ? `${profile.avatar_url}${profile.avatar_url.includes('?') ? '&' : '?'}retry=${imgRetries}` 
+        : profile.avatar_url)
     : null;
   const initials = displayName.slice(0, 2).toUpperCase();
 

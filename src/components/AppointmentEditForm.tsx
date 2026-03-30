@@ -77,7 +77,7 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
   const [clientPhone, setClientPhone] = useState(appointment.client_phone || "");
   const [notes, setNotes] = useState(appointment.notes || "");
   const [serviceSearch, setServiceSearch] = useState("");
-  const [manualEndTime, setManualEndTime] = useState<string | null>(appointment.end_time?.slice(0, 5) || null);
+  const [manualEndTime, setManualEndTime] = useState<string | null>(null);
   const [conflictWarning, setConflictWarning] = useState<string | null>(null);
   const [forceCreate, setForceCreate] = useState(false);
   const [showRecentServices, setShowRecentServices] = useState(false);
@@ -108,7 +108,15 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
     )
     : [];
 
-  const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration_minutes, 0);
+  const initialDurationMin = (() => {
+    const s = appointment.start_time.split(":").map(Number);
+    const e = appointment.end_time.split(":").map(Number);
+    return (e[0] * 60 + e[1]) - (s[0] * 60 + s[1]);
+  })();
+
+  const totalDuration = selectedServices.length > 0 
+    ? selectedServices.reduce((sum, s) => sum + s.duration_minutes, 0)
+    : initialDurationMin;
   const suggestedEndTime = startTime
     ? (() => {
       const [h, m] = startTime.split(":").map(Number);
@@ -449,7 +457,7 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
                           <span>{apt.start_time.slice(0, 5)}</span>
                         </div>
                         <p className="text-muted-foreground truncate">
-                          {(apt as any).appointment_services?.map((s: any) => s.service_name).join(", ") || apt.notes || "-"}
+                          {(apt as any).appointment_services?.map((s: any) => s.service_name).join(", ") || "Sem serviço registrado"}
                         </p>
                       </div>
                     ))}

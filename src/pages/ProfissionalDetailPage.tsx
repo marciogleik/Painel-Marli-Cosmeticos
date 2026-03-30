@@ -470,10 +470,10 @@ const ProfissionalDetailPage = () => {
                     tooltip="ATIVO: acessa o sistema e aparece no Calendário. INATIVO: sem acesso e não aparece no Calendário."
                   />
                   <ToggleButton
-                    label="Receber Agendamento?"
+                    label="Exibir na Agenda?"
                     value={form.can_receive_appointments}
                     onChange={v => setForm(f => ({ ...f, can_receive_appointments: v }))}
-                    tooltip="Se SIM, o nome deste Profissional aparecerá no Calendário para receber agendamentos."
+                    tooltip="Se SIM, o nome deste Profissional aparecerá como coluna na Agenda."
                   />
                   <ToggleButton
                     label="Ver todas Agendas?"

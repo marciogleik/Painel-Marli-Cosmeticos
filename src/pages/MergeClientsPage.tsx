@@ -120,7 +120,7 @@ const MergeClientsPage = () => {
       const tables = ["appointments", "patient_records", "client_attachments", "finance_records"];
       for (const table of tables) {
         const { error } = await supabase
-          .from(table)
+          .from(table as any)
           .update({ client_id: targetClientId })
           .eq("client_id", sourceClientId);
         

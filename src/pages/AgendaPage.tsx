@@ -3,16 +3,24 @@ import { useProfessionals, useAppointments, statusConfig, DBAppointment, WEEKLY_
 import { cn } from "@/lib/utils";
 import { format, addDays, subDays, startOfWeek, endOfWeek, isToday, parseISO, startOfMonth, endOfMonth, addMonths, isSameMonth, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, Calendar, Check, X as XIcon, GripVertical, Ban, Trash2, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Calendar, Check, X as XIcon, GripVertical, Ban, Trash2, Search, Cake, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import NewAppointmentDialog from "@/components/NewAppointmentDialog";
 import BlockedSlotDialog from "@/components/BlockedSlotDialog";
 import AppointmentDetailDialog from "@/components/AppointmentDetailDialog";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { checkAppointmentConflict } from "@/utils/appointmentConflict";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { normalizePhone, matchesPhone } from "@/utils/phoneUtils";
 import { resolveOverlaps, PositionedAppointment } from "@/utils/agendaLayout";
 import { toast } from "sonner";
@@ -61,19 +69,19 @@ const PX_PER_MINUTE = SLOT_HEIGHT / 15; // 2.4px/min
 const GRID_HEADER_HEIGHT = 48; // h-12
 
 const AgendaPage = () => {
-  const getBrasiliaTime = () => {
-    // Get UTC time and subtract 3 hours (Brasília standard time)
-    // This is the most reliable way to get UTC-3 without environment drift
-    const now = new Date();
-    const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const brasiliaTime = new Date(utcTime - (3 * 3600000));
-    return brasiliaTime;
+  // Unified Current Time Source
+  const getNow = () => {
+    // Standardize 'Today' across the app
+    // Browsers in Brazil already respect UTC-3 correctly
+    return new Date();
   };
 
 
-  const [viewMode, setViewMode] = useState<ViewMode>("day");
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(getBrasiliaTime(), { weekStartsOn: 0 }));
-  const [selectedDay, setSelectedDay] = useState(() => getBrasiliaTime());
+  const [searchParams] = useSearchParams();
+  const initialView = searchParams.get("view") as ViewMode;
+  const [viewMode, setViewMode] = useState<ViewMode>(initialView || "day");
+  const [weekStart, setWeekStart] = useState(() => startOfWeek(getNow(), { weekStartsOn: 0 }));
+  const [selectedDay, setSelectedDay] = useState(() => getNow());
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -91,9 +99,26 @@ const AgendaPage = () => {
   // Confirmation dialog
   const [pendingReschedule, setPendingReschedule] = useState<PendingReschedule | null>(null);
   const [isRescheduling, setIsRescheduling] = useState(false);
-  const [currentTime, setCurrentTime] = useState(getBrasiliaTime());
+  const [currentTime, setCurrentTime] = useState(getNow());
 
   const queryClient = useQueryClient();
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { error } = await supabase
+        .from("appointments")
+        .update({ status })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      toast.success("Status atualizado com sucesso!");
+    },
+    onError: (err: any) => {
+      toast.error("Erro ao atualizar status: " + err.message);
+    }
+  });
 
   // Realtime subscription
   useEffect(() => {
@@ -117,10 +142,8 @@ const AgendaPage = () => {
   // Current time updater
   useEffect(() => {
     const timer = setInterval(() => {
-      const btl = getBrasiliaTime();
-      console.error(`[TERMINAL_TIME_CHECK] ${btl.toISOString()} | Local: ${btl.toLocaleTimeString()}`);
-      setCurrentTime(btl);
-    }, 10000); // Update every 10s for debugging
+      setCurrentTime(getNow());
+    }, 30000); // 30s is enough for UI indicator
     return () => clearInterval(timer);
   }, []);
 
@@ -143,26 +166,28 @@ const AgendaPage = () => {
     return format(selectedDay, "yyyy-MM-dd");
   })();
 
-  const { data: professionals = [] } = useProfessionals();
+  const { data: professionals = [] } = useProfessionals({ onlyVisibleInAgenda: true });
   const { data: appointments = [] } = useAppointments(dateFrom, dateTo);
 
-  const appointmentIds = appointments.map((a) => a.id);
-  const { data: appointmentServices = [] } = useQuery({
-    queryKey: ["appointment_services", dateFrom, dateTo],
+  // Fetch birthdays for the month
+  const { data: monthBirthdays = [] } = useQuery({
+    queryKey: ["birthdays_month", format(selectedDay, "MM")],
     queryFn: async () => {
-      if (appointmentIds.length === 0) return [];
+      const monthStr = format(selectedDay, "MM");
       const { data, error } = await supabase
-        .from("appointment_services")
-        .select("appointment_id, service_name")
-        .in("appointment_id", appointmentIds);
+        .from("clients")
+        .select("id, full_name, birth_date")
+        .not("birth_date", "is", null)
+        .eq("is_active", true);
       if (error) throw error;
-      return data ?? [];
+
+      return (data || []).filter(c => c.birth_date && c.birth_date.slice(5, 7) === monthStr);
     },
-    enabled: appointmentIds.length > 0,
+    enabled: viewMode === "month",
   });
 
-  const getServiceNames = (appointmentId: string): string => {
-    const services = appointmentServices.filter((s) => s.appointment_id === appointmentId);
+  const getServiceNames = (appt: DBAppointment): string => {
+    const services = appt.appointment_services || [];
     if (services.length === 0) return "";
     return services.map((s) => s.service_name).join(", ");
   };
@@ -200,27 +225,25 @@ const AgendaPage = () => {
     return (
       <div 
         key={block.id} 
-        className="absolute left-0 right-0 p-2 z-[2] border-l-4 border-l-black overflow-hidden absence-block"
-        style={{ top: `${top}px`, height: `${height}px`, cursor: 'default' }}
+        className="absolute left-0 right-0 p-2 z-[2] border-l-4 border-l-slate-900 overflow-hidden block-container"
+        style={{ 
+          top: `${top}px`, 
+          height: `${height}px`, 
+          cursor: 'default',
+          background: 'repeating-linear-gradient(45deg, #1e293b, #1e293b 10px, #0f172a 10px, #0f172a 20px)',
+          opacity: 0.95,
+          borderRadius: '4px',
+          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'
+        }}
       >
-
-        <div className="horario flex justify-between items-center" style={{ color: "#ffffff" }}>
-          <span style={{ color: "#ffffff" }}>{block.start_time.slice(0, 5)}</span>
+        <div className="flex justify-between items-center text-slate-400">
+          <span className="text-[10px] font-black tracking-widest">{block.start_time.slice(0, 5)}</span>
           {height >= 40 && (
-            <span className="text-[9px] uppercase font-bold tracking-widest opacity-80" style={{ color: "#ffffff" }}>
-              {block.isWeekly ? "Semanal" : "Bloqueio"}
-            </span>
+            <Ban className="w-3 h-3 opacity-60 text-destructive-foreground" />
           )}
         </div>
-        <div className="cliente font-medium flex items-center gap-1.5" style={{ fontSize: "11px", color: "#ffffff" }}>
-          <span style={{ color: "#ffffff" }}>🚫</span>
-          <span className="truncate uppercase tracking-tight" style={{ color: "#ffffff" }}>
-            {block.notes || block.reason || "Horário Bloqueado"}
-            {(() => {
-              const prof = professionals.find(p => p.id === (block.professional_id || block.professionalId));
-              return prof && height >= 60 ? ` • ${prof.name.split(" ")[0]}` : "";
-            })()}
-          </span>
+        <div className="font-black text-slate-100 uppercase tracking-tighter truncate mt-0.5" style={{ fontSize: "10px" }}>
+          {(block.notes?.replace(/<!--series_id:[a-f0-9-]+-->/, "").trim()) || block.reason || "Indisponível"}
         </div>
 
         {!block.isWeekly && (
@@ -230,10 +253,10 @@ const AgendaPage = () => {
                 e.stopPropagation();
                 deleteBlockedSlot(block.id);
               }}
-              className="p-1 rounded hover:bg-destructive/20 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="p-1 rounded hover:bg-destructive/10 transition-colors"
               title="Remover bloqueio"
             >
-              <Trash2 className="w-3.5 h-3.5 text-destructive" />
+              <Trash2 className="w-3.5 h-3.5 text-destructive/60 hover:text-destructive" />
             </button>
           </div>
         )}
@@ -325,7 +348,11 @@ const AgendaPage = () => {
       const { hours: newStartH, minutes: newStartM } = pixelToTime(drag.currentTop);
       const oldParts = drag.appointment.start_time.split(":").map(Number);
       const endParts = drag.appointment.end_time.split(":").map(Number);
-      const durationMin = (endParts[0] * 60 + endParts[1]) - (oldParts[0] * 60 + oldParts[1]);
+      const services = drag.appointment.appointment_services || [];
+      const durationMin = services.length > 0 
+        ? services.reduce((sum, s) => sum + s.duration_minutes, 0)
+        : (endParts[0] * 60 + endParts[1]) - (oldParts[0] * 60 + oldParts[1]);
+
 
       const newStartTotalMin = newStartH * 60 + newStartM;
       const newEndTotalMin = newStartTotalMin + durationMin;
@@ -405,7 +432,7 @@ const AgendaPage = () => {
     else setSelectedDay(addDays(selectedDay, 1));
   };
   const handleToday = () => {
-    const today = getBrasiliaTime();
+    const today = getNow();
     setSelectedDay(today);
     if (viewMode === "week") setWeekStart(startOfWeek(today, { weekStartsOn: 0 }));
   };
@@ -457,111 +484,142 @@ const AgendaPage = () => {
     const isDraggable = !isCancelled && !isFalta;
     const isDragging = draggingApptId !== null && String(draggingApptId) === String(appt.id);
     const prof = professionals.find((p) => p.id === appt.professional_id);
-    const serviceName = getServiceNames(appt.id);
+    const serviceName = getServiceNames(appt);
     const timeRange = `${appt.start_time?.slice(0, 5)} - ${appt.end_time?.slice(0, 5)}`;
     const isCompact = height < 45;
     const isMedium = height >= 90;
     const isLarge = height >= 140;
 
     const displayTop = isDragging ? dragPreviewTop : top;
-    const serviceSummary = serviceName || appt.notes || "Sem serviço";
+    const serviceSummary = serviceName || "Sem serviço";
 
     return (
-      <div
-        key={appt.id}
-        className={cn(
-          "absolute overflow-hidden z-10",
-          !isDragging && "transition-all duration-200",
-          "modern-agenda-card evento-agenda",
-          isDraggable ? "cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-white/20" : "cursor-pointer",
-          appt.status === "bloqueado" && "absence-block"
-        )}
-        style={{
-          top: `${displayTop}px`,
-          height: `${height}px`,
-          width: `calc((100% - 8px) / ${overlapCount} - 4px)`, // 4px total gap per slot
-          left: `calc(4px + (${overlapIndex} * (100% - 8px) / ${overlapCount}) + 2px)`, // 2px start gap
-          backgroundColor: appt.status === "bloqueado" ? undefined : getStatusBg(appt.status),
-          color: appt.status === "bloqueado"
-            ? "#000000"
-            : (["atrasado", "espera"].includes(appt.status) ? "#1f2937" : "white"),
-          zIndex: isDragging ? 1000 : 10,
-          opacity: isDragging ? 0.9 : (isCancelled ? 0.5 : (isFalta ? 0.7 : 1)),
-          transform: isDragging ? 'scale(1.02)' : 'scale(1)',
-          boxShadow: isDragging ? '0 25px 50px -12px rgb(0 0 0 / 0.5)' : undefined,
-          border: isDragging ? '2px solid #ffffff' : undefined,
-        }}
-        onMouseDown={(e) => {
-          if (isDraggable) handleDragStart(e, appt, columnEl);
-        }}
-        onClick={() => {
-          if (!draggingApptId && !justDraggedRef.current) {
-            setSelectedAppointment(appt);
-            setDetailOpen(true);
-          }
-        }}
-      >
-        {/* Status Dot / Indicator */}
-        {appt.status !== "bloqueado" && overlapCount === 1 && height >= 50 && (
-          <div className="status-badge" style={{ backgroundColor: "currentColor", opacity: 0.5 }} />
-        )}
-
-        {/* Body: Client name & Time (Compact or Normal) */}
-        {height < 50 ? (
-          <div className="flex items-center gap-1.5 overflow-hidden">
-            <div className="horario">{appt.start_time.slice(0, 5)}</div>
-            <div className="cliente flex-1 truncate">
-              {appt.status === "confirmado" && <span className="mr-0.5 opacity-70">✓</span>}
-              {appt.client_name}
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* Header: Time */}
-            <div className="horario flex items-center justify-between">
-              <span>{appt.start_time.slice(0, 5)}</span>
-              {overlapCount === 1 && height >= 120 && (
-                <span className="opacity-40">{statusLabel[appt.status]}</span>
-              )}
-            </div>
-
-            {/* Body: Client name */}
-            <div
-              className="cliente"
-              style={{
-                fontSize: overlapCount > 3 ? "8px" : (overlapCount > 2 ? "9px" : (overlapCount > 1 ? "10px" : "11px")),
-                lineHeight: "1.1",
-                WebkitLineClamp: 2,
-              }}
-            >
-              {appt.status === "confirmado" && (
-                <span className="mr-1 opacity-70">✓</span>
-              )}
-              {appt.client_name}
-            </div>
-          </>
-        )}
-
-        {/* Footer: Service / Professional */}
-        {height >= 25 && (
+      <ContextMenu key={appt.id}>
+        <ContextMenuTrigger>
           <div
-            className="servico"
+            className={cn(
+              "absolute overflow-hidden z-10",
+              !isDragging && "transition-all duration-200",
+              "modern-agenda-card evento-agenda",
+              isDraggable ? "cursor-grab active:cursor-grabbing hover:ring-2 hover:ring-white/20" : "cursor-pointer",
+              appt.status === "bloqueado" && "absence-block"
+            )}
             style={{
-              fontSize: overlapCount > 3 ? "7.5px" : (overlapCount > 2 ? "8px" : (overlapCount > 1 ? "9px" : "10px")),
-              lineHeight: "1.1",
-              opacity: 0.7
+              top: `${displayTop}px`,
+              height: `${height}px`,
+              width: `calc((100% - 8px) / ${overlapCount} - 4px)`, // 4px total gap per slot
+              left: `calc(4px + (${overlapIndex} * (100% - 8px) / ${overlapCount}) + 2px)`, // 2px start gap
+              backgroundColor: appt.status === "bloqueado" ? undefined : getStatusBg(appt.status),
+              color: appt.status === "bloqueado"
+                ? "#000000"
+                : (["atrasado", "espera"].includes(appt.status) ? "#1f2937" : "white"),
+              zIndex: isDragging ? 1000 : 10,
+              opacity: isDragging ? 0.9 : (isCancelled ? 0.5 : (isFalta ? 0.7 : 1)),
+              transform: isDragging ? 'scale(1.02)' : 'scale(1)',
+              boxShadow: isDragging ? '0 25px 50px -12px rgb(0 0 0 / 0.5)' : undefined,
+              border: isDragging ? '2px solid #ffffff' : undefined,
+            }}
+            onMouseDown={(e) => {
+              if (isDraggable) handleDragStart(e, appt, columnEl);
+            }}
+            onClick={() => {
+              if (!draggingApptId && !justDraggedRef.current) {
+                setSelectedAppointment(appt);
+                setDetailOpen(true);
+              }
             }}
           >
-            {serviceSummary}
-            {prof && overlapCount === 1 && height >= 80 && (
-              <div className="mt-1 font-bold uppercase tracking-widest text-[9px] opacity-50">
-                {prof.name.split(" ")[0]}
+            {/* Status Dot / Indicator */}
+            {appt.status !== "bloqueado" && overlapCount === 1 && height >= 50 && (
+              <div className="status-badge" style={{ backgroundColor: "currentColor", opacity: 0.5 }} />
+            )}
+
+            {/* Body: Client name & Time (Compact or Normal) */}
+            {height < 50 ? (
+              <div className="flex items-center gap-1.5 overflow-hidden">
+                <div className="horario">{appt.start_time.slice(0, 5)}</div>
+                <div className="cliente flex-1 truncate">
+                  {appt.status === "confirmado" && <span className="mr-0.5 opacity-70">✓</span>}
+                  {appt.client_name}
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Header: Time */}
+                <div className="horario flex items-center justify-between">
+                  <span>{appt.start_time.slice(0, 5)}</span>
+                  {overlapCount === 1 && height >= 120 && (
+                    <span className="opacity-40">{statusLabel[appt.status]}</span>
+                  )}
+                </div>
+
+                {/* Body: Client name */}
+                <div
+                  className="cliente"
+                  style={{
+                    fontSize: overlapCount > 3 ? "8px" : (overlapCount > 2 ? "9px" : (overlapCount > 1 ? "10px" : "11px")),
+                    lineHeight: "1.1",
+                    WebkitLineClamp: 2,
+                  }}
+                >
+                  {appt.status === "confirmado" && (
+                    <span className="mr-1 opacity-70">✓</span>
+                  )}
+                  {appt.client_name}
+                </div>
+              </>
+            )}
+
+            {/* Footer: Service / Professional */}
+            {height >= 25 && (
+              <div
+                className="servico"
+                style={{
+                  fontSize: overlapCount > 3 ? "8.5px" : (overlapCount > 2 ? "9.5px" : (overlapCount > 1 ? "10.5px" : "12px")),
+                  lineHeight: "1.1",
+                  fontWeight: "600",
+                  opacity: 0.9
+                }}
+              >
+                {serviceSummary}
+                {prof && overlapCount === 1 && height >= 80 && (
+                  <div className="mt-1 font-bold uppercase tracking-widest text-[9px] opacity-50">
+                    {prof.name.split(" ")[0]}
+                  </div>
+                )}
               </div>
             )}
+
           </div>
-        )}
-      </div>
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-56">
+          <div className="px-2 py-1.5 text-xs font-bold uppercase tracking-widest opacity-50">Alterar Status</div>
+          {Object.entries(statusLabel).filter(([val]) => val !== 'removido').map(([value, label]) => (
+            <ContextMenuItem 
+              key={value} 
+              onClick={() => updateStatusMutation.mutate({ id: appt.id, status: value })}
+              className={cn(
+                "flex items-center justify-between",
+                appt.status === value && "bg-muted font-bold"
+              )}
+            >
+              {label}
+              {appt.status === value && <Check className="w-3 h-3" />}
+            </ContextMenuItem>
+          ))}
+          <div className="h-px bg-border my-1" />
+          <ContextMenuItem 
+            onClick={() => {
+              setSelectedAppointment(appt);
+              setDetailOpen(true);
+            }}
+          >
+            <Edit2 className="w-3 h-3 mr-2" /> Editar Detalhes
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
     );
+
   };
 
   const renderMonthView = () => {
@@ -591,7 +649,9 @@ const AgendaPage = () => {
             const isCurrentMonth = isSameMonth(date, selectedDay);
             const isToday = isSameDay(date, new Date());
             const dayStr = format(date, "yyyy-MM-dd");
+            const mmdd = format(date, "MM-dd");
             const dayAppts = appointments.filter(a => a.date === dayStr && a.status !== "removido");
+            const dayBirthdays = monthBirthdays.filter(c => c.birth_date && c.birth_date.slice(5) === mmdd);
             const sortedAppts = dayAppts.sort((a, b) => a.start_time.localeCompare(b.start_time));
 
             return (
@@ -618,14 +678,35 @@ const AgendaPage = () => {
                   )}>
                     {format(date, "d")}
                   </span>
-                  {dayAppts.length > 0 && (
-                    <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/60 px-1.5 py-0.5 bg-muted/60 rounded-lg">
-                      {dayAppts.length}
-                    </span>
-                  )}
-                </div>
-                <div className="space-y-1">
-                  {sortedAppts.slice(0, 4).map(appt => (
+                    <div className="flex items-center gap-1.5">
+                      {dayBirthdays.length > 0 && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center gap-1 text-primary cursor-help">
+                              <Cake className="w-3.5 h-3.5 animate-pulse" />
+                              <span className="text-[10px] font-black">{dayBirthdays.length}</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-pink-50 border-pink-100 text-pink-700">
+                            <div className="space-y-1 py-1">
+                              <p className="text-[10px] font-black uppercase tracking-widest mb-2 border-b border-pink-200 pb-1">Aniversariantes 🎂</p>
+                              {dayBirthdays.map(c => (
+                                <p key={c.id} className="text-xs font-bold truncate">• {c.full_name}</p>
+                              ))}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      {dayAppts.length > 0 && (
+                        <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/60 px-1.5 py-0.5 bg-muted/60 rounded-lg">
+                          {dayAppts.length}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    {/* Birthdays removed from list, now in tooltip */}
+                    {sortedAppts.slice(0, 4).map(appt => (
                     <div
                       key={appt.id}
                       className="text-[9px] truncate px-1.5 py-1 rounded-lg transition-all flex items-center gap-1"
@@ -686,7 +767,7 @@ const AgendaPage = () => {
           <div className="flex gap-2">
             <Button 
                 variant="outline" 
-                className="flex-1 sm:flex-none gap-1.5 h-10 text-xs font-bold rounded-xl border-border/40" 
+                className="flex-1 sm:flex-none gap-2 h-10 px-5 text-xs font-black uppercase tracking-widest rounded-xl border-2 border-slate-200 hover:border-destructive/30 hover:bg-destructive/5 text-slate-600 transition-all active:scale-95" 
                 onClick={() => { 
                     setBlockDefaults({
                         profId: selectedFilter !== "all" ? selectedFilter : undefined,
@@ -695,9 +776,9 @@ const AgendaPage = () => {
                     setBlockDialogOpen(true); 
                 }}
             >
-              <Ban className="w-4 h-4" /> Bloquear
+              <Ban className="w-4 h-4 text-destructive" /> Bloquear
             </Button>
-            <Button className="flex-1 sm:flex-none gap-1.5 h-10 text-xs font-bold rounded-xl shadow-lg shadow-primary/20" onClick={() => setDialogOpen(true)}>
+            <Button className="flex-1 sm:flex-none gap-2 h-10 px-6 text-xs font-black uppercase tracking-widest rounded-xl shadow-lg shadow-primary/25 active:scale-95 transition-all" onClick={() => setDialogOpen(true)}>
               <Plus className="w-4 h-4" /> Novo
             </Button>
           </div>
@@ -743,7 +824,7 @@ const AgendaPage = () => {
             <button
               onClick={() => {
                 setViewMode("day");
-                setSelectedDay(new Date());
+                setSelectedDay(getNow());
               }}
               className={cn(
                 "px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors",
@@ -781,7 +862,7 @@ const AgendaPage = () => {
       </div>
 
       {/* Status legend */}
-      <div className="flex items-center gap-3 px-4 sm:px-8 pb-2 shrink-0 overflow-x-auto scrollbar-hide whitespace-nowrap">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 sm:px-8 pb-2 shrink-0">
         {Object.entries(statusConfig).map(([key, cfg]) => (
           <div key={key} className="flex items-center gap-1 shrink-0">
             <div className={cn("w-2 h-2 rounded-full", cfg.color)} />
@@ -875,17 +956,17 @@ const AgendaPage = () => {
               ) : (
                 /* ============ DAY VIEW ============ */
                 <div className="flex h-full w-full">
-                  <div className="w-11 sm:w-16 shrink-0 border-r border-slate-300 bg-muted/40 sticky left-0 z-20 font-bold">
+                  <div className="w-10 sm:w-16 shrink-0 border-r border-slate-300 bg-muted/40 sticky left-0 z-20 font-bold">
                     <div className="h-12" />
                     {hours.map((time) => {
                       const isHalf = time.endsWith(":30");
                       return (
                         <div 
                           key={time} 
-                          className={cn("flex items-start justify-end pr-2 pt-0.5 border-t", isHalf ? "border-slate-300" : "border-slate-400")}
+                          className={cn("flex items-start justify-end pr-1 sm:pr-2 pt-0.5 border-t", isHalf ? "border-slate-300" : "border-slate-400")}
                           style={{ height: SLOT_HEIGHT }}
                         >
-                          <span className={cn("text-[10px] font-medium", isHalf ? "text-muted-foreground/70" : "text-muted-foreground/90")}>{time}</span>
+                          <span className={cn("text-[8px] sm:text-[10px] font-medium", isHalf ? "text-muted-foreground/70" : "text-muted-foreground/90")}>{time}</span>
                         </div>
                       );
                     })}
@@ -951,7 +1032,11 @@ const AgendaPage = () => {
         defaultDate={apptDefaults.date || selectedDay}
         defaultProfessionalId={apptDefaults.profId}
         defaultStartTime={apptDefaults.time}
-        onDateSelect={(date) => setSelectedDay(date)}
+        onDateSelect={(date) => {
+          if (date.getTime() !== selectedDay.getTime()) {
+            setSelectedDay(date);
+          }
+        }}
       />
       <BlockedSlotDialog
         open={blockDialogOpen}
@@ -1055,8 +1140,8 @@ function ProfColumn({
   const colRef = useRef<HTMLDivElement>(null);
   return (
     <div className="flex-1 min-w-0 border-r border-slate-300 last:border-r-0">
-      <div className="h-12 flex items-center justify-center border-b border-slate-300 bg-muted/20 px-2 text-center">
-        <span className="text-[9px] sm:text-[10px] font-black text-foreground/80 truncate text-center leading-tight uppercase tracking-[0.15em]">
+      <div className="h-10 sm:h-12 flex items-center justify-center border-b border-slate-300 bg-muted/20 px-0.5 sm:px-2 text-center overflow-hidden">
+        <span className="text-[7px] sm:text-[10px] font-black text-foreground/80 truncate text-center leading-none uppercase tracking-tighter sm:tracking-[0.15em]">
           {profName.split(" ")[0]}
         </span>
       </div>

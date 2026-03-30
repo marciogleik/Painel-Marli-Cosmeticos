@@ -29,6 +29,7 @@ const allNavItems = [
   { label: "Agenda", href: "/agenda", icon: Calendar, hideFor: [] as string[] },
   { label: "Clientes", href: "/clientes", icon: Users, hideFor: [] as string[] },
   { label: "Unificar Clientes", href: "/unificar-clientes", icon: UserPlus, hideFor: ["secretaria", "profissional"] },
+  { label: "Deduplicar Fichas", href: "/deduplicar-fichas", icon: Database, hideFor: ["secretaria", "profissional"] },
   { label: "Profissionais", href: "/profissionais", icon: UserCog, hideFor: ["secretaria"] },
   { label: "Financeiro", href: "/financeiro", icon: DollarSign, hideFor: [] as string[] },
   { label: "Notificações", href: "/notificacoes", icon: Bell, hideFor: [] as string[] },
