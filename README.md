@@ -56,4 +56,4 @@ O projeto utiliza as tecnologias mais modernas do ecossistema JavaScript para ga
 
 Este projeto é de uso exclusivo para a **Marli Cosméticos**.
 
-Desenvolvido com ❤️ por [Marcio Gleik]([https://github.com/marciogleik](https://www.linkedin.com/in/marciogleikdev/)).
+Desenvolvido por [Marcio Gleik](https://www.linkedin.com/in/marciogleikdev/).
