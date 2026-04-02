@@ -24,10 +24,14 @@ Deno.serve(async (req) => {
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Sessão inválida. Por favor, saia e entre novamente no sistema." }), { status: 401, headers: corsHeaders });
+    const authResponse = await supabaseAdmin.auth.getUser(token);
+    
+    if (authResponse.error || !authResponse.data?.user) {
+      console.error("Auth error:", authResponse.error?.message);
+      return new Response(JSON.stringify({ error: "Sessão inválida ou expirada. Por favor, saia e entre novamente no sistema." }), { status: 401, headers: corsHeaders });
     }
+
+    const user = authResponse.data.user;
 
     // Check gestor role
     const { data: roleData, error: roleSearchError } = await supabaseAdmin
