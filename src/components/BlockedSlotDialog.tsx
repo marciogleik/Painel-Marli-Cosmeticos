@@ -88,7 +88,7 @@ const BlockedSlotDialog = ({
   defaultNotes,
 }: BlockedSlotDialogProps) => {
   const queryClient = useQueryClient();
-  const { data: professionals = [] } = useProfessionals();
+  const { data: professionals = [] } = useProfessionals({ onlyVisibleInAgenda: true });
 
   const [professionalId, setProfessionalId] = useState(defaultProfessionalId || "");
   const [date, setDate] = useState<Date | undefined>(defaultDate || new Date());
@@ -134,7 +134,7 @@ const BlockedSlotDialog = ({
       if (error) throw error;
       return data || [];
     },
-    enabled: !!professionalId && open,
+    enabled: !!professionalId && professionalId !== "all" && open,
   });
 
   // Reset/sync state when dialog opens or defaults change
@@ -201,7 +201,6 @@ const BlockedSlotDialog = ({
         : reason.trim();
 
       const commonData = {
-        professional_id: professionalId,
         date: format(date, "yyyy-MM-dd"),
         start_time: startTime + ":00",
         end_time: endTime + ":00",
@@ -209,6 +208,10 @@ const BlockedSlotDialog = ({
         client_name: "BLOQUEIO",
         status: "bloqueado",
       };
+
+      const profIds = professionalId === "all" 
+        ? professionals.map(p => p.id)
+        : [professionalId];
 
       if (internalBlockId && !editingSeriesId) {
         // Update single existing block
@@ -231,10 +234,17 @@ const BlockedSlotDialog = ({
 
         // Insert new block(s)
         const dates = generateDates(date, endDate || date, recurrence, selectedDays);
-        const rows = dates.map((d) => ({
-          ...commonData,
-          date: format(d, "yyyy-MM-dd"),
-        }));
+        const rows: any[] = [];
+        
+        profIds.forEach(pId => {
+          dates.forEach(d => {
+            rows.push({
+              ...commonData,
+              professional_id: pId,
+              date: format(d, "yyyy-MM-dd"),
+            });
+          });
+        });
 
         if (rows.length === 0) {
           throw new Error("Nenhuma data encontrada para os dias selecionados");
@@ -242,7 +252,7 @@ const BlockedSlotDialog = ({
 
         const { error } = await supabase.from("appointments").insert(rows);
         if (error) throw error;
-        return dates.length;
+        return rows.length;
       }
     },
     onSuccess: (count) => {
@@ -251,9 +261,9 @@ const BlockedSlotDialog = ({
       toast.success(
         internalBlockId 
           ? "Bloqueio atualizado com sucesso!"
-          : count === 1
-            ? "Horário bloqueado com sucesso!"
-            : `${count} bloqueios criados com sucesso!`
+            : count === 1
+              ? "Horário bloqueado com sucesso!"
+              : `Bloqueio realizado com sucesso (${count} registros)!`
       );
       if (internalBlockId || editingSeriesId) {
         // Reset after edit
@@ -361,6 +371,9 @@ const BlockedSlotDialog = ({
                 <SelectValue placeholder="Selecione a profissional" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all" className="font-bold text-primary">
+                  ✨ Todos os Profissionais
+                </SelectItem>
                 {professionals.map((p) => (
                   <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                 ))}
@@ -538,13 +551,22 @@ const BlockedSlotDialog = ({
             {internalBlockId ? "Salvar Alterações" : "Confirmar Bloqueio"}
           </Button>
 
+          {professionalId === "all" && (
+            <div className="p-3 bg-primary/5 border border-primary/20 rounded-xl animate-in fade-in zoom-in duration-300">
+               <p className="text-[10px] font-black uppercase tracking-widest text-primary text-center">
+                 Este bloqueio será aplicado a todos os {professionals.length} profissionais visíveis na agenda.
+               </p>
+            </div>
+          )}
+
           {internalBlockId && (
             <Button
               variant="ghost"
               size="sm"
-              className="w-full text-xs"
+              className="w-full text-xs font-bold uppercase tracking-widest"
               onClick={() => {
                 setInternalBlockId(null);
+                setEditingSeriesId(null);
                 setStartTime("");
                 setEndTime("");
                 setReason("");
@@ -554,7 +576,7 @@ const BlockedSlotDialog = ({
             </Button>
           )}
 
-          {professionalId && (
+          {professionalId && professionalId !== "all" && (
             <div className="space-y-3 pt-4 border-t">
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-semibold flex items-center gap-2">
