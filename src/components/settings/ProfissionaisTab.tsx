@@ -59,19 +59,38 @@ const ProfissionaisTab = () => {
 
   const inviteMutation = useMutation({
     mutationFn: async (professionalId: string) => {
-      const { data, error } = await supabase.functions.invoke("generate-invite", {
+      const response = await supabase.functions.invoke("generate-invite", {
         body: { role: "profissional", professional_id: professionalId },
       });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      return data.token as string;
+
+      if (response.error) {
+        let errorMessage = response.error.message;
+        try {
+          const body = JSON.parse(await response.error.context.response.text());
+          if (body.error) errorMessage = body.error;
+        } catch (e) {
+          if (errorMessage === "Edge Function returned a non-2xx status code") {
+            errorMessage = "Erro ao processar convite no servidor.";
+          }
+        }
+        throw new Error(errorMessage);
+      }
+
+      if (response.data?.error) throw new Error(response.data.error);
+      return response.data.token as string;
     },
     onSuccess: (token, professionalId) => {
       const url = `${window.location.origin}/cadastro?token=${token}`;
       setInviteLink({ profId: professionalId, url });
+      toast({ title: "Convite gerado com sucesso!" });
     },
     onError: (err: Error) => {
-      toast({ title: "Erro ao gerar convite", description: err.message, variant: "destructive" });
+      console.error("Erro ao gerar convite:", err);
+      toast({ 
+        title: "Erro ao gerar convite", 
+        description: err.message, 
+        variant: "destructive" 
+      });
     },
   });
 
