@@ -66,7 +66,7 @@ const CadastroConvitePage = () => {
 
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("register-invite", {
+      const response = await supabase.functions.invoke("register-invite", {
         body: {
           token,
           email: form.email,
@@ -76,13 +76,32 @@ const CadastroConvitePage = () => {
         },
       });
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      // supabase.functions.invoke might return 4xx/5xx in the error object or data.error
+      if (response.error) {
+        // Try to parse the error message if it's a JSON string from the Edge Function
+        let errorMessage = response.error.message;
+        try {
+          const body = JSON.parse(await response.error.context.response.text());
+          if (body.error) errorMessage = body.error;
+        } catch (e) {
+          // If not a JSON response with 'error' field, use the default message
+          if (errorMessage === "Edge Function returned a non-2xx status code") {
+            errorMessage = "Erro interno no servidor de cadastro.";
+          }
+        }
+        throw new Error(errorMessage);
+      }
+
+      if (response.data?.error) throw new Error(response.data.error);
 
       setSuccess(true);
       toast.success("Cadastro realizado com sucesso!");
     } catch (err: any) {
-      toast.error("Erro no cadastro", { description: err.message });
+      console.error("Erro no cadastro:", err);
+      toast.error("Erro no cadastro", { 
+        description: err.message,
+        duration: 5000 
+      });
     } finally {
       setSubmitting(false);
     }

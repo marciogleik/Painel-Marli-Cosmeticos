@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.whatsapp-booking]
 verify_jwt = false
+
+[functions.register-invite]
+verify_jwt = false

@@ -742,15 +742,15 @@ const AgendaPage = () => {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between px-4 sm:px-8 pt-6 sm:pt-10 pb-4 shrink-0 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between px-4 sm:px-8 pt-4 sm:pt-10 pb-4 shrink-0 gap-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Calendar className="w-5 h-5 text-primary" />
+          <div className="flex items-center gap-2 mb-0.5 sm:mb-1">
+            <div className="p-1.5 sm:p-2 bg-primary/10 rounded-lg">
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
             </div>
-            <span className="text-xs font-black tracking-[0.3em] text-primary uppercase">Gestão Operacional</span>
+            <span className="text-[10px] sm:text-xs font-black tracking-[0.2em] sm:tracking-[0.3em] text-primary uppercase">Gestão Operacional</span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-display font-black tracking-tighter text-foreground uppercase leading-none">
+          <h1 className="text-2xl sm:text-4xl font-display font-black tracking-tighter text-foreground uppercase leading-none">
             Agenda
           </h1>
         </div>
@@ -956,23 +956,29 @@ const AgendaPage = () => {
               ) : (
                 /* ============ DAY VIEW ============ */
                 <div className="flex h-full w-full">
-                  <div className="w-10 sm:w-16 shrink-0 border-r border-slate-300 bg-muted/40 sticky left-0 z-20 font-bold">
-                    <div className="h-12" />
+                  <div className="w-12 sm:w-16 shrink-0 border-r border-slate-300 bg-background/95 backdrop-blur-sm sticky left-0 z-30 font-bold shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)]">
+                    <div className="h-10 sm:h-12" />
                     {hours.map((time) => {
                       const isHalf = time.endsWith(":30");
                       return (
                         <div 
                           key={time} 
-                          className={cn("flex items-start justify-end pr-1 sm:pr-2 pt-0.5 border-t", isHalf ? "border-slate-300" : "border-slate-400")}
+                          className={cn("flex items-start justify-end pr-1.5 sm:pr-2 pt-0.5 border-t", isHalf ? "border-slate-300" : "border-slate-300/80")}
                           style={{ height: SLOT_HEIGHT }}
                         >
-                          <span className={cn("text-[8px] sm:text-[10px] font-medium", isHalf ? "text-muted-foreground/70" : "text-muted-foreground/90")}>{time}</span>
+                          <span className={cn("text-[9px] sm:text-[10px] font-medium", isHalf ? "text-muted-foreground/60" : "text-muted-foreground/85")}>{time}</span>
                         </div>
                       );
                     })}
                   </div>
 
-                  <div className="flex flex-1 relative" style={{ height: HOUR_HEIGHT * 15 }}>
+                  <div 
+                    className="flex flex-1 relative" 
+                    style={{ 
+                        height: HOUR_HEIGHT * 15,
+                        minWidth: selectedFilter === "all" ? `${filteredProfessionals.length * 140}px` : "100%"
+                    }}
+                  >
                     {/* Real-time Indicator Component (Day) */}
                     {(() => {
                       const h = currentTime.getHours();
@@ -1117,7 +1123,7 @@ function DayColumn({
         {hours.map((time) => (
           <div
             key={time}
-            className={cn("border-t hover:bg-accent/30 transition-colors cursor-pointer", time.endsWith(":30") ? "border-slate-300" : "border-slate-400")}
+            className={cn("border-t hover:bg-accent/30 transition-colors cursor-pointer", time.endsWith(":30") ? "border-slate-300/50" : "border-slate-300")}
             style={{ height: SLOT_HEIGHT }}
           />
         ))}
@@ -1149,7 +1155,7 @@ function ProfColumn({
         {hours.map((time) => (
           <div
             key={time}
-            className={cn("border-t hover:bg-accent/30 transition-colors cursor-pointer", time.endsWith(":30") ? "border-slate-300" : "border-slate-400")}
+            className={cn("border-t hover:bg-accent/30 transition-colors cursor-pointer", time.endsWith(":30") ? "border-slate-300/50" : "border-slate-300")}
             style={{ height: SLOT_HEIGHT }}
             onDoubleClick={() => onSlotClick(time)}
           />
