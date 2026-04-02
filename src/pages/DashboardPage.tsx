@@ -1,6 +1,7 @@
 import { useProfessionals, useAppointments, statusConfig, type DBAppointment } from "@/hooks/useClinicData";
+import { useFinanceReport } from "@/hooks/useFinanceReport";
 import { useAuth } from "@/hooks/useAuth";
-import { Calendar, Clock, User, Cake, UserCog } from "lucide-react";
+import { Calendar, Clock, User, Cake, UserCog, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -75,8 +76,14 @@ const DashboardPage = () => {
   const confirmed = todayAppointments.filter((a) => a.status === "confirmado").length;
   const pending = todayAppointments.filter((a) => a.status === "agendado").length;
 
+  const { data: financeData } = useFinanceReport(new Date(), undefined, null);
+  const totalRevenueMonth = financeData?.totalRevenue ?? 0;
+
   const displayName = profile?.full_name || user?.email || "Profissional";
   const firstName = displayName.split(" ")[0];
+
+  const formatCurrency = (v: number) =>
+    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   return (
     <div className="flex flex-col h-full overflow-auto bg-transparent">
@@ -100,7 +107,10 @@ const DashboardPage = () => {
 
       <div className="px-4 sm:px-8 py-4 sm:py-6 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
         {/* Quick stats Glass cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6">
+        <div className={cn(
+          "grid gap-4 sm:gap-6",
+          isGestor ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-2 sm:grid-cols-3"
+        )}>
           <div className="p-6 rounded-[2rem] border border-white/10 bg-background/40 backdrop-blur-md shadow-2xl ring-1 ring-white/5 transition-all hover:ring-primary/30 group">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20 group-hover:bg-primary transition-all duration-500">
@@ -123,7 +133,7 @@ const DashboardPage = () => {
               </div>
             </div>
           </div>
-          <div className="p-6 rounded-[2rem] border border-white/10 bg-background/40 backdrop-blur-md shadow-2xl ring-1 ring-white/5 transition-all hover:ring-amber-500/30 group col-span-2 sm:col-span-1">
+          <div className="p-6 rounded-[2rem] border border-white/10 bg-background/40 backdrop-blur-md shadow-2xl ring-1 ring-white/5 transition-all hover:ring-amber-500/30 group">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center shrink-0 border border-amber-500/20 group-hover:bg-amber-500 transition-all duration-500">
                 <Clock className="w-6 h-6 text-amber-600 group-hover:text-white transition-colors" />
@@ -134,6 +144,21 @@ const DashboardPage = () => {
               </div>
             </div>
           </div>
+          {isGestor && (
+            <div className="p-6 rounded-[2rem] border border-white/10 bg-background/40 backdrop-blur-md shadow-2xl ring-1 ring-white/5 transition-all hover:ring-primary/30 group cursor-pointer" onClick={() => navigate("/financeiro")}>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20 group-hover:bg-primary transition-all duration-500">
+                  <DollarSign className="w-6 h-6 text-primary group-hover:text-primary-foreground transition-colors" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-2xl font-display font-black leading-none mb-1 group-hover:text-primary transition-colors">
+                    {formatCurrency(totalRevenueMonth).split(',')[0]}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground font-black tracking-[0.2em] uppercase truncate opacity-60">Faturamento</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">

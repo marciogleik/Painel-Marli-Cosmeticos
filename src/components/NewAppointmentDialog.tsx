@@ -15,6 +15,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogClose,
 } from "@/components/ui/dialog";
 import {
@@ -382,6 +383,9 @@ const NewAppointmentDialog = ({
           >
             <GripVertical className="w-5 h-5 text-muted-foreground" />
             <DialogTitle className="font-display">Novo Agendamento</DialogTitle>
+            <DialogDescription className="sr-only">
+              Preencha os dados abaixo para criar um novo agendamento na agenda.
+            </DialogDescription>
           </DialogHeader>
 
           <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity data-[state=open]:bg-accent data-[state=open]:text-muted-foreground hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none z-10">
@@ -406,6 +410,14 @@ const NewAppointmentDialog = ({
             </div>
 
             {/* 2. Services */}
+            {!professionalId && (
+              <div className="bg-muted/30 border border-dashed rounded-lg p-4 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Selecione uma profissional acima para visualizar os serviços disponíveis.
+                </p>
+              </div>
+            )}
+
             {professionalId && (
               <div className="space-y-2">
                 <Label>Serviços * {selectedServices.length > 0 && <span className="text-muted-foreground font-normal">({totalDuration} min)</span>}</Label>
@@ -533,8 +545,10 @@ const NewAppointmentDialog = ({
                         setSelectedClientId(null);
                         setClientName("");
                         setClientPhone("");
+                        setClientSearch(e.nativeEvent instanceof InputEvent && e.nativeEvent.data ? e.nativeEvent.data : "");
+                      } else {
+                        setClientSearch(e.target.value);
                       }
-                      setClientSearch(e.target.value);
                     }}
                     className="pl-9"
                   />
@@ -554,7 +568,12 @@ const NewAppointmentDialog = ({
                     variant={showQuickRegister ? "default" : "outline"}
                     size="icon"
                     className={cn("shrink-0", showQuickRegister && "bg-purple-600 hover:bg-purple-700 text-white border-purple-600")}
-                    onClick={() => setShowQuickRegister(!showQuickRegister)}
+                    onClick={() => {
+                      if (!showQuickRegister && clientSearch && !newClientName) {
+                        setNewClientName(clientSearch);
+                      }
+                      setShowQuickRegister(!showQuickRegister);
+                    }}
                     title="Cadastrar Novo Cliente Rápido"
                   >
                     <UserPlus className="w-4 h-4" />

@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Pencil, Loader2, Archive, ArchiveRestore, Mail, Copy, Check, UserCircle2, Sparkles } from "lucide-react";
+import { Plus, Pencil, Loader2, Archive, ArchiveRestore, Mail, Copy, Check, UserCircle2, Sparkles, MessageSquare } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface ProfForm {
@@ -53,6 +53,7 @@ const ProfissionaisTab = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<{ id: string; name: string } | null>(null);
   const [form, setForm] = useState<ProfForm>(emptyForm);
+  const [isManualInitials, setIsManualInitials] = useState(false);
   const [inviteLink, setInviteLink] = useState<{ profId: string; url: string } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -79,6 +80,11 @@ const ProfissionaisTab = () => {
     setCopiedId(profId);
     toast({ title: "Link copiado!" });
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const shareWhatsApp = (url: string) => {
+    const text = encodeURIComponent(`Olá! Este é o seu convite para acessar o Painel Marli: ${url}`);
+    window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
   };
 
   const generateInitials = (name: string) => {
@@ -140,8 +146,8 @@ const ProfissionaisTab = () => {
     setDialogOpen(true);
   };
 
-  const openNew = () => { setEditingId(null); setForm(emptyForm); setDialogOpen(true); };
-  const closeDialog = () => { setDialogOpen(false); setEditingId(null); setForm(emptyForm); };
+  const openNew = () => { setEditingId(null); setForm(emptyForm); setIsManualInitials(false); setDialogOpen(true); };
+  const closeDialog = () => { setDialogOpen(false); setEditingId(null); setForm(emptyForm); setIsManualInitials(false); };
   const canSubmit = form.name.trim().length >= 2;
 
   const active = professionals.filter(p => p.is_active);
@@ -236,6 +242,15 @@ const ProfissionaisTab = () => {
                         >
                           {copiedId === p.id ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 rounded-lg shrink-0 text-green-600 hover:bg-green-50"
+                          onClick={() => shareWhatsApp(inviteLink.url)}
+                          title="Enviar via WhatsApp"
+                        >
+                          <MessageSquare className="w-4 h-4" />
+                        </Button>
                       </div>
                     ) : (
                       <Button
@@ -294,41 +309,116 @@ const ProfissionaisTab = () => {
       )}
 
       <Dialog open={dialogOpen} onOpenChange={v => { if (!v) closeDialog(); else setDialogOpen(true); }}>
-        <DialogContent className="max-w-sm rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="font-display text-xl">{editingId ? "Editar Profissional" : "Novo Profissional"}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 pt-2">
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">Nome Completo *</Label>
-              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Maria Eduarda Silva" maxLength={100} className="rounded-xl" />
+        <DialogContent className="max-w-md rounded-2xl p-0 overflow-hidden border-none shadow-2xl">
+          <div className="bg-primary/5 p-6 border-b border-primary/10 relative overflow-hidden">
+            <div className="absolute -right-8 -top-8 w-32 h-32 bg-primary/5 rounded-full blur-3xl" />
+            <div className="relative flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                {editingId ? <Pencil className="w-6 h-6" /> : <UserCircle2 className="w-6 h-6" />}
+              </div>
+              <div>
+                <DialogTitle className="font-display text-2xl tracking-tight text-foreground">
+                  {editingId ? "Editar Profissional" : "Novo Profissional"}
+                </DialogTitle>
+                <p className="text-xs font-medium text-muted-foreground/80 mt-0.5">
+                  {editingId ? "Atualize as informações da sua colaboradora." : "Cadastre uma nova profissional na sua equipe."}
+                </p>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">Especialidade / Cargo</Label>
-              <Input value={form.role_description} onChange={e => setForm(f => ({ ...f, role_description: e.target.value }))} placeholder="Ex: Esteticista Sênior" maxLength={100} className="rounded-xl" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground/70">Iniciais (avatar personalizado)</Label>
-              <div className="flex items-center gap-3">
-                <Input value={form.avatar_initials} onChange={e => setForm(f => ({ ...f, avatar_initials: e.target.value.toUpperCase().slice(0, 3) }))} placeholder="Auto" maxLength={3} className="w-20 rounded-xl font-bold text-center" />
-                <p className="text-[10px] text-muted-foreground leading-tight">Deixe em branco para gerar automaticamente baseado no nome.</p>
+          </div>
+          <div className="p-6 space-y-6">
+            <div className="flex items-center gap-6 pb-2">
+              <div className="relative">
+                <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-primary/20 to-primary/5 border-2 border-primary/10 flex items-center justify-center shadow-inner overflow-hidden group">
+                  <span className="text-2xl font-black text-primary transition-all duration-300 group-hover:scale-110">
+                    {form.avatar_initials || (form.name ? generateInitials(form.name) : <Sparkles className="w-8 h-8 opacity-20" />)}
+                  </span>
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-background border-2 border-primary/20 flex items-center justify-center shadow-sm">
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
+                </div>
+              </div>
+              <div className="flex-1 space-y-1">
+                <h4 className="text-sm font-bold text-foreground">Visualização do Avatar</h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  As iniciais serão usadas enquanto a profissional não enviar uma foto personalizada.
+                </p>
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-xl border border-border/40 bg-muted/5">
-              <div className="space-y-0.5">
-                <Label className="text-xs font-bold">Exibir na Agenda</Label>
-                <p className="text-[10px] text-muted-foreground">Define se o profissional aparece como coluna na Agenda.</p>
+            <div className="grid gap-5">
+              <div className="space-y-2">
+                <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Nome Completo *</Label>
+                <Input 
+                  value={form.name} 
+                  onChange={e => {
+                    const newName = e.target.value;
+                    setForm(f => ({ 
+                      ...f, 
+                      name: newName,
+                      avatar_initials: isManualInitials ? f.avatar_initials : generateInitials(newName)
+                    }));
+                  }} 
+                  placeholder="Ex: Maria Eduarda Silva" 
+                  maxLength={100} 
+                  className="rounded-xl h-12 text-sm bg-muted/5 border-border/50 focus-visible:ring-primary/20" 
+                />
               </div>
-              <Switch 
-                checked={form.can_receive_appointments} 
-                onCheckedChange={v => setForm(f => ({ ...f, can_receive_appointments: v }))} 
-              />
+              <div className="space-y-2">
+                <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Especialidade / Cargo</Label>
+                <Input 
+                  value={form.role_description} 
+                  onChange={e => setForm(f => ({ ...f, role_description: e.target.value }))} 
+                  placeholder="Ex: Esteticista Sênior" 
+                  maxLength={100} 
+                  className="rounded-xl h-12 text-sm bg-muted/5 border-border/50 focus-visible:ring-primary/20" 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/80 ml-1">Iniciais Personalizadas</Label>
+                <div className="flex items-center gap-3">
+                  <Input 
+                    value={form.avatar_initials} 
+                    onChange={e => {
+                      setForm(f => ({ ...f, avatar_initials: e.target.value.toUpperCase().slice(0, 3) }));
+                      setIsManualInitials(true);
+                    }} 
+                    placeholder="Auto" 
+                    maxLength={3} 
+                    className="w-24 rounded-xl h-10 text-sm font-bold text-center bg-muted/5 border-border/50 focus-visible:ring-primary/20" 
+                  />
+                  <p className="text-[10px] text-muted-foreground leading-snug">Opcional. Clique para sobrescrever o padrão.</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-4 rounded-2xl border border-primary/10 bg-primary/5 transition-all hover:bg-primary/[0.08]">
+                <div className="space-y-1">
+                  <Label className="text-xs font-bold text-foreground">Exibir na Agenda</Label>
+                  <p className="text-[10px] text-muted-foreground leading-tight max-w-[200px]">Define se o profissional aparece como uma coluna disponível na Agenda.</p>
+                </div>
+                <Switch 
+                  checked={form.can_receive_appointments} 
+                  onCheckedChange={v => setForm(f => ({ ...f, can_receive_appointments: v }))} 
+                  className="data-[state=checked]:bg-primary"
+                />
+              </div>
             </div>
-            <Button className="w-full h-11 rounded-xl font-bold gap-2 mt-2" disabled={!canSubmit || mutation.isPending} onClick={() => mutation.mutate()}>
-              {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : editingId ? <Pencil className="w-3.5 h-3.5" /> : <Plus className="w-4 h-4" />}
-              {editingId ? "Salvar Alterações" : "Cadastrar Profissional"}
-            </Button>
+
+            <div className="pt-2">
+              <Button 
+                className="w-full h-12 rounded-xl font-bold gap-3 text-sm shadow-lg shadow-primary/20 transition-all active:scale-[0.98]" 
+                disabled={!canSubmit || mutation.isPending} 
+                onClick={() => mutation.mutate()}
+              >
+                {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : editingId ? <Pencil className="w-4 h-4" /> : <Plus className="w-5 h-5" />}
+                {editingId ? "Salvar Alterações" : "Cadastrar Profissional na Unidade"}
+              </Button>
+              {!editingId && (
+                <p className="text-[10px] text-center text-muted-foreground mt-4 font-medium opacity-60">
+                  Após cadastrar, você poderá gerar o link de acesso exclusivo da profissional.
+                </p>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
