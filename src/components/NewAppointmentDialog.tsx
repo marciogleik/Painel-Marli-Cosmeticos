@@ -726,7 +726,7 @@ const NewAppointmentDialog = ({
                   <Select value={repeatCount} onValueChange={setRepeatCount}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 9 }, (_, i) => i + 2).map(n => (
+                      {Array.from({ length: 29 }, (_, i) => i + 2).map(n => (
                         <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
                       ))}
                     </SelectContent>
