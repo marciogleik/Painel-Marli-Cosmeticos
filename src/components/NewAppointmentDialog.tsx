@@ -703,17 +703,42 @@ const NewAppointmentDialog = ({
 
               <div className="space-y-2">
                 <Label>Repetir?</Label>
-                <Select value={recurrence} onValueChange={setRecurrence}>
+                <Select value={recurrence} onValueChange={(v) => { setRecurrence(v); setRepeatCount(v === "none" ? "1" : "2"); }}>
                   <SelectTrigger><SelectValue placeholder="Não repetir" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Não repetir</SelectItem>
                     <SelectItem value="daily">Diariamente</SelectItem>
                     <SelectItem value="weekly">Semanalmente</SelectItem>
+                    <SelectItem value="biweekly">Quinzenalmente</SelectItem>
                     <SelectItem value="monthly">Mensalmente</SelectItem>
+                    <SelectItem value="quarterly">Trimestralmente</SelectItem>
+                    <SelectItem value="semiannual">Semestralmente</SelectItem>
+                    <SelectItem value="annual">Anualmente</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
+
+            {recurrence !== "none" && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Quantas vezes?</Label>
+                  <Select value={repeatCount} onValueChange={setRepeatCount}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 9 }, (_, i) => i + 2).map(n => (
+                        <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-end pb-2">
+                  <p className="text-xs text-muted-foreground">
+                    Serão criados <strong>{repeatCount}</strong> agendamentos no total
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label>Observações</Label>
