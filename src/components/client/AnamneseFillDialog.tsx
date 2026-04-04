@@ -17,13 +17,13 @@ import { TechnicalObservationsGrid } from "./TechnicalObservationsGrid";
 
 // PatientRecord is now imported from AnamneseTab
 
-const isTableField = (label: string, fieldType?: string, currentValue?: string) => {
-  const l = label.toLowerCase();
+const isTableField = (label: string, fieldType?: string, currentValue?: any) => {
+  const l = (label || "").toLowerCase();
   
   // Condição Especial para "Laser" que salva num formato legado com muitos espaços
   if (l.includes('laser')) return true;
 
-  if (currentValue && !currentValue.includes('{') && (currentValue.includes('Sessão') || currentValue.includes('Data') || currentValue.includes('Parâmetros'))) {
+  if (typeof currentValue === 'string' && currentValue && !currentValue.includes('{') && (currentValue.includes('Sessão') || currentValue.includes('Data') || currentValue.includes('Parâmetros'))) {
     const spacesCount = (currentValue.match(/\s{3,}/g) || []).length;
     if (spacesCount > 2) return true; // Detect mock tables
   }
@@ -33,7 +33,7 @@ const isTableField = (label: string, fieldType?: string, currentValue?: string) 
       l.includes('procedimento')) return true;
 
   // Check if label is just "Data" but it's at the end of the form or has legacy table content
-  if (l === 'data' && currentValue?.toLowerCase().includes('procedimento realizado')) return true;
+  if (l === 'data' && typeof currentValue === 'string' && currentValue?.toLowerCase().includes('procedimento realizado')) return true;
 
   return false;
 };
@@ -290,27 +290,23 @@ const AnamneseFillDialog = ({
         return (
           <div className="space-y-3">
             <Label className="text-base font-medium text-slate-700">{field.label}</Label>
-            <RadioGroup
-              value={value}
-              onValueChange={(v) => updateAnswer(field.id, v)}
-              className="flex flex-col gap-2"
-            >
+            <div className="flex flex-col gap-2">
               {(field.options ?? []).map((opt) => {
                 const isSelected = value === opt;
                 return (
-                  <label
+                  <div
                     key={opt}
+                    onClick={() => updateAnswer(field.id, opt)}
                     className={`flex items-center gap-2 cursor-pointer text-sm font-medium transition-colors ${isSelected ? 'text-blue-600' : 'text-slate-600'}`}
                   >
                     <div className={`w-4 h-4 border-2 rounded flex items-center justify-center transition-colors ${isSelected ? 'bg-blue-600 border-blue-600' : 'border-slate-300 bg-white'}`}>
                        {isSelected && <Check className="w-3 h-3 text-white stroke-[4]" />}
-                       <RadioGroupItem value={opt} className="sr-only" />
                     </div>
                     {opt}
-                  </label>
+                  </div>
                 );
               })}
-            </RadioGroup>
+            </div>
           </div>
         );
 
