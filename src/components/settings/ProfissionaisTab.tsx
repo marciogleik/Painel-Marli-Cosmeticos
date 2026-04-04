@@ -65,9 +65,20 @@ const ProfissionaisTab = () => {
 
       if (response.error) {
         let errorMessage = response.error.message;
+        
         try {
-          const body = JSON.parse(await response.error.context.response.text());
-          if (body.error) errorMessage = body.error;
+          // If the edge function returns a JSON, it might be in response.error.context
+          const errCtx = response.error.context;
+          if (errCtx && typeof errCtx === 'object' && !('text' in errCtx)) {
+            // Already parsed?
+            // @ts-ignore
+             if (errCtx.error) errorMessage = errCtx.error;
+          } else if (errCtx && 'text' in errCtx && typeof errCtx.text === 'function') {
+             // Clone response to avoid body already consumed errors
+             const responseClone = (errCtx as Response).clone();
+             const body = JSON.parse(await responseClone.text());
+             if (body.error) errorMessage = body.error;
+          }
         } catch (e) {
           if (errorMessage === "Edge Function returned a non-2xx status code") {
             errorMessage = "Erro ao processar convite no servidor.";
@@ -77,7 +88,7 @@ const ProfissionaisTab = () => {
       }
 
       if (response.data?.error) throw new Error(response.data.error);
-      return response.data.token as string;
+      return (response.data as any).token as string;
     },
     onSuccess: (token, professionalId) => {
       const url = `${window.location.origin}/cadastro?token=${token}`;
