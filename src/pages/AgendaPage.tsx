@@ -1,9 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useProfessionals, useAppointments, statusConfig, DBAppointment, WEEKLY_BLOCKS } from "@/hooks/useClinicData";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { format, addDays, subDays, startOfWeek, endOfWeek, isToday, parseISO, startOfMonth, endOfMonth, addMonths, isSameMonth, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Plus, Calendar, Check, X as XIcon, GripVertical, Ban, Trash2, Search, Cake, Edit2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Calendar, Check, X as XIcon, GripVertical, Ban, Trash2, Cake, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import NewAppointmentDialog from "@/components/NewAppointmentDialog";
@@ -20,6 +21,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { checkAppointmentConflict } from "@/utils/appointmentConflict";
+import { useAuth } from "@/hooks/useAuth";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { normalizePhone, matchesPhone } from "@/utils/phoneUtils";
 import { resolveOverlaps, PositionedAppointment } from "@/utils/agendaLayout";
@@ -77,15 +79,60 @@ const AgendaPage = () => {
   };
 
 
+  const { user } = useAuth();
+  const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
+
+  // Fetch current user role
+  const { data: userRole } = useQuery({
+    queryKey: ["my-role", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user!.id)
+        .single();
+      return data?.role ?? null;
+    },
+    enabled: !!user,
+  });
+
+  // Fetch current user professional record
+  const { data: currentProfessional } = useQuery({
+    queryKey: ["my-professional", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("professionals")
+        .select("*")
+        .eq("user_id", user!.id)
+        .single();
+      return data ?? null;
+    },
+    enabled: !!user,
+  });
+
+  const canViewAll = userRole === 'gestor' || currentProfessional?.can_view_all_agendas === true;
+
   const [searchParams] = useSearchParams();
   const initialView = searchParams.get("view") as ViewMode;
   const [viewMode, setViewMode] = useState<ViewMode>(initialView || "day");
   const [weekStart, setWeekStart] = useState(() => startOfWeek(getNow(), { weekStartsOn: 0 }));
   const [selectedDay, setSelectedDay] = useState(() => getNow());
+
+  // Set default filter based on permission
   const [selectedFilter, setSelectedFilter] = useState<string>("all");
-  const [searchTerm, setSearchTerm] = useState("");
+
+  // Sync initial filter when professional data is loaded
+  useEffect(() => {
+    if (!canViewAll && currentProfessional?.id) {
+      setSelectedFilter(currentProfessional.id);
+    }
+  }, [canViewAll, currentProfessional?.id]);
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<DBAppointment | null>(null);
+  const [confirmDeleteBlockId, setConfirmDeleteBlockId] = useState<string | null>(null);
+  const [isDeletingBlock, setIsDeletingBlock] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
   const [blockDefaults, setBlockDefaults] = useState<{ id?: string; profId?: string; date?: Date; startTime?: string; endTime?: string; notes?: string }>({});
@@ -100,8 +147,6 @@ const AgendaPage = () => {
   const [pendingReschedule, setPendingReschedule] = useState<PendingReschedule | null>(null);
   const [isRescheduling, setIsRescheduling] = useState(false);
   const [currentTime, setCurrentTime] = useState(getNow());
-
-  const queryClient = useQueryClient();
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
@@ -171,9 +216,9 @@ const AgendaPage = () => {
 
   // Fetch birthdays for the month
   const { data: monthBirthdays = [] } = useQuery({
-    queryKey: ["birthdays_month", format(selectedDay, "MM")],
+    queryKey: ["birthdays_month", format(selectedDay, "MM", { locale: ptBR })],
     queryFn: async () => {
-      const monthStr = format(selectedDay, "MM");
+      const monthStr = format(selectedDay, "MM", { locale: ptBR });
       const { data, error } = await supabase
         .from("clients")
         .select("id, full_name, birth_date")
@@ -193,13 +238,16 @@ const AgendaPage = () => {
   };
 
   const deleteBlockedSlot = async (id: string) => {
+    setIsDeletingBlock(true);
     const { error } = await supabase.from("appointments").delete().eq("id", id);
     if (error) {
       toast.error("Erro ao remover bloqueio: " + error.message);
     } else {
       toast.success("Bloqueio removido!");
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      setConfirmDeleteBlockId(null);
     }
+    setIsDeletingBlock(false);
   };
 
   const getBlockedForColumn = (dayStr: string, profId?: string) => {
@@ -207,7 +255,7 @@ const AgendaPage = () => {
       const matchDay = b.date === dayStr;
       const isBlocked = b.status === "bloqueado" || b.client_name === "BLOQUEIO";
       if (!isBlocked) return false;
-      
+
       if (viewMode === "day" && profId) return matchDay && b.professional_id === profId;
       const matchProf = selectedFilter === "all" || b.professional_id === selectedFilter;
       return matchDay && matchProf;
@@ -223,12 +271,12 @@ const AgendaPage = () => {
     } as DBAppointment);
 
     return (
-      <div 
-        key={block.id} 
-        className="absolute left-0 right-0 p-2 z-[2] border-l-4 border-l-slate-900 overflow-hidden block-container"
-        style={{ 
-          top: `${top}px`, 
-          height: `${height}px`, 
+      <div
+        key={block.id}
+        className="absolute left-0 right-0 p-2 z-[1] border-l-4 border-l-slate-900 overflow-hidden block-container"
+        style={{
+          top: `${top}px`,
+          height: `${height}px`,
           cursor: 'default',
           background: 'repeating-linear-gradient(45deg, #1e293b, #1e293b 10px, #0f172a 10px, #0f172a 20px)',
           opacity: 0.95,
@@ -237,7 +285,7 @@ const AgendaPage = () => {
         }}
       >
         <div className="flex justify-between items-center text-slate-400">
-          <span className="text-[10px] font-black tracking-widest">{block.start_time.slice(0, 5)}</span>
+          <span className="text-[10px] font-black tracking-widest">{(block.start_time || "00:00").slice(0, 5)}</span>
           {height >= 40 && (
             <Ban className="w-3 h-3 opacity-60 text-destructive-foreground" />
           )}
@@ -251,7 +299,7 @@ const AgendaPage = () => {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                deleteBlockedSlot(block.id);
+                setConfirmDeleteBlockId(block.id);
               }}
               className="p-1 rounded hover:bg-destructive/10 transition-colors"
               title="Remover bloqueio"
@@ -265,13 +313,23 @@ const AgendaPage = () => {
   };
 
   const getPosition = (appt: DBAppointment) => {
-    const timeParts = appt.start_time.split(":").map(Number);
-    const endParts = appt.end_time.split(":").map(Number);
-    const startMinutes = timeParts[0] * 60 + timeParts[1];
-    const endMinutes = endParts[0] * 60 + endParts[1];
-    const duration = endMinutes - startMinutes;
+    const startTime = appt.start_time || "07:00";
+    const endTime = appt.end_time || "07:30";
+    
+    const timeParts = startTime.split(":").map(Number);
+    const endParts = endTime.split(":").map(Number);
+    
+    const startH = isNaN(timeParts[0]) ? 7 : timeParts[0];
+    const startM = isNaN(timeParts[1]) ? 0 : timeParts[1];
+    const endH = isNaN(endParts[0]) ? 7 : endParts[0];
+    const endM = isNaN(endParts[1]) ? 30 : endParts[1];
+
+    const startMinutes = startH * 60 + startM;
+    const endMinutes = endH * 60 + endM;
+    const duration = Math.max(endMinutes - startMinutes, 15);
+    
     // Calculate top: (hour - 7) * hour_height + (minutes * px/min)
-    const top = (timeParts[0] - 7) * HOUR_HEIGHT + (timeParts[1] * PX_PER_MINUTE);
+    const top = (startH - 7) * HOUR_HEIGHT + (startM * PX_PER_MINUTE);
     const height = Math.max((duration * PX_PER_MINUTE), 42);
     return { top, height };
   };
@@ -290,7 +348,7 @@ const AgendaPage = () => {
     // Calculate time from pixel position
     const minutesFromSeven = Math.round(px / PX_PER_MINUTE);
     const totalMinutes = minutesFromSeven + 7 * 60;
-    
+
     // Snap to 15-minute intervals (existing grid is 15-min based)
     const snapped = Math.round(totalMinutes / 15) * 15;
     const h = Math.floor(snapped / 60);
@@ -346,13 +404,12 @@ const AgendaPage = () => {
 
       // Calculate new times
       const { hours: newStartH, minutes: newStartM } = pixelToTime(drag.currentTop);
-      const oldParts = drag.appointment.start_time.split(":").map(Number);
-      const endParts = drag.appointment.end_time.split(":").map(Number);
-      const services = drag.appointment.appointment_services || [];
-      const durationMin = services.length > 0 
-        ? services.reduce((sum, s) => sum + s.duration_minutes, 0)
-        : (endParts[0] * 60 + endParts[1]) - (oldParts[0] * 60 + oldParts[1]);
-
+      const oldParts = (drag.appointment.start_time || "00:00").split(":").map(Number);
+      const endParts = (drag.appointment.end_time || "00:00").split(":").map(Number);
+      
+      const sMin = (oldParts[0] || 0) * 60 + (oldParts[1] || 0);
+      const eMin = (endParts[0] || 0) * 60 + (endParts[1] || 0);
+      const durationMin = eMin - sMin || 30;
 
       const newStartTotalMin = newStartH * 60 + newStartM;
       const newEndTotalMin = newStartTotalMin + durationMin;
@@ -441,7 +498,7 @@ const AgendaPage = () => {
     viewMode === "month"
       ? format(selectedDay, "MMMM 'de' yyyy", { locale: ptBR })
       : viewMode === "week"
-        ? `${format(weekStart, "dd", { locale: ptBR })} de ${format(weekStart, "MMM.", { locale: ptBR })} - ${format(addDays(weekStart, 6), "dd", { locale: ptBR })} de ${format(addDays(weekStart, 6), "MMM.", { locale: ptBR })} de ${format(weekStart, "yyyy")}`
+        ? `${format(weekStart, "dd", { locale: ptBR })} de ${format(weekStart, "MMM", { locale: ptBR })} - ${format(addDays(weekStart, 6), "dd", { locale: ptBR })} de ${format(addDays(weekStart, 6), "MMM", { locale: ptBR })} de ${format(weekStart, "yyyy", { locale: ptBR })}`
         : format(selectedDay, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
 
   const days =
@@ -460,16 +517,11 @@ const AgendaPage = () => {
       if (a.status === "bloqueado" || a.client_name === "BLOQUEIO") return false;
       const matchDay = a.date === dayStr;
 
-      // Search filter
-      const matchesSearch = !searchTerm ||
-        a.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        matchesPhone(a.client_phone, searchTerm);
-
       const matchesProfessional = viewMode === "day" && profId
         ? a.professional_id === profId
         : selectedFilter === "all" || a.professional_id === selectedFilter;
 
-      return matchesProfessional && matchesSearch && matchDay;
+      return matchesProfessional && matchDay;
     });
 
     return resolveOverlaps(filtered);
@@ -483,7 +535,7 @@ const AgendaPage = () => {
     const isFalta = appt.status === "falta";
     const isDraggable = !isCancelled && !isFalta;
     const isDragging = draggingApptId !== null && String(draggingApptId) === String(appt.id);
-    const prof = professionals.find((p) => p.id === appt.professional_id);
+    const prof = professionals?.find((p) => p.id === appt.professional_id);
     const serviceName = getServiceNames(appt);
     const timeRange = `${appt.start_time?.slice(0, 5)} - ${appt.end_time?.slice(0, 5)}`;
     const isCompact = height < 45;
@@ -537,7 +589,7 @@ const AgendaPage = () => {
             {/* Body: Client name & Time (Compact or Normal) */}
             {height < 50 ? (
               <div className="flex items-center gap-1.5 overflow-hidden">
-                <div className="horario">{appt.start_time.slice(0, 5)}</div>
+                <div className="horario">{(appt.start_time || "00:00").slice(0, 5)}</div>
                 <div className="cliente flex-1 truncate">
                   {appt.status === "confirmado" && <span className="mr-0.5 opacity-70">✓</span>}
                   {appt.client_name}
@@ -547,7 +599,7 @@ const AgendaPage = () => {
               <>
                 {/* Header: Time */}
                 <div className="horario flex items-center justify-between">
-                  <span>{appt.start_time.slice(0, 5)}</span>
+                  <span>{(appt.start_time || "00:00").slice(0, 5)}</span>
                   {overlapCount === 1 && height >= 120 && (
                     <span className="opacity-40">{statusLabel[appt.status]}</span>
                   )}
@@ -584,7 +636,7 @@ const AgendaPage = () => {
                 {serviceSummary}
                 {prof && overlapCount === 1 && height >= 80 && (
                   <div className="mt-1 font-bold uppercase tracking-widest text-[9px] opacity-50">
-                    {prof.name.split(" ")[0]}
+                    {prof.name?.split(" ")[0] || "Prof"}
                   </div>
                 )}
               </div>
@@ -595,8 +647,8 @@ const AgendaPage = () => {
         <ContextMenuContent className="w-56">
           <div className="px-2 py-1.5 text-xs font-bold uppercase tracking-widest opacity-50">Alterar Status</div>
           {Object.entries(statusLabel).filter(([val]) => val !== 'removido').map(([value, label]) => (
-            <ContextMenuItem 
-              key={value} 
+            <ContextMenuItem
+              key={value}
               onClick={() => updateStatusMutation.mutate({ id: appt.id, status: value })}
               className={cn(
                 "flex items-center justify-between",
@@ -608,7 +660,7 @@ const AgendaPage = () => {
             </ContextMenuItem>
           ))}
           <div className="h-px bg-border my-1" />
-          <ContextMenuItem 
+          <ContextMenuItem
             onClick={() => {
               setSelectedAppointment(appt);
               setDetailOpen(true);
@@ -635,7 +687,7 @@ const AgendaPage = () => {
       current = addDays(current, 1);
     }
 
-    const weekDays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+    const weekDays = ["D", "S", "T", "Q", "Q", "S", "S"];
 
     return (
       <div className="flex-1 overflow-auto bg-background p-4">
@@ -650,9 +702,12 @@ const AgendaPage = () => {
             const isToday = isSameDay(date, new Date());
             const dayStr = format(date, "yyyy-MM-dd");
             const mmdd = format(date, "MM-dd");
-            const dayAppts = appointments.filter(a => a.date === dayStr && a.status !== "removido");
+            const dayAppts = appointments.filter(a => {
+              const matchesProfessional = selectedFilter === "all" || a.professional_id === selectedFilter;
+              return a.date === dayStr && a.status !== "removido" && matchesProfessional;
+            });
             const dayBirthdays = monthBirthdays.filter(c => c.birth_date && c.birth_date.slice(5) === mmdd);
-            const sortedAppts = dayAppts.sort((a, b) => a.start_time.localeCompare(b.start_time));
+            const sortedAppts = dayAppts.sort((a, b) => (a.start_time || "").localeCompare(b.start_time || ""));
 
             return (
               <div
@@ -678,35 +733,35 @@ const AgendaPage = () => {
                   )}>
                     {format(date, "d")}
                   </span>
-                    <div className="flex items-center gap-1.5">
-                      {dayBirthdays.length > 0 && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="flex items-center gap-1 text-primary cursor-help">
-                              <Cake className="w-3.5 h-3.5 animate-pulse" />
-                              <span className="text-[10px] font-black">{dayBirthdays.length}</span>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent className="bg-pink-50 border-pink-100 text-pink-700">
-                            <div className="space-y-1 py-1">
-                              <p className="text-[10px] font-black uppercase tracking-widest mb-2 border-b border-pink-200 pb-1">Aniversariantes 🎂</p>
-                              {dayBirthdays.map(c => (
-                                <p key={c.id} className="text-xs font-bold truncate">• {c.full_name}</p>
-                              ))}
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
-                      {dayAppts.length > 0 && (
-                        <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/60 px-1.5 py-0.5 bg-muted/60 rounded-lg">
-                          {dayAppts.length}
-                        </span>
-                      )}
-                    </div>
+                  <div className="flex items-center gap-1.5">
+                    {dayBirthdays.length > 0 && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-1 text-primary cursor-help">
+                            <Cake className="w-3.5 h-3.5 animate-pulse" />
+                            <span className="text-[10px] font-black">{dayBirthdays.length}</span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent className="bg-pink-50 border-pink-100 text-pink-700">
+                          <div className="space-y-1 py-1">
+                            <p className="text-[10px] font-black uppercase tracking-widest mb-2 border-b border-pink-200 pb-1">Aniversariantes 🎂</p>
+                            {dayBirthdays.map(c => (
+                              <p key={c.id} className="text-xs font-bold truncate">• {c.full_name}</p>
+                            ))}
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    {dayAppts.length > 0 && (
+                      <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/60 px-1.5 py-0.5 bg-muted/60 rounded-lg">
+                        {dayAppts.length}
+                      </span>
+                    )}
                   </div>
-                  <div className="space-y-1">
-                    {/* Birthdays removed from list, now in tooltip */}
-                    {sortedAppts.slice(0, 4).map(appt => (
+                </div>
+                <div className="space-y-1">
+                  {/* Birthdays removed from list, now in tooltip */}
+                  {sortedAppts.slice(0, 4).map(appt => (
                     <div
                       key={appt.id}
                       className="text-[9px] truncate px-1.5 py-1 rounded-lg transition-all flex items-center gap-1"
@@ -715,7 +770,7 @@ const AgendaPage = () => {
                         borderLeft: `3px solid ${getStatusBg(appt.status)}`
                       }}
                     >
-                      <span className="font-black shrink-0">{appt.start_time.slice(0, 5)}</span>
+                      <span className="font-black shrink-0">{(appt.start_time || "00:00").slice(0, 5)}</span>
                       <span className="truncate font-medium">{appt.client_name}</span>
                     </div>
                   ))}
@@ -741,44 +796,38 @@ const AgendaPage = () => {
   };
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between px-4 sm:px-8 pt-4 sm:pt-10 pb-4 shrink-0 gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 mb-0.5 sm:mb-1">
-            <div className="p-1.5 sm:p-2 bg-primary/10 rounded-lg">
-              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
-            </div>
-            <span className="text-[10px] sm:text-xs font-black tracking-[0.2em] sm:tracking-[0.3em] text-primary uppercase">Gestão Operacional</span>
+    <div className="flex flex-col h-full overflow-hidden" translate="no">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 sm:px-8 pt-3 pb-3 shrink-0 gap-3">
+        <div className="flex items-center gap-3">
+          <div className="p-1.5 bg-primary/10 rounded-lg">
+            <Calendar className="w-4 h-4 text-primary" />
           </div>
-          <h1 className="text-2xl sm:text-4xl font-display font-black tracking-tighter text-foreground uppercase leading-none">
+          <h1 className="text-xl sm:text-2xl font-display font-black tracking-tighter text-foreground uppercase leading-none">
             Agenda
           </h1>
         </div>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
-            <Input
-              placeholder="Pesquisar cliente..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 h-10 text-sm rounded-xl border-border/40 bg-background"
-            />
-          </div>
           <div className="flex gap-2">
-            <Button 
-                variant="outline" 
-                className="flex-1 sm:flex-none gap-2 h-10 px-5 text-xs font-black uppercase tracking-widest rounded-xl border-2 border-slate-200 hover:border-destructive/30 hover:bg-destructive/5 text-slate-600 transition-all active:scale-95" 
-                onClick={() => { 
-                    setBlockDefaults({
-                        profId: selectedFilter !== "all" ? selectedFilter : undefined,
-                        date: selectedDay
-                    }); 
-                    setBlockDialogOpen(true); 
-                }}
+            <Button
+              variant="outline"
+              className="flex-1 sm:flex-none gap-2 h-10 px-5 text-xs font-black uppercase tracking-widest rounded-xl border-2 border-slate-200 hover:border-destructive/30 hover:bg-destructive/5 text-slate-600 transition-all active:scale-95"
+              onClick={() => {
+                setBlockDefaults({
+                  profId: selectedFilter !== "all" ? selectedFilter : undefined,
+                  date: selectedDay
+                });
+                setBlockDialogOpen(true);
+              }}
             >
               <Ban className="w-4 h-4 text-destructive" /> Bloquear
             </Button>
-            <Button className="flex-1 sm:flex-none gap-2 h-10 px-6 text-xs font-black uppercase tracking-widest rounded-xl shadow-lg shadow-primary/25 active:scale-95 transition-all" onClick={() => setDialogOpen(true)}>
+            <Button 
+              className="flex-1 sm:flex-none gap-2 h-10 px-6 text-xs font-black uppercase tracking-widest rounded-xl shadow-lg shadow-primary/25 active:scale-95 transition-all" 
+              onClick={() => {
+                setApptDefaults({ profId: selectedFilter !== "all" ? selectedFilter : undefined, date: selectedDay });
+                setDialogOpen(true);
+              }}
+            >
               <Plus className="w-4 h-4" /> Novo
             </Button>
           </div>
@@ -836,29 +885,38 @@ const AgendaPage = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-1">
-          <button
-            onClick={() => setSelectedFilter("all")}
-            className={cn(
-              "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors shrink-0",
-              selectedFilter === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"
+        {canViewAll && (
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-1">
+            {canViewAll && (
+              <button
+                onClick={() => setSelectedFilter("all")}
+                className={cn(
+                  "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors shrink-0",
+                  selectedFilter === "all" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"
+                )}
+              >
+                Todos
+              </button>
             )}
-          >
-            Todos
-          </button>
-          {sortedProfessionals.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => setSelectedFilter(p.id)}
-              className={cn(
-                "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors shrink-0",
-                selectedFilter === p.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"
-              )}
-            >
-              {p.name.split(" ")[0]}
-            </button>
-          ))}
-        </div>
+            {sortedProfessionals.map((p) => {
+              // If not admin, only show self in the list if they can't view all
+              if (!canViewAll && p.id !== currentProfessional?.id) return null;
+
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setSelectedFilter(p.id)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors shrink-0",
+                    selectedFilter === p.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"
+                  )}
+                >
+                  {p.name.split(" ")[0]}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Status legend */}
@@ -876,21 +934,21 @@ const AgendaPage = () => {
           {viewMode === "month" ? (
             renderMonthView()
           ) : (
-            <div className="flex-1 overflow-auto custom-scrollbar" ref={gridContainerRef} onScroll={handleScroll}>
+            <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar" ref={gridContainerRef} onScroll={handleScroll}>
               {viewMode === "week" ? (
                 /* ============ WEEK VIEW ============ */
-                <div className="flex min-w-[1200px] relative h-full">
-                  <div className="w-16 shrink-0 border-r border-slate-300 bg-muted/40 sticky left-0 z-20 font-bold">
-                    <div className="h-12" />
+                <div className="flex w-full relative h-full">
+                  <div className="w-16 shrink-0 border-r border-slate-300 bg-background sticky left-0 z-30 font-bold">
+                    <div className="h-12 sticky top-0 bg-background z-50" />
                     {hours.map((time) => {
                       const isHalf = time.endsWith(":30");
                       return (
-                        <div 
-                          key={time} 
+                        <div
+                          key={time}
                           className={cn("flex items-start justify-end pr-2 pt-0.5 border-t", isHalf ? "border-slate-300" : "border-slate-400")}
                           style={{ height: SLOT_HEIGHT }}
                         >
-                          <span className={cn("text-[10px] font-medium", isHalf ? "text-muted-foreground/70" : "text-muted-foreground/90")}>{time}</span>
+                          <span className={cn("text-[10px] font-bold", isHalf ? "text-slate-500" : "text-slate-900")}>{time}</span>
                         </div>
                       );
                     })}
@@ -910,7 +968,7 @@ const AgendaPage = () => {
 
                       return (
                         <div
-                          className="absolute z-50 pointer-events-none flex items-center"
+                          className="absolute z-60 pointer-events-none flex items-center"
                           style={{
                             top: `${topOffset}px`,
                             left: `${todayIdx * colWidth}%`,
@@ -937,7 +995,7 @@ const AgendaPage = () => {
                           key={dayStr}
                           dayStr={dayStr}
                           dayAbbr={dayAbbr}
-                          dayNum={format(day, "d")}
+                          dayNum={format(day, "d", { locale: ptBR })}
                           isToday={today}
                           hours={hours}
                           appts={dayAppts}
@@ -956,27 +1014,27 @@ const AgendaPage = () => {
               ) : (
                 /* ============ DAY VIEW ============ */
                 <div className="flex h-full w-full">
-                  <div className="w-12 sm:w-16 shrink-0 border-r border-slate-300 bg-background/95 backdrop-blur-sm sticky left-0 z-30 font-bold shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)]">
-                    <div className="h-10 sm:h-12" />
+                  <div className="w-12 sm:w-16 shrink-0 border-r border-slate-300 bg-slate-50 sticky left-0 z-30 font-bold shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)]">
+                    <div className="h-10 sm:h-12 sticky top-0 bg-background z-50" />
                     {hours.map((time) => {
                       const isHalf = time.endsWith(":30");
                       return (
-                        <div 
-                          key={time} 
+                        <div
+                          key={time}
                           className={cn("flex items-start justify-end pr-1.5 sm:pr-2 pt-0.5 border-t", isHalf ? "border-slate-300" : "border-slate-300/80")}
                           style={{ height: SLOT_HEIGHT }}
                         >
-                          <span className={cn("text-[9px] sm:text-[10px] font-medium", isHalf ? "text-muted-foreground/60" : "text-muted-foreground/85")}>{time}</span>
+                          <span className={cn("text-[9px] sm:text-[11px] font-bold", isHalf ? "text-slate-500" : "text-slate-900")}>{time}</span>
                         </div>
                       );
                     })}
                   </div>
 
-                  <div 
-                    className="flex flex-1 relative" 
-                    style={{ 
-                        height: HOUR_HEIGHT * 15,
-                        minWidth: selectedFilter === "all" ? `${filteredProfessionals.length * 140}px` : "100%"
+                  <div
+                    className="flex flex-1 relative"
+                    style={{
+                      height: HOUR_HEIGHT * 15,
+                      width: "100%"
                     }}
                   >
                     {/* Real-time Indicator Component (Day) */}
@@ -987,11 +1045,10 @@ const AgendaPage = () => {
                       if (!isToday(selectedDay)) return null;
 
                       const topOffset = (h - 7) * HOUR_HEIGHT + (m * PX_PER_MINUTE) + GRID_HEADER_HEIGHT;
-                      console.error(`[TERMINAL_OFFSET_CHECK] h:${h} m:${m} offset:${topOffset}`);
-
+          
                       return (
                         <div
-                          className="absolute left-0 right-0 z-50 pointer-events-none flex items-center"
+                          className="absolute left-0 right-0 z-60 pointer-events-none flex items-center"
                           style={{ top: `${topOffset}px` }}
                         >
                           <div className="w-2 h-2 rounded-full bg-destructive -ml-1 shadow-[0_0_6px_rgba(239,68,68,0.6)] animate-pulse" />
@@ -1056,9 +1113,33 @@ const AgendaPage = () => {
       />
       <AppointmentDetailDialog appointment={selectedAppointment} open={detailOpen} onOpenChange={setDetailOpen} />
 
-      {/* Reschedule confirmation dialog */}
       <AlertDialog 
-        open={!!pendingReschedule} 
+        open={!!confirmDeleteBlockId} 
+        onOpenChange={(v) => !v && setConfirmDeleteBlockId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir bloqueio de horário?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. O horário voltará a ficar disponível para novos agendamentos na agenda.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingBlock}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => confirmDeleteBlockId && deleteBlockedSlot(confirmDeleteBlockId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeletingBlock}
+            >
+              {isDeletingBlock ? "Excluindo..." : "Excluir Bloqueio"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reschedule confirmation dialog */}
+      <AlertDialog
+        open={!!pendingReschedule}
         onOpenChange={(open) => {
           if (!open) {
             setPendingReschedule(null);
@@ -1115,7 +1196,7 @@ function DayColumn({
       className="flex-1 min-w-0 border-r border-slate-300 last:border-r-0 cursor-pointer"
       onDoubleClick={onDoubleClick}
     >
-      <div className="h-12 flex flex-col items-center justify-center border-b border-slate-300 bg-muted/30">
+      <div className="h-12 flex flex-col items-center justify-center border-b border-slate-300 bg-background sticky top-0 z-40">
         <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{dayAbbr}</span>
         <span className={cn("text-sm font-bold", today ? "text-primary" : "text-foreground")}>{dayNum}</span>
       </div>
@@ -1146,9 +1227,9 @@ function ProfColumn({
   const colRef = useRef<HTMLDivElement>(null);
   return (
     <div className="flex-1 min-w-0 border-r border-slate-300 last:border-r-0">
-      <div className="h-10 sm:h-12 flex items-center justify-center border-b border-slate-300 bg-muted/20 px-0.5 sm:px-2 text-center overflow-hidden">
+      <div className="h-10 sm:h-12 flex items-center justify-center border-b border-slate-300 bg-background sticky top-0 z-40 px-0.5 sm:px-2 text-center overflow-hidden">
         <span className="text-[7px] sm:text-[10px] font-black text-foreground/80 truncate text-center leading-none uppercase tracking-tighter sm:tracking-[0.15em]">
-          {profName.split(" ")[0]}
+          {(profName || "Prof").split(" ")[0]}
         </span>
       </div>
       <div className="relative" ref={colRef}>

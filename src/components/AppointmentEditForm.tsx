@@ -109,9 +109,11 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
     : [];
 
   const initialDurationMin = (() => {
-    const s = appointment.start_time.split(":").map(Number);
-    const e = appointment.end_time.split(":").map(Number);
-    return (e[0] * 60 + e[1]) - (s[0] * 60 + s[1]);
+    const s = (appointment.start_time || "00:00").split(":").map(Number);
+    const e = (appointment.end_time || "00:00").split(":").map(Number);
+    const sMin = (s[0] || 0) * 60 + (s[1] || 0);
+    const eMin = (e[0] || 0) * 60 + (e[1] || 0);
+    return eMin - sMin || 30;
   })();
 
   const totalDuration = selectedServices.length > 0 
@@ -119,7 +121,10 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
     : initialDurationMin;
   const suggestedEndTime = startTime
     ? (() => {
-      const [h, m] = startTime.split(":").map(Number);
+      const parts = startTime.split(":");
+      const h = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      if (isNaN(h) || isNaN(m)) return startTime;
       const endMin = h * 60 + m + totalDuration;
       return `${Math.floor(endMin / 60).toString().padStart(2, "0")}:${(endMin % 60).toString().padStart(2, "0")}`;
     })()
@@ -278,7 +283,7 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
   const canSubmit = professionalId && selectedServices.length > 0 && date && startTime && clientName.trim();
 
   return (
-    <div className="space-y-4 pt-1">
+    <div className="space-y-4 pt-1" translate="no">
       {/* Professional */}
       <div className="space-y-1.5">
         <Label className="text-xs">Profissional *</Label>
@@ -311,7 +316,7 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
                   className="pl-7 h-7 text-[10px]"
                 />
               </div>
-              <div className="grid gap-1.5 max-h-36 overflow-y-auto border border-border rounded-lg p-2">
+              <div className="grid gap-1.5 max-h-36 overflow-y-auto border border-border rounded-lg p-2" translate="no">
                 {availableServices
                   .filter(s => s.name.toLowerCase().includes(serviceSearch.toLowerCase()))
                   .map(s => {
@@ -337,7 +342,7 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
 
       {/* Date & Time row */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
+        <div className="space-y-1.5" translate="no">
           <Label className="text-xs">Data *</Label>
           <Popover>
             <PopoverTrigger asChild>
@@ -357,7 +362,7 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
             </PopoverContent>
           </Popover>
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-1.5" translate="no">
           <Label className="text-xs">Início *</Label>
           <Select value={startTime} onValueChange={v => { setStartTime(v); setManualEndTime(null); }}>
             <SelectTrigger className="h-9"><SelectValue placeholder="Início" /></SelectTrigger>
@@ -378,7 +383,7 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-1.5" translate="no">
           <Label className="text-xs">Término *</Label>
           <Select value={endTime} onValueChange={setManualEndTime}>
             <SelectTrigger className="h-9"><SelectValue placeholder="Término" /></SelectTrigger>

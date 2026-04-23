@@ -4,6 +4,7 @@ import { checkAppointmentConflict } from "@/utils/appointmentConflict";
 import { useOccupiedSlots } from "@/hooks/useOccupiedSlots";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import {
   useProfessionals,
   useServicesForProfessional,
@@ -83,7 +84,43 @@ const NewAppointmentDialog = ({
   onDateSelect
 }: NewAppointmentDialogProps) => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const { data: professionals = [] } = useProfessionals({ onlyVisibleInAgenda: true });
+
+  // Fetch current user role
+  const { data: userRole } = useQuery({
+    queryKey: ["my-role", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user!.id)
+        .single();
+      return data?.role ?? null;
+    },
+    enabled: !!user,
+  });
+
+  // Fetch current user professional record
+  const { data: currentProfessional } = useQuery({
+    queryKey: ["my-professional", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("professionals")
+        .select("*")
+        .eq("user_id", user!.id)
+        .single();
+      return data ?? null;
+    },
+    enabled: !!user,
+  });
+
+  const canViewAll = userRole === 'gestor' || currentProfessional?.can_view_all_agendas === true;
+
+  // Filter professionals based on permission
+  const allowedProfessionals = canViewAll 
+    ? professionals 
+    : professionals.filter(p => p.id === currentProfessional?.id);
 
   // Form state
   const [professionalId, setProfessionalId] = useState(defaultProfessionalId || "");
@@ -120,6 +157,13 @@ const NewAppointmentDialog = ({
     }
   }, [open, defaultProfessionalId, defaultStartTime, defaultDate]);
 
+  // Auto-select professional if only one is available
+  useEffect(() => {
+    if (open && !professionalId && allowedProfessionals.length === 1) {
+      setProfessionalId(allowedProfessionals[0].id);
+    }
+  }, [open, professionalId, allowedProfessionals]);
+
   const services = useServicesForProfessional(professionalId);
   const { data: clientsData } = useClients({ search: clientSearch, pageSize: 20 });
   const clients = clientsData?.data ?? [];
@@ -138,7 +182,10 @@ const NewAppointmentDialog = ({
   const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration_minutes, 0);
   const suggestedEndTime = startTime
     ? (() => {
-      const [h, m] = startTime.split(":").map(Number);
+      const parts = startTime.split(":");
+      const h = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      if (isNaN(h) || isNaN(m)) return startTime;
       const endMin = h * 60 + m + totalDuration;
       return `${Math.floor(endMin / 60).toString().padStart(2, "0")}:${(endMin % 60).toString().padStart(2, "0")}`;
     })()
@@ -369,16 +416,18 @@ const NewAppointmentDialog = ({
         hideCloseButton={true}
         className="sm:max-w-lg w-[min(calc(100vw-2rem),32rem)] p-0 bg-transparent border-none shadow-none pointer-events-none flex items-center justify-center translate-y-[-50%] translate-x-[-50%]"
         onInteractOutside={(e) => e.preventDefault()}
+        translate="no"
       >
         <motion.div 
           drag
           dragControls={dragControls}
           dragListener={false}
           dragMomentum={false}
-          className="relative bg-background border-2 rounded-xl shadow-2xl p-4 sm:p-6 pointer-events-auto flex flex-col gap-4 max-h-[85vh] w-full overflow-y-auto cursor-default scrollbar-thin"
+          className="relative bg-background border-2 rounded-xl shadow-2xl p-3 sm:p-4 pointer-events-auto flex flex-col gap-3 max-h-[92vh] w-full overflow-y-auto cursor-default scrollbar-thin"
+          translate="no"
         >
           <DialogHeader 
-            className="cursor-move select-none border-b pb-3 mb-2 flex flex-row items-center gap-2"
+            className="cursor-move select-none border-b pb-2 mb-1 flex flex-row items-center gap-2"
             onPointerDown={(e) => dragControls.start(e)}
           >
             <GripVertical className="w-5 h-5 text-muted-foreground" />
@@ -393,14 +442,14 @@ const NewAppointmentDialog = ({
             <span className="sr-only">Close</span>
           </DialogClose>
 
-          <div className="space-y-5 pt-2">
+          <div className="space-y-3 pt-1">
             {/* 1. Professional */}
-            <div className="space-y-2">
+            <div className="space-y-2" translate="no">
               <Label>Profissional *</Label>
               <Select value={professionalId} onValueChange={(v) => { setProfessionalId(v); setSelectedServices([]); }}>
                 <SelectTrigger><SelectValue placeholder="Selecione a profissional" /></SelectTrigger>
                 <SelectContent>
-                  {professionals.map((p) => (
+                  {allowedProfessionals.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.name} — {p.role_description}
                     </SelectItem>
@@ -434,13 +483,13 @@ const NewAppointmentDialog = ({
                         className="pl-8 h-8 text-xs"
                       />
                     </div>
-                    <div className="grid gap-2 max-h-40 overflow-y-auto border border-border rounded-lg p-3">
+                    <div className="grid gap-1 max-h-32 overflow-y-auto border border-border rounded-lg p-2">
                       {services
                         .filter(s => s.name.toLowerCase().includes(serviceSearch.toLowerCase()))
                         .map((s) => {
                           const checked = selectedServices.some((ss) => ss.id === s.id);
                           return (
-                            <label key={s.id} className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 rounded-md px-2 py-1.5 -mx-1">
+                            <label key={s.id} className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded-md px-2 py-1 -mx-1">
                               <Checkbox checked={checked} onCheckedChange={() => toggleService(s)} />
                               <div className="flex-1 min-w-0">
                                 <span className="text-sm font-medium">{s.name}</span>
@@ -461,7 +510,7 @@ const NewAppointmentDialog = ({
             )}
 
             {/* 3. Date */}
-            <div className="space-y-2">
+            <div className="space-y-2" translate="no">
               <Label>Data *</Label>
               <Popover>
                 <PopoverTrigger asChild>
@@ -488,8 +537,8 @@ const NewAppointmentDialog = ({
             </div>
 
             {/* 4. Time */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-2" translate="no">
                 <Label>Início *</Label>
                 <Select value={startTime} onValueChange={(v) => { setStartTime(v); setManualEndTime(null); }}>
                   <SelectTrigger><SelectValue placeholder="Início" /></SelectTrigger>
@@ -511,7 +560,7 @@ const NewAppointmentDialog = ({
                 </Select>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2" translate="no">
                 <Label>Término *</Label>
                 <Select value={endTime} onValueChange={setManualEndTime}>
                   <SelectTrigger>
@@ -650,7 +699,7 @@ const NewAppointmentDialog = ({
                           {recentAppointments.map(apt => (
                             <div key={apt.id} className="border-b border-border last:border-0 pb-1.5 mb-1.5 last:mb-0 last:pb-0">
                               <div className="flex justify-between font-medium">
-                                <span>{format(parseISO(apt.date), "dd/MM/yyyy")}</span>
+                                <span>{format(parseISO(apt.date), "dd/MM/yyyy", { locale: ptBR })}</span>
                                 <span>{apt.start_time.slice(0, 5)}</span>
                               </div>
                               <p className="text-muted-foreground truncate">
@@ -683,7 +732,7 @@ const NewAppointmentDialog = ({
             </div>
 
             {/* Status and Recurrence */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Status</Label>
                 <Select value={status} onValueChange={setStatus}>
@@ -740,13 +789,13 @@ const NewAppointmentDialog = ({
               </div>
             )}
 
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Observações</Label>
               <Textarea
                 placeholder="Ex: 2/5, retorno, etc."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                rows={2}
+                rows={1}
                 maxLength={500}
               />
             </div>

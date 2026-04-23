@@ -2,6 +2,8 @@ import { Outlet, useLocation } from "react-router-dom";
 import AppSidebar from "@/components/AppSidebar";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import marliLogo from "@/assets/marli-logo.jpg";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 // Map routes to display names for the mobile header
 const routeNameMap: Record<string, string> = {
@@ -21,7 +23,21 @@ const routeNameMap: Record<string, string> = {
 
 const PainelLayout = () => {
     const location = useLocation();
-    const currentRouteName = routeNameMap[location.pathname] || "Marli Cosméticos";
+    
+    const { data: clinicSettings } = useQuery({
+      queryKey: ["clinic-settings"],
+      queryFn: async () => {
+        const { data } = await (supabase
+          .from("clinic_settings" as any)
+          .select("name")
+          .eq("id", "00000000-0000-0000-0000-000000000000")
+          .single() as any);
+        return data || { name: "Marli Cosméticos" };
+      },
+      staleTime: 1000 * 60 * 5, // 5 minutes
+    });
+
+    const currentRouteName = routeNameMap[location.pathname] || clinicSettings?.name || "Marli Cosméticos";
 
     return (
         <div className="flex h-screen bg-background overflow-hidden font-sans">

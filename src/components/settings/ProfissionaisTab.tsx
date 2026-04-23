@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useProfessionals } from "@/hooks/useClinicData";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +29,7 @@ const emptyForm: ProfForm = {
 
 const ProfissionaisTab = () => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [showInactive, setShowInactive] = useState(false);
   const { data: professionals = [], isLoading } = useProfessionals(showInactive);
 
@@ -243,8 +245,14 @@ const ProfissionaisTab = () => {
                     </div>
                   </div>
                   <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-primary/5" onClick={() => openEdit(p)} title="Editar">
-                      <Pencil className="w-4 h-4" />
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 rounded-lg hover:bg-primary/5 text-primary" 
+                      onClick={() => navigate(`/profissionais/${p.id}`)} 
+                      title="Gerenciar Profissional e Serviços"
+                    >
+                      <Sparkles className="w-4 h-4" />
                     </Button>
                     <Button
                       variant="ghost"

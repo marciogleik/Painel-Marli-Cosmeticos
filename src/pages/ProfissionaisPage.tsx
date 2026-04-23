@@ -6,12 +6,36 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 const ProfissionaisPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [showInactive, setShowInactive] = useState(false);
-  const { data: professionals = [], isLoading } = useProfessionals(showInactive);
+
+  const { data: isGestor, isLoading: isLoadingRole } = useQuery({
+    queryKey: ["is-gestor", user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+      const { data } = await supabase.rpc("has_role", {
+        _user_id: user.id,
+        _role: "gestor",
+      });
+      return !!data;
+    },
+    enabled: !!user,
+  });
+
+  const { data: professionals = [], isLoading: isLoadingProfs } = useProfessionals(showInactive);
+
+  useEffect(() => {
+    if (!isLoadingRole && isGestor === false) {
+      navigate("/dashboard");
+    }
+  }, [isGestor, isLoadingRole, navigate]);
+
+  const isLoading = isLoadingRole || isLoadingProfs;
 
   const { data: profileAvatars = {} } = useQuery({
     queryKey: ["profile-avatars"],

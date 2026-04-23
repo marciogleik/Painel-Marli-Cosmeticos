@@ -16,12 +16,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  // Redirect to welcome page on first access
-  const onboardingDone = localStorage.getItem("onboarding_done");
-  if (!onboardingDone && location.pathname !== "/bem-vinda") {
-    return <Navigate to="/bem-vinda" replace />;
-  }
-
   return <>{children}</>;
 };
 

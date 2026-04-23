@@ -49,6 +49,21 @@ const DashboardPage = () => {
     enabled: !!user?.id,
   });
 
+  // Fetch current user's professional record (for filtering)
+  const { data: currentProfessional } = useQuery({
+    queryKey: ["my-professional", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from("professionals")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+      return data ?? null;
+    },
+    enabled: !!user?.id,
+  });
+
   const { data: birthdays = [] } = useQuery({
     queryKey: ["birthdays-today", todayMMDD],
     queryFn: async () => {
@@ -72,7 +87,13 @@ const DashboardPage = () => {
     return services.map((s) => s.service_name).join(", ");
   };
 
-  const todayAppointments = appointments.filter((a) => a.date === today);
+  // Profissionais não-gestoras só veem seus próprios agendamentos
+  const todayAppointments = appointments.filter((a) => {
+    if (a.date !== today) return false;
+    if (isGestor) return true;
+    if (currentProfessional?.id) return a.professional_id === currentProfessional.id;
+    return true;
+  });
   const confirmed = todayAppointments.filter((a) => a.status === "confirmado").length;
   const pending = todayAppointments.filter((a) => a.status === "agendado").length;
 

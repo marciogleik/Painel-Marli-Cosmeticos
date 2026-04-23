@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -81,11 +82,22 @@ const useClientAppointments = (clientId: string) =>
 const ClientDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { data: client, isLoading } = useClient(id!);
   const { data: stats } = useClientStats(id!);
   const { data: appointments } = useClientAppointments(id!);
   const [showEdit, setShowEdit] = useState(false);
   const queryClient = useQueryClient();
+
+  const { data: isGestor } = useQuery({
+    queryKey: ["my-role-gestor", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return false;
+      const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "gestor" });
+      return !!data;
+    },
+    enabled: !!user?.id,
+  });
 
   const deactivateMutation = useMutation({
     mutationFn: async () => {
@@ -232,30 +244,33 @@ const ClientDetailPage = () => {
           <TabsContent value="resumo">
             <div className="space-y-4 max-w-2xl">
               <div className="flex justify-end gap-2">
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="gap-1.5 text-destructive hover:text-destructive">
-                      <UserX className="w-3.5 h-3.5" /> Desativar
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Desativar cliente?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        O cliente <strong>{client.full_name}</strong> será desativado e não aparecerá mais na lista de clientes. O histórico será preservado. Esta ação pode ser revertida.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => deactivateMutation.mutate()}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Desativar
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                {/* Desativar: somente gestoras */}
+                {isGestor && (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-1.5 text-destructive hover:text-destructive">
+                        <UserX className="w-3.5 h-3.5" /> Desativar
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Desativar cliente?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          O cliente <strong>{client.full_name}</strong> será desativado e não aparecerá mais na lista de clientes. O histórico será preservado. Esta ação pode ser revertida.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => deactivateMutation.mutate()}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Desativar
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
                 <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowEdit(true)}>
                   <Pencil className="w-3.5 h-3.5" /> Editar Dados
                 </Button>

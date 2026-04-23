@@ -1,15 +1,41 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useProfessionals, statusConfig, type DBAppointment } from "@/hooks/useClinicData";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { 
+  Calendar, 
+  Clock, 
+  User, 
+  Settings, 
+  Trash2, 
+  CheckCircle2, 
+  XCircle, 
+  AlertCircle,
+  FileText,
+  Phone,
+  MessageSquare,
+  Scissors,
+  Check,
+  Smartphone,
+  ClipboardList,
+  ExternalLink,
+  History
+} from "lucide-react";
+import { Link } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { DBAppointment } from "@/hooks/useClinicData";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import AppointmentEditForm from "./AppointmentEditForm";
+import AppointmentAuditDialog from "./AppointmentAuditDialog";
+import { 
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -18,86 +44,21 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { format, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import {
-  Clock,
-  User,
-  Phone,
-  FileText,
-  Loader2,
-  CheckCircle2,
-  XCircle,
-  Trash2,
-  CalendarCheck,
-  AlertCircle,
-  Scissors,
-  Pencil,
-  ExternalLink,
-  AlertTriangle,
-  Timer,
-} from "lucide-react";
-import { toast } from "@/hooks/use-toast";
-import AppointmentEditForm from "@/components/AppointmentEditForm";
 
 interface AppointmentDetailDialogProps {
   appointment: DBAppointment | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-const statusActions: Record<string, { label: string; icon: React.ReactNode; next: string }[]> = {
-  agendado: [
-    { label: "Confirmar", icon: <CalendarCheck className="w-4 h-4" />, next: "confirmado" },
-    { label: "Em Espera", icon: <Timer className="w-4 h-4" />, next: "espera" },
-    { label: "Atrasado", icon: <AlertCircle className="w-4 h-4" />, next: "atrasado" },
-    { label: "Atendendo", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendendo" },
-    { label: "Atendido", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendido" },
-    { label: "Cancelar", icon: <XCircle className="w-4 h-4" />, next: "cancelado" },
-    { label: "Faltou", icon: <XCircle className="w-4 h-4" />, next: "falta" },
-  ],
-  confirmado: [
-    { label: "Em Espera", icon: <Timer className="w-4 h-4" />, next: "espera" },
-    { label: "Atrasado", icon: <AlertCircle className="w-4 h-4" />, next: "atrasado" },
-    { label: "Atendendo", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendendo" },
-    { label: "Atendido", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendido" },
-    { label: "Cancelar", icon: <XCircle className="w-4 h-4" />, next: "cancelado" },
-    { label: "Faltou", icon: <XCircle className="w-4 h-4" />, next: "falta" },
-  ],
-  espera: [
-    { label: "Confirmar", icon: <CalendarCheck className="w-4 h-4" />, next: "confirmado" },
-    { label: "Atrasado", icon: <AlertCircle className="w-4 h-4" />, next: "atrasado" },
-    { label: "Atendendo", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendendo" },
-    { label: "Atendido", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendido" },
-    { label: "Cancelar", icon: <XCircle className="w-4 h-4" />, next: "cancelado" },
-    { label: "Faltou", icon: <XCircle className="w-4 h-4" />, next: "falta" },
-  ],
-  atendendo: [
-    { label: "Atendido", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendido" },
-  ],
-  atendido: [],
-  cancelado: [
-    { label: "Reagendar", icon: <CalendarCheck className="w-4 h-4" />, next: "agendado" },
-  ],
-  atrasado: [
-    { label: "Confirmar", icon: <CalendarCheck className="w-4 h-4" />, next: "confirmado" },
-    { label: "Em Espera", icon: <Timer className="w-4 h-4" />, next: "espera" },
-    { label: "Atendendo", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendendo" },
-    { label: "Atendido", icon: <CheckCircle2 className="w-4 h-4" />, next: "atendido" },
-    { label: "Cancelar", icon: <XCircle className="w-4 h-4" />, next: "cancelado" },
-    { label: "Faltou", icon: <XCircle className="w-4 h-4" />, next: "falta" },
-  ],
-  falta: [
-    { label: "Reagendar", icon: <CalendarCheck className="w-4 h-4" />, next: "agendado" },
-  ],
-};
 
 const statusLabel: Record<string, string> = {
   agendado: "Agendado",
@@ -108,133 +69,113 @@ const statusLabel: Record<string, string> = {
   cancelado: "Cancelado",
   atrasado: "Atrasado",
   falta: "Faltou",
-  removido: "Removido",
 };
 
-const AppointmentDetailDialog = ({
+const statusColors: Record<string, string> = {
+  agendado: "bg-blue-100 text-blue-700 border-blue-200",
+  confirmado: "bg-indigo-100 text-indigo-700 border-indigo-200",
+  espera: "bg-orange-100 text-orange-700 border-orange-200",
+  atendendo: "bg-purple-100 text-purple-700 border-purple-200",
+  atendido: "bg-green-100 text-green-700 border-green-200",
+  cancelado: "bg-slate-100 text-slate-700 border-slate-200",
+  atrasado: "bg-yellow-100 text-yellow-700 border-yellow-200",
+  falta: "bg-red-100 text-red-700 border-red-200",
+};
+
+export default function AppointmentDetailDialog({
   appointment,
   open,
   onOpenChange,
-}: AppointmentDetailDialogProps) => {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { data: professionals = [] } = useProfessionals();
-  const [cancellationReason, setCancellationReason] = useState("");
-  const [showCancelForm, setShowCancelForm] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+}: AppointmentDetailDialogProps) {
   const [editing, setEditing] = useState(false);
-
-  const { data: appointmentServices = [] } = useQuery({
-    queryKey: ["appointment_services", appointment?.id],
-    queryFn: async () => {
-      if (!appointment?.id) return [];
-      const { data, error } = await supabase
-        .from("appointment_services")
-        .select("*")
-        .eq("appointment_id", appointment.id);
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: !!appointment?.id && open,
-  });
-
-  const professional = professionals.find(
-    (p) => p.id === appointment?.professional_id
-  );
-
-  const statusMutation = useMutation({
-    mutationFn: async ({
-      id,
-      newStatus,
-      reason,
-    }: {
-      id: string;
-      newStatus: string;
-      reason?: string;
-    }) => {
-      const updateData: Record<string, unknown> = { status: newStatus };
-
-      if (newStatus === "cancelado") {
-        updateData.cancellation_reason = reason || null;
-        updateData.cancelled_at = new Date().toISOString();
-      }
-
-      if (newStatus === "agendado") {
-        updateData.cancellation_reason = null;
-        updateData.cancelled_at = null;
-      }
-
-      const { error } = await supabase
-        .from("appointments")
-        .update(updateData)
-        .eq("id", id);
-
-      if (error) throw error;
-    },
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: ["appointments"] });
-      const label = statusLabel[vars.newStatus] || vars.newStatus;
-      toast({ title: `Status alterado para "${label}"` });
-      setShowCancelForm(false);
-      setCancellationReason("");
-      onOpenChange(false);
-    },
-    onError: (err: Error) => {
-      toast({
-        title: "Erro ao atualizar status",
-        description: err.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleStatusChange = (newStatus: string) => {
-    if (!appointment) return;
-
-    if (newStatus === "cancelado") {
-      setShowCancelForm(true);
-      return;
-    }
-
-    statusMutation.mutate({ id: appointment.id, newStatus });
-  };
-
-  const handleConfirmCancel = () => {
-    if (!appointment) return;
-    statusMutation.mutate({
-      id: appointment.id,
-      newStatus: "cancelado",
-      reason: cancellationReason.trim() || undefined,
-    });
-  };
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [auditOpen, setAuditOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   if (!appointment) return null;
 
-  const cfg = statusConfig[appointment.status as keyof typeof statusConfig] || statusConfig.agendado;
-  const actions = statusActions[appointment.status] || [];
-  const dateFormatted = format(parseISO(appointment.date), "EEEE, dd 'de' MMMM", { locale: ptBR });
+  const handleUpdateStatus = async (status: string) => {
+    try {
+      const { error } = await supabase
+        .from("appointments")
+        .update({ status })
+        .eq("id", appointment.id);
+
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      toast.success(`Status atualizado para ${statusLabel[status]}`);
+      onOpenChange(false);
+    } catch (error: any) {
+      toast.error("Erro ao atualizar status: " + error.message);
+    }
+  };
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("appointments")
+        .delete()
+        .eq("id", appointment.id);
+
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      toast.success("Agendamento excluído com sucesso");
+      onOpenChange(false);
+    } catch (error: any) {
+      toast.error("Erro ao excluir agendamento: " + error.message);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleWhatsApp = () => {
+    if (!appointment.client_phone) return;
+    const phone = appointment.client_phone.replace(/\D/g, "");
+    
+    // Fix date timezone issue by adding time suffix
+    const dateObj = new Date(appointment.date + "T12:00:00");
+    const dateFormatted = format(dateObj, "dd/MM");
+    const timeFormatted = appointment.start_time.slice(0, 5);
+    
+    const servicesLabel = appointment.appointment_services && appointment.appointment_services.length > 0
+      ? appointment.appointment_services.map(s => s.service_name).join(", ")
+      : "procedimento";
+      
+    const profName = appointment.professionals?.name || "nossa profissional";
+
+    const firstName = appointment.client_name.split(" ")[0];
+    const messageText = `${firstName}, Por gentileza confirmar sua presença. ${servicesLabel}, na Marli Cosméticos com a profissional - ${profName} está marcado para ${dateFormatted} às ${timeFormatted}. Posso confirmar sua presença?`;
+    
+    const message = encodeURIComponent(messageText);
+    window.open(`https://wa.me/55${phone}?text=${message}`, "_blank");
+  };
 
   return (
-    <Dialog
-      open={open}
+    <Dialog 
+      open={open} 
       onOpenChange={(v) => {
-        if (!v) {
-          setShowCancelForm(false);
-          setCancellationReason("");
-          setEditing(false);
-        }
+        if (!v) setEditing(false);
         onOpenChange(v);
       }}
     >
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" translate="no">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="font-display">
               {editing ? "Editar Agendamento" : "Detalhes do Agendamento"}
             </DialogTitle>
-            {!editing && appointment.status !== "cancelado" && appointment.status !== "atendido" && (
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditing(true)}>
-                <Pencil className="w-4 h-4" />
+            {!editing && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditing(true)}
+                className="h-8 gap-1.5"
+              >
+                <Settings className="w-4 h-4" />
+                Editar
               </Button>
             )}
           </div>
@@ -243,83 +184,83 @@ const AppointmentDetailDialog = ({
         {editing ? (
           <AppointmentEditForm
             appointment={appointment}
-            initialServices={appointmentServices}
-            onSaved={() => { setEditing(false); onOpenChange(false); }}
+            initialServices={appointment.appointment_services || []}
+            onSaved={() => {
+              setEditing(false);
+              onOpenChange(false);
+            }}
             onCancel={() => setEditing(false)}
           />
         ) : (
-          <div className="space-y-4 pt-1">
+          <div className="space-y-4 pt-1" translate="no">
             {/* Status Badge */}
             <div className="flex items-center gap-2">
-              <Badge
-                className={cn(
-                  "text-xs font-semibold px-3 py-1",
-                  cfg.color,
-                  appointment.status !== "cancelado" && "text-white"
-                )}
+              <Badge 
+                variant="outline" 
+                className={cn("px-3 py-1 font-bold uppercase tracking-wider text-[10px]", statusColors[appointment.status])}
               >
-                {statusLabel[appointment.status] || appointment.status}
+                {statusLabel[appointment.status]}
               </Badge>
+              <span className="text-xs text-muted-foreground">
+                ID: {appointment.id.slice(0, 8)}
+              </span>
             </div>
 
-            {/* Client info */}
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between gap-2.5">
-                <div className="flex items-center gap-2.5">
-                  <User className="w-4 h-4 text-muted-foreground shrink-0" />
-                  <span className="text-sm font-medium">{appointment.client_name || "Sem nome"}</span>
+            {/* Main Info */}
+            <div className="space-y-3 bg-muted/30 p-4 rounded-xl border border-border/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <User className="w-5 h-5 text-primary" />
                 </div>
-                {appointment.client_id && (
-                  <Button
-                    variant="link"
-                    size="sm"
-                    className="h-auto p-0 text-xs text-primary"
-                    onClick={() => {
-                      onOpenChange(false);
-                      navigate(`/clientes/${appointment.client_id}`);
-                    }}
-                  >
-                    Ver Perfil
-                    <ExternalLink className="w-3 h-3 ml-1" />
-                  </Button>
-                )}
-              </div>
-              {appointment.client_phone && (
-                <div className="flex items-center gap-2.5">
-                  <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
-                  <span className="text-sm text-muted-foreground">{appointment.client_phone}</span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Link 
+                      to={`/clientes/${appointment.client_id}`}
+                      className="font-bold text-foreground leading-tight hover:text-primary hover:underline transition-colors flex items-center gap-1.5 group"
+                      translate="no"
+                    >
+                      {appointment.client_name}
+                      <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </Link>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                    <Phone className="w-3 h-3" />
+                    {appointment.client_phone || "Sem telefone"}
+                  </div>
                 </div>
-              )}
-              <div className="flex items-center gap-2.5">
-                <Clock className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span className="text-sm text-muted-foreground capitalize">
-                  {dateFormatted} — {appointment.start_time?.slice(0, 5)} até {appointment.end_time?.slice(0, 5)}
-                </span>
               </div>
-              {professional && (
-                <div className="flex items-center gap-2.5">
-                  <User className="w-4 h-4 text-muted-foreground shrink-0" />
-                  <span className="text-sm text-muted-foreground">
-                    {professional.name} — {professional.role_description}
+
+              <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border/50">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">
+                    {format(new Date(appointment.date + "T12:00:00"), "dd 'de' MMMM", { locale: ptBR })}
                   </span>
                 </div>
-              )}
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">
+                    {appointment.start_time.slice(0, 5)} - {appointment.end_time.slice(0, 5)}
+                  </span>
+                </div>
+              </div>
             </div>
 
-            {/* Services */}
-            <div className="space-y-1.5">
+            {/* Professional & Services */}
+            <div className="space-y-3">
               <div className="flex items-center gap-2.5">
                 <Scissors className="w-4 h-4 text-muted-foreground shrink-0" />
-                <span className="text-sm font-medium">Serviços</span>
+                <span className="text-sm font-bold text-foreground/80">
+                  {appointment.professionals?.name || "Profissional não definida"}
+                </span>
               </div>
-              <div className="ml-6.5 space-y-1">
-                {appointmentServices.length > 0 ? (
-                  appointmentServices.map((svc) => (
-                    <div key={svc.id} className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">{svc.service_name} <span className="text-xs">({svc.duration_minutes} min)</span></span>
-                      {svc.price != null && (
-                        <span className="text-xs text-muted-foreground">R$ {Number(svc.price).toFixed(2).replace(".", ",")}</span>
-                      )}
+              
+              <div className="pl-6 space-y-1">
+                {appointment.appointment_services && appointment.appointment_services.length > 0 ? (
+                  appointment.appointment_services.map((s, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-sm py-1 border-b border-border/30 last:border-0">
+                      <span className="text-muted-foreground font-medium">{s.service_name}</span>
+                      <span className="font-bold text-foreground/70">R$ {s.price?.toFixed(2)}</span>
                     </div>
                   ))
                 ) : (
@@ -356,108 +297,130 @@ const AppointmentDetailDialog = ({
             )}
 
             {/* Actions */}
-            {actions.length > 0 && (
-              <>
-                <Separator />
+            <div className="pt-4 space-y-2">
+              {!["atendido", "cancelado", "falta"].includes(appointment.status) && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleUpdateStatus("confirmado")}
+                    className="h-9 gap-1.5 text-[10px] font-bold uppercase tracking-wider border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                    Confirmar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleUpdateStatus("espera")}
+                    className="h-9 gap-1.5 text-[10px] font-bold uppercase tracking-wider border-orange-200 hover:bg-orange-50 hover:text-orange-700"
+                  >
+                    <Clock className="w-3.5 h-3.5" />
+                    Em Espera
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleUpdateStatus("atrasado")}
+                    className="h-9 gap-1.5 text-[10px] font-bold uppercase tracking-wider border-yellow-200 hover:bg-yellow-50 hover:text-yellow-700"
+                  >
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    Atrasado
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleUpdateStatus("atendendo")}
+                    className="h-9 gap-1.5 text-[10px] font-bold uppercase tracking-wider border-purple-200 hover:bg-purple-50 hover:text-purple-700"
+                  >
+                    <Scissors className="w-3.5 h-3.5" />
+                    Atendendo
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleUpdateStatus("atendido")}
+                    className="h-9 gap-1.5 text-[10px] font-bold uppercase tracking-wider border-green-200 hover:bg-green-50 hover:text-green-700"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Atendido
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleUpdateStatus("cancelado")}
+                    className="h-9 gap-1.5 text-[10px] font-bold uppercase tracking-wider"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                    Cancelar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleUpdateStatus("falta")}
+                    className="h-9 gap-1.5 text-[10px] font-bold uppercase tracking-wider border-red-200 hover:bg-red-50 hover:text-red-700"
+                  >
+                    <XCircle className="w-3.5 h-3.5" />
+                    Faltou
+                  </Button>
+                </div>
+              )}
 
-                {showCancelForm ? (
-                  <div className="space-y-3">
-                    <Label>Motivo do cancelamento (opcional)</Label>
-                    <Textarea
-                      value={cancellationReason}
-                      onChange={(e) => setCancellationReason(e.target.value)}
-                      placeholder="Ex: cliente não compareceu, remarcou..."
-                      rows={2}
-                      maxLength={300}
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        variant="destructive"
-                        className="flex-1"
-                        onClick={handleConfirmCancel}
-                        disabled={statusMutation.isPending}
-                      >
-                        {statusMutation.isPending && (
-                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                        )}
-                        Confirmar Cancelamento
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => setShowCancelForm(false)}
-                      >
-                        Voltar
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {actions.map((action) => (
-                      <Button
-                        key={action.next}
-                        variant={action.next === "cancelado" ? "destructive" : "outline"}
-                        size="sm"
-                        className="gap-1.5"
-                        onClick={() => handleStatusChange(action.next)}
-                        disabled={statusMutation.isPending}
-                      >
-                        {statusMutation.isPending ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          action.icon
-                        )}
-                        {action.label}
-                      </Button>
-                    ))}
-
-                    <Separator className="my-2 w-full" />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="gap-1.5 text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => setShowDeleteConfirm(true)}
-                      disabled={statusMutation.isPending}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Excluir da Agenda
-                    </Button>
-                  </div>
+              <div className="flex gap-2 pt-2">
+                {appointment.client_phone && (
+                <Button
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2"
+                  onClick={handleWhatsApp}
+                >
+                  <Smartphone className="w-4 h-4" />
+                  WhatsApp ✅
+                </Button>
                 )}
-              </>
-            )}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" className="text-destructive hover:bg-destructive/10 border-destructive/20 font-bold uppercase tracking-widest text-[10px]">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        {appointment.status === "bloqueado" ? "Excluir bloqueio de horário?" : "Excluir agendamento?"}
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {appointment.status === "bloqueado" 
+                          ? "Esta ação não pode ser desfeita. O horário voltará a ficar disponível para novos agendamentos." 
+                          : `Esta ação não pode ser desfeita. O agendamento de ${appointment.client_name} será removido permanentemente.`}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+                        Excluir
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="w-10 h-10 border-primary/20 hover:bg-primary/5 text-primary"
+                  onClick={() => setAuditOpen(true)}
+                  title="Ver Auditoria"
+                >
+                  <History className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </DialogContent>
-
-      {/* Delete confirmation dialog */}
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-destructive" />
-              Excluir da Agenda
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir este agendamento da visão da agenda?
-              Ele continuará no histórico, mas não aparecerá mais aqui.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive hover:bg-destructive/90"
-              onClick={() => {
-                statusMutation.mutate({ id: appointment.id, newStatus: "removido" });
-                setShowDeleteConfirm(false);
-              }}
-            >
-              Sim, Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <AppointmentAuditDialog 
+        recordId={appointment.id}
+        open={auditOpen}
+        onOpenChange={setAuditOpen}
+      />
     </Dialog>
   );
-};
-
-export default AppointmentDetailDialog;
+}

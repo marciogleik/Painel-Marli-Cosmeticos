@@ -25,7 +25,6 @@ import ProfissionalDetailPage from "./pages/ProfissionalDetailPage";
 import LoginPage from "./pages/LoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import FaqPage from "./pages/FaqPage";
-import WelcomePage from "./pages/WelcomePage";
 import CadastroConvitePage from "./pages/CadastroConvitePage";
 import ImportPage from "./pages/ImportPage";
 import ImportFichasPage from "./pages/ImportFichasPage";
@@ -53,7 +52,6 @@ const App = () => (
             <Route path="/import-fichas" element={<ProtectedRoute><ImportFichasPage /></ProtectedRoute>} />
             <Route path="/import-clientes" element={<ProtectedRoute><ImportClientesPage /></ProtectedRoute>} />
             <Route path="/import-anexos" element={<ProtectedRoute><ImportAnexosPage /></ProtectedRoute>} />
-            <Route path="/bem-vinda" element={<ProtectedRoute><WelcomePage /></ProtectedRoute>} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
             <Route element={<ProtectedRoute><PainelLayout /></ProtectedRoute>}>
@@ -72,7 +70,7 @@ const App = () => (
               <Route path="/faq" element={<FaqPage />} />
               <Route path="/configuracoes" element={<RoleGuard denyRoles={["secretaria"]}><ConfiguracoesPage /></RoleGuard>} />
               <Route path="/exportar" element={<RoleGuard denyRoles={["secretaria", "profissional"]}><ExportDataPage /></RoleGuard>} />
-              <Route path="/historico" element={<HistoricPage />} />
+              <Route path="/historico" element={<RoleGuard denyRoles={["secretaria", "profissional"]}><HistoricPage /></RoleGuard>} />
             </Route>
 
             <Route path="*" element={<NotFound />} />

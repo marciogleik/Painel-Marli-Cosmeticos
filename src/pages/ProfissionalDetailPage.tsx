@@ -9,12 +9,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Camera, HelpCircle, Loader2, Trash2, KeyRound } from "lucide-react";
+import { ArrowLeft, Camera, HelpCircle, Loader2, Trash2, KeyRound, Search, Scissors, Check as CheckIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useRef, useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useServices } from "@/hooks/useClinicData";
 
 const ProfissionalDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -23,6 +27,25 @@ const ProfissionalDetailPage = () => {
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+
+  const { data: isGestor, isLoading: isLoadingRole } = useQuery({
+    queryKey: ["is-gestor", user?.id],
+    queryFn: async () => {
+      if (!user) return false;
+      const { data } = await supabase.rpc("has_role", {
+        _user_id: user.id,
+        _role: "gestor",
+      });
+      return !!data;
+    },
+    enabled: !!user,
+  });
+
+  useEffect(() => {
+    if (!isLoadingRole && isGestor === false) {
+      navigate("/dashboard");
+    }
+  }, [isGestor, isLoadingRole, navigate]);
   const [saving, setSaving] = useState(false);
   const [deletingPhoto, setDeletingPhoto] = useState(false);
   const [confirmDeletePhoto, setConfirmDeletePhoto] = useState(false);
@@ -40,6 +63,71 @@ const ProfissionalDetailPage = () => {
   });
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [savingRole, setSavingRole] = useState(false);
+  const [serviceSearch, setServiceSearch] = useState("");
+
+  const { data: allServices = [] } = useServices();
+  
+  const { data: professionalServices = [], isLoading: isLoadingSvcLinks } = useQuery({
+    queryKey: ["professional-services-links", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("professional_services")
+        .select("*")
+        .eq("professional_id", id!)
+        .eq("is_active", true);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
+
+  const toggleServiceMutation = useMutation({
+    mutationFn: async ({ serviceId, active }: { serviceId: string, active: boolean }) => {
+      const { error } = await supabase
+        .from("professional_services")
+        .upsert({
+          professional_id: id!,
+          service_id: serviceId,
+          is_active: active,
+        }, {
+          onConflict: "professional_id,service_id"
+        });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["professional-services-links", id] });
+    },
+    onError: (err: any) => {
+      toast.error("Erro ao atualizar serviço: " + err.message);
+    }
+  });
+
+  const toggleCategoryMutation = useMutation({
+    mutationFn: async ({ category, active }: { category: string, active: boolean }) => {
+      const servicesInCategory = allServices.filter(s => s.category === category);
+      const promises = servicesInCategory.map(s => 
+        supabase
+          .from("professional_services")
+          .upsert({
+            professional_id: id!,
+            service_id: s.id,
+            is_active: active,
+          }, {
+            onConflict: "professional_id,service_id"
+          })
+      );
+      const results = await Promise.all(promises);
+      const error = results.find(r => r.error);
+      if (error) throw error.error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["professional-services-links", id] });
+      toast.success("Categoria atualizada!");
+    },
+    onError: (err: any) => {
+      toast.error("Erro ao atualizar categoria: " + err.message);
+    }
+  });
 
   const { data: professional, isLoading } = useQuery({
     queryKey: ["professional-detail", id],
@@ -289,8 +377,25 @@ const ProfissionalDetailPage = () => {
         </p>
       </div>
 
-      <div className="flex-1 overflow-auto px-4 sm:px-8 pb-8 mt-4">
-        <div className="flex flex-col lg:flex-row gap-6 sm:gap-8">
+      <div className="flex-1 overflow-hidden px-4 sm:px-8 mt-4">
+        <Tabs defaultValue="basis" className="h-full flex flex-col">
+          <TabsList className="bg-transparent border-b border-border/10 rounded-none w-full justify-start h-12 gap-6 p-0 mb-6">
+            <TabsTrigger 
+              value="basis" 
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-2 h-full text-xs font-bold uppercase tracking-widest text-muted-foreground data-[state=active]:text-foreground transition-all"
+            >
+              Dados Gerais
+            </TabsTrigger>
+            <TabsTrigger 
+              value="services" 
+              className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-2 h-full text-xs font-bold uppercase tracking-widest text-muted-foreground data-[state=active]:text-foreground transition-all"
+            >
+              Serviços Habilitados
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="basis" className="flex-1 overflow-auto pb-8 focus-visible:ring-0 m-0">
+            <div className="flex flex-col lg:flex-row gap-6 sm:gap-8">
           {/* Photo column */}
           <div className="flex flex-col items-center gap-4 shrink-0">
             <div className="relative group">
@@ -503,6 +608,105 @@ const ProfissionalDetailPage = () => {
             </div>
           </div>
         </div>
+      </TabsContent>
+
+      <TabsContent value="services" className="flex-1 overflow-hidden focus-visible:ring-0 m-0 pb-8 flex flex-col">
+        <div className="mb-6 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-bold text-foreground">Configuração de Procedimentos</h3>
+              <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider opacity-70">Marque quais serviços esta profissional está autorizada a realizar</p>
+            </div>
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
+              <Input 
+                placeholder="Pesquisar serviço..." 
+                value={serviceSearch}
+                onChange={e => setServiceSearch(e.target.value)}
+                className="pl-9 h-9 rounded-xl text-xs bg-muted/5 border-border/40"
+              />
+            </div>
+          </div>
+        </div>
+
+        <ScrollArea className="flex-1 pr-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-10">
+            {Array.from(new Set(allServices.map(s => s.category))).sort().map(category => {
+              const servicesInCategory = allServices
+                .filter(s => s.category === category)
+                .filter(s => s.name.toLowerCase().includes(serviceSearch.toLowerCase()));
+              
+              if (servicesInCategory.length === 0) return null;
+
+              const enabledInCategory = servicesInCategory.filter(s => 
+                professionalServices.some(ps => ps.service_id === s.id)
+              );
+              const allEnabled = enabledInCategory.length === servicesInCategory.length && servicesInCategory.length > 0;
+
+              return (
+                <div key={category} className="space-y-4">
+                  <div className="flex items-center justify-between border-b border-border/10 pb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-primary/5 flex items-center justify-center text-primary">
+                        <Scissors className="w-3.5 h-3.5" />
+                      </div>
+                      <h4 className="text-[11px] font-black uppercase tracking-widest text-foreground/80">{category}</h4>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className={cn(
+                        "h-7 text-[9px] font-bold px-2 rounded-full transition-colors",
+                        allEnabled ? "text-primary hover:bg-primary/5" : "text-muted-foreground hover:bg-muted/5"
+                      )}
+                      onClick={() => toggleCategoryMutation.mutate({ category, active: !allEnabled })}
+                    >
+                      {allEnabled ? "DESATIVAR TUDO" : "ATIVAR TUDO"}
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {servicesInCategory.map(service => {
+                      const isEnabled = professionalServices.some(ps => ps.service_id === service.id);
+                      return (
+                        <div 
+                          key={service.id} 
+                          className={cn(
+                            "flex items-center justify-between p-2.5 rounded-xl border transition-all cursor-pointer group",
+                            isEnabled 
+                              ? "bg-primary/5 border-primary/20" 
+                              : "bg-muted/5 border-transparent hover:border-border/40"
+                          )}
+                          onClick={() => toggleServiceMutation.mutate({ serviceId: service.id, active: !isEnabled })}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "w-5 h-5 rounded-md flex items-center justify-center border transition-all",
+                              isEnabled ? "bg-primary border-primary text-white" : "bg-card border-border/60"
+                            )}>
+                              {isEnabled && <CheckIcon className="w-3.5 h-3.5 font-black" />}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-bold text-foreground/90 leading-none truncate">{service.name}</p>
+                              <p className="text-[9px] text-muted-foreground/60 font-medium mt-1 uppercase tracking-wider">{service.duration_minutes} min</p>
+                            </div>
+                          </div>
+                          {isEnabled && (
+                            <div className="px-1.5 py-0.5 rounded-full bg-primary/10 text-[8px] font-black text-primary uppercase tracking-tighter">
+                              Habilitado
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </ScrollArea>
+      </TabsContent>
+        </Tabs>
       </div>
 
       <AlertDialog open={confirmDeletePhoto} onOpenChange={setConfirmDeletePhoto}>

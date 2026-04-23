@@ -1,0 +1,556 @@
+{
+  "name": "CRIA AGENDAMENTO MARLI - SUPABASE FINAL",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "appointments",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "professional_id",
+              "condition": "eq",
+              "keyValue": "={{ $fromAI(\"professional_id\", \"UUID da profissional. Use os IDs listados no system prompt.\") }}"
+            },
+            {
+              "keyName": "date",
+              "condition": "eq",
+              "keyValue": "={{ $fromAI(\"date\", \"Data do agendamento no formato YYYY-MM-DD\") }}"
+            },
+            {
+              "keyName": "status",
+              "condition": "neq",
+              "keyValue": "cancelado"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        -272,
+        2448
+      ],
+      "id": "c0619cd0-71db-42d5-84bb-c5278838ece2",
+      "name": "fetch",
+      "credentials": {
+        "supabaseApi": {
+          "id": "fe86gv7wu14TrD7I",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "appointments",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "professional_id",
+              "fieldValue": "={{ $fromAI(\"professional_id\", \"UUID da profissional conforme system prompt\") }}"
+            },
+            {
+              "fieldId": "client_name",
+              "fieldValue": "={{ $fromAI(\"client_name\", \"Nome completo do cliente\") }}"
+            },
+            {
+              "fieldId": "client_phone",
+              "fieldValue": "={{ $fromAI(\"client_phone\", \"Telefone do cliente apenas números com código do país, ex: 5561999999999\") }}"
+            },
+            {
+              "fieldId": "date",
+              "fieldValue": "={{ $fromAI(\"date\", \"Data YYYY-MM-DD\") }}"
+            },
+            {
+              "fieldId": "start_time",
+              "fieldValue": "={{ $fromAI(\"start_time\", \"Início HH:MM:SS\") }}"
+            },
+            {
+              "fieldId": "end_time",
+              "fieldValue": "={{ $fromAI(\"end_time\", \"Fim HH:MM:SS (sempre start_time + 1 hora)\") }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "agendado"
+            },
+            {
+              "fieldId": "notes",
+              "fieldValue": "={{ 'Agendado via IA (Marcia) — Serviço: ' + ($fromAI('servico', 'Nome do serviço ou procedimento solicitado pelo cliente') || 'Não informado') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        2448
+      ],
+      "id": "9a16224f-9b78-4712-a0ac-eecd5e7f639b",
+      "name": "create",
+      "credentials": {
+        "supabaseApi": {
+          "id": "fe86gv7wu14TrD7I",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "appointments",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $fromAI(\"appointment_id\", \"UUID do agendamento a ser cancelado\") }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "cancelado"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        -48,
+        2448
+      ],
+      "id": "fc4b2af0-cb26-4504-8636-6354f9342959",
+      "name": "delete",
+      "credentials": {
+        "supabaseApi": {
+          "id": "fe86gv7wu14TrD7I",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "appointments",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $fromAI(\"appointment_id\", \"UUID do agendamento a ser reagendado\") }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "date",
+              "fieldValue": "={{ $fromAI(\"date\", \"Nova data YYYY-MM-DD\") }}"
+            },
+            {
+              "fieldId": "start_time",
+              "fieldValue": "={{ $fromAI(\"start_time\", \"Novo início HH:MM:SS\") }}"
+            },
+            {
+              "fieldId": "end_time",
+              "fieldValue": "={{ $fromAI(\"end_time\", \"Novo fim HH:MM:SS\") }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        64,
+        2448
+      ],
+      "id": "03a9b705-db62-4261-a42b-2bcc5695eec0",
+      "name": "update",
+      "credentials": {
+        "supabaseApi": {
+          "id": "fe86gv7wu14TrD7I",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4.1-mini",
+        "options": {}
+      },
+      "id": "9cb44a7f-0db7-45d0-aad9-0fec4ca1d3aa",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        -592,
+        2448
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "ln33PdxATPaXMlo7",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "39c2f302-03be-4464-a17a-d7cc481d6d44",
+              "name": "response",
+              "value": "=Tive um probleminha aqui, mas já estou resolvendo! Pode repetir sua solicitação? 😊",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d986265d-bd21-4f03-85c0-9a4a4e326ba9",
+      "name": "Tentar novamente",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        288,
+        2240
+      ]
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.session_id }}",
+        "contextWindowLength": 10
+      },
+      "id": "cf491cf1-9d0e-41e0-9a0e-f9c75b7fcd65",
+      "name": "Postgres Chat Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.1,
+      "position": [
+        -448,
+        2448
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "pfOHgbSB9Ib5xWov",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=O cliente {{ $json.nome_cliente }} (Telefone: {{ $json.telefone_cliente }}) demonstrou intenção de {{ $json['intenção'] }} para a data {{ $json.data_consulta_reuniao }}. (Session: {{ $json.session_id }}). \nHORA ATUAL (Brasília): {{ $now.setZone('America/Sao_Paulo').toLocaleString(DateTime.DATETIME_SHORT_WITH_SECONDS) }}\nREGRAS: Priorize a conversa atual sobre a intenção recebida. Se o cliente apenas disse 'Oi', ignore a intenção de agendar e apenas responda cordialmente. \n\nSe for 9h da manhã, PRIORIZE oferecer horários para hoje à tarde. Só sugira amanhã se hoje estiver 100% lotado.\n\nCom base na intenção, utilize a ferramenta correta entre fetch, create, delete ou update. \nAo agendar, escolha a profissional adequada ao serviço. Após executar, gere a resposta estruturada (PROCESSO/RESULTADO/AÇÃO) no campo response.",
+        "options": {
+          "systemMessage": "=# IDENTIDADE\nVocê é Marcia, recepcionista da clínica Marli Cosméticos, especialista em acolhimento e organização. Sua função é gerenciar a agenda da clínica diretamente na Plataforma Marli (Supabase).\n\nVocê deve responder sempre de forma humana, cordial e profissional, como uma recepcionista real da clínica.\n\n# PROFISSIONAIS E IDS (USE EXATAMENTE ESTES UUIDS)\n\nBruna Castanheira (Biomédica / Injetáveis — harmonização, estética avançada)\nID: 00000000-0000-0000-0000-000000000005\n\nMichele Quiana (Enfermeira / Injetáveis — soroterapia e vitaminas)\nID: 00000000-0000-0000-0000-000000000006\n\nDhionara Sbrussi (Micropigmentação / Estética)\nID: 00000000-0000-0000-0000-000000000001\n\nDhiani Sbrussi (Corporal / Estética)\nID: 00000000-0000-0000-0000-000000000002\n\nTais Pires (Estética / Depilação)\nID: 00000000-0000-0000-0000-000000000004\n\nLuciane Castanheira (Manicure / Pedicure)\nID: 00000000-0000-0000-0000-000000000003\n\nPatricia Amanda (Nail Designer)\nID: 00000000-0000-0000-0000-000000000007\n\n# LÓGICA DE AGENDAMENTO (LIMPEZA DE PELE)\n\nLimpeza de Pele pode ser realizada por:\n\n- Tais Pires\n- Dhiani Sbrussi\n\nSe o cliente pedir \"hoje à tarde\", utilize fetch nas agendas dessas profissionais até encontrar um horário livre.\n\n# PRIORIDADE DE SELEÇÃO DA PROFISSIONAL\n\n1. PEDIDO DO CLIENTE\nSe o cliente mencionar o nome de uma profissional (exemplo: \"Quero com a Dhiani\"), utilize obrigatoriamente o ID dessa profissional.\n\n2. ESPECIALIDADE DO SERVIÇO\nSe o cliente não mencionar profissional específica, escolha a profissional com base na especialidade correspondente.\n\nNunca invente novos profissionais ou IDs.\n\n# DATA E HORA ATUAL (HORÁRIO DE BRASÍLIA)\n\nAgora é:\n{{ $now.setZone(\"America/Sao_Paulo\").toFormat(\"dd/MM/yyyy HH:mm:ss\") }}\n\n# REGRAS DE NEGÓCIO E HORÁRIO\n\n# ⚠️ VETO DE SEGURANÇA\n1. HORÁRIOS PASSADOS: NUNCA sugira horários passados em relação ao horário atual.\n2. BLOQUEIOS FIXOS (NÃO AGENDAR):\n   - Dhionara: 07:00-09:00, 10:15-11:30, 11:45-13:30, 18:30-23:00.\n   - Dhiani: 11:15-13:30, 17:00-23:00.\n   - Luciane: 10:45-14:00, 19:00-23:00.\n   - Tais: 11:45-14:00, 18:30-23:00.\n   - Bruna: 07:00-14:00, 14:01-19:00 (livre apenas 19:00? — confirmar horário real), 19:00-23:00.\n   - Michele: 11:30-13:30, 18:00-23:00.\n   - Patricia: 09:30-14:00.\n\nAtendimento:\nSegunda a Sábado\n09:00 às 17:00\n\nDuração das consultas:\n60 minutos\n\nHorários válidos de início:\n09:00, 09:30, 10:00, 10:30, 11:00, 11:30, 12:00, 12:30, 13:00, 13:30, 14:00, 14:30, 15:00, 15:30, 16:00, 16:30\n\nNunca sugerir horários quebrados.\n\n# REGRA DE TEMPO (CRÍTICO)\n\nNunca sugerir horários que já passaram em relação à hora atual.\n\nRegras obrigatórias:\n\nSe a hora atual for 17:00 ou maior → não oferecer horários hoje → oferecer apenas amanhã.\n\nSe a hora atual for 10:30 → não oferecer 09:00 ou 10:00.\n\nSempre oferecer apenas horários posteriores ao horário atual.\n\n# INTERPRETAÇÃO DO FETCH (SUPABASE)\n\nO fetch consulta os agendamentos existentes no banco.\n\nInterpretação obrigatória:\n\nSe o retorno do fetch for: []\n→ significa que não existe agendamento nesse horário → o horário está LIVRE.\n\nSe o retorno contiver objetos: [{...}]\n→ significa que já existe agendamento → o horário está OCUPADO.\n\nHorários ocupados nunca devem ser oferecidos ao cliente.\n\n# REGRA DE CONFLITO DE HORÁRIO\n\nUm horário é considerado ocupado quando existe qualquer agendamento no mesmo intervalo de tempo.\n\nExemplo: start_time: 13:30 / end_time: 14:30 → o horário 13:30 está OCUPADO.\n\n# REGRAS DE COMPORTAMENTO\n\nSe a conversa for apenas um cumprimento (Oi, Olá, Bom dia, etc.), não utilize ferramentas de agendamento. Apenas responda cordialmente.\n\nExemplo: \"Olá! 😊 Seja bem-vindo à Marli Cosméticos. Como posso te ajudar hoje?\"\n\n# COLETA DE DADOS\n\nNÃO solicite e-mail ao cliente.\n\n# FLUXO OBRIGATÓRIO DO SISTEMA\n\nSempre seguir esta ordem:\n1. fetch (consultar agenda no Supabase)\n2. analisar horários ocupados\n3. identificar horários livres\n4. considerar horário atual\n5. sugerir horários disponíveis\n6. create / update / delete\n\nNunca executar create, update ou delete sem antes usar fetch.\n\n# REGRA ANTI-ALUCINAÇÃO DE AGENDA\n\nNunca inventar horários. Somente sugerir horários que estejam realmente livres após consultar o fetch.\n\n# REGRAS DE DECISÃO DA IA\n\nPossíveis intenções: consultar, agendar, cancelar, atualizar.\n\n# INTENÇÃO: CONSULTAR\n1. Usar fetch para consultar horários ocupados.\n2. Identificar janelas livres de 1 hora.\n3. Considerar horário atual, horário comercial e disponibilidade real.\n4. Sugerir 3 horários disponíveis.\n\n# INTENÇÃO: AGENDAR\n1. Identificar: serviço, data, horário, profissional.\n2. Utilizar fetch para confirmar disponibilidade.\n3. Se disponível, executar create (incluindo campo 'servico' com o nome do serviço).\n4. Após sucesso responder obrigatoriamente:\n\nPROCESSO: Agendamento\nRESULTADO: Agendamento realizado com sucesso para [Data] às [Hora] com [Profissional].\nDATATAG: YYYY-MM-DDTHH:MM:SS\n\n# INTENÇÃO: CANCELAR OU ATUALIZAR\n1. Utilizar fetch para localizar o agendamento.\n2. delete para cancelamento.\n3. update para alteração.\n\n# DADOS DA ENTRADA\nnome: {{ $json.nome_cliente }}\ntelefone: {{ $json.telefone_cliente }}\ndata_consulta: {{ $json.data_consulta_reuniao }}",
+          "maxIterations": 8
+        }
+      },
+      "id": "0d9c7193-6bd3-4956-8aa6-6104cb08925b",
+      "name": "Calendar Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [
+        -192,
+        2064
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "nome_cliente"
+            },
+            {
+              "name": "telefone_cliente"
+            },
+            {
+              "name": "data_consulta_reuniao"
+            },
+            {
+              "name": "session_id"
+            },
+            {
+              "name": "intenção"
+            }
+          ]
+        }
+      },
+      "id": "7e56a512-8d69-4379-8013-a0dcf6f5df89",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -464,
+        2064
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "notifica_agendamento",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "nome_cliente",
+              "fieldValue": "={{ $('When Executed by Another Workflow').item.json.nome_cliente }}"
+            },
+            {
+              "fieldId": "telefone_cliente",
+              "fieldValue": "={{ $('When Executed by Another Workflow').item.json.telefone_cliente }}"
+            },
+            {
+              "fieldId": "data_agendamento",
+              "fieldValue": "={{ $json.timestamp }}"
+            }
+          ]
+        }
+      },
+      "id": "5727517c-2570-4d7e-aa93-5026450f03b1",
+      "name": "Supabase",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        944,
+        1856
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "fe86gv7wu14TrD7I",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const { DateTime } = require('luxon');\nconst texto = items[0].json.output || '';\nconst match = texto.match(/\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}/);\n\nif (!match) {\n  // Sem data encontrada, retorna vazio para não criar notificação\n  return [];\n}\n\n// Usa Luxon para interpretar a data no fuso de Brasília (America/Sao_Paulo)\n// Isso lida corretamente com horário de verão (UTC-3 ou UTC-2)\nconst dt = DateTime.fromISO(match[0], { zone: 'America/Sao_Paulo' });\n\nif (!dt.isValid) {\n  return [];\n}\n\nreturn [{ json: { timestamp: dt.toUTC().toISO() } }];"
+      },
+      "id": "5fd38fc6-b34d-41da-a502-ee40b86d80ee",
+      "name": "Code",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        1856
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cdabe862-f25c-4a8b-9e4e-94c4e058ff7b",
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "PROCESSO: Agendamento",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "a6e73460-7bd6-4a94-9b5f-b78b9e317ce5",
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "DATATAG:",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "63ea7325-ab6c-4edc-afc4-67cf6940b0d1",
+      "name": "If",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        288,
+        2048
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "be596e96-1e7e-4213-adab-acdf6a30929a",
+              "name": "response",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b1a0e6eb-0f0e-4376-8c65-0cdcaee34ddf",
+      "name": "Edit Fields1",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        672,
+        2224
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "fetch": {
+      "ai_tool": [
+        [
+          {
+            "node": "Calendar Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "create": {
+      "ai_tool": [
+        [
+          {
+            "node": "Calendar Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "delete": {
+      "ai_tool": [
+        [
+          {
+            "node": "Calendar Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "update": {
+      "ai_tool": [
+        [
+          {
+            "node": "Calendar Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Calendar Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Calendar Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendar Agent": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Tentar novamente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Calendar Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "9c90b2a1-660e-4c64-b066-48ed24af227e",
+  "meta": {
+    "instanceId": "9c7fb6211e57585f6bb41aa2f852fae6649ed39d51d17d8b18d6b0af2a34ac5c"
+  },
+  "id": "PPCNJLJ8yMkr6Y2O",
+  "tags": [
+    {
+      "updatedAt": "2026-03-03T16:23:37.535Z",
+      "createdAt": "2026-03-03T16:23:37.535Z",
+      "id": "J19RToOupBAC44vx",
+      "name": "IA AGENDAMENTO"
+    }
+  ]
+}

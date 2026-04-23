@@ -21,7 +21,7 @@ export const PMU_COLUMNS = ["Sessão", "Data", "Técnica", "Cor", "Agulha", "Sen
 export function parseLegacyTechnicalObservation(text: string, label?: string): { isTable: boolean, columns: string[], rows: string[][], notes: string } {
   const lwr = (label || "").toLowerCase();
   const contentLwr = (text || "").toLowerCase().substring(0, 50);
-  const isLaser = lwr.includes("laser") || contentLwr.includes("laser");
+  const isLaser = lwr.includes("laser") || contentLwr.includes("laser") || lwr.includes("tratamento") || lwr.includes("sessão");
   const targetCols = isLaser ? LASER_COLUMNS : PMU_COLUMNS;
 
   if (!text?.trim()) {

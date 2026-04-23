@@ -427,7 +427,7 @@ const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
     },
   });
 
-  const getFieldsFromContent = (record: PatientRecord): { label: string; value: string }[] => {
+  const getFieldsFromContent = (record: PatientRecord, allTemplates: AnamnesisTemplate[]): { label: string; value: string }[] => {
     let content = record.content;
     if (!content) return [];
 
@@ -453,10 +453,30 @@ const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
     }
 
     // Handle template-based records: content has templateFields + answers
-    const templateFields = (contentObj.templateFields as TemplateField[]) ?? [];
+    const savedFields = (contentObj.templateFields as TemplateField[]) ?? [];
     const answers = (contentObj.answers as Record<string, string>) ?? {};
+    const templateId = contentObj.templateId;
+    
+    // Find current template to sync fields
+    const currentTemplate = templateId ? allTemplates.find(t => t.id === templateId) : null;
+    const currentFields = currentTemplate?.fields ?? [];
+    
+    let finalFields: TemplateField[] = [];
+    
+    if (currentFields.length > 0) {
+      const savedMap = new Map(savedFields.map(f => [f.id, f]));
+      const templateIds = new Set(currentFields.map(f => f.id));
+      
+      // authoritative structure from current template
+      finalFields = currentFields.map(tf => tf);
+      // add historical fields
+      const orphaned = savedFields.filter(sf => !templateIds.has(sf.id));
+      finalFields = [...finalFields, ...orphaned];
+    } else {
+      finalFields = savedFields;
+    }
 
-    const fieldsData = templateFields
+    const fieldsData = finalFields
       .filter((f) => f.isActive)
       .map((f) => ({
         label: f.label,
@@ -525,7 +545,7 @@ const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
         <div className="space-y-4">
           {records.map((record) => {
             const date = parseISO(record.created_at);
-            const fields = getFieldsFromContent(record);
+            const fields = getFieldsFromContent(record, templates);
 
             return (
               <div key={record.id} className="flex gap-4">

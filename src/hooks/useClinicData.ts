@@ -10,10 +10,10 @@ type Views = Database["public"]["Views"];
 export type DBProfessional = Tables["professionals"]["Row"];
 
 export const useProfessionals = (optionsOrIncludeInactive: boolean | { includeInactive?: boolean, onlyVisibleInAgenda?: boolean } = false) => {
-  const options = typeof optionsOrIncludeInactive === "boolean" 
-    ? { includeInactive: optionsOrIncludeInactive } 
+  const options = typeof optionsOrIncludeInactive === "boolean"
+    ? { includeInactive: optionsOrIncludeInactive }
     : optionsOrIncludeInactive;
-    
+
   const { includeInactive = false, onlyVisibleInAgenda = false } = options;
 
   return useQuery({
@@ -108,6 +108,7 @@ export interface DBAppointment {
   client_phone: string | null;
   executed_by: string | null;
   cancellation_reason: string | null;
+  professionals?: { name: string };
   appointment_services?: {
     id: string;
     service_name: string;
@@ -124,7 +125,7 @@ export const useAppointments = (dateFrom?: string, dateTo?: string) => {
     queryFn: async () => {
       let query = supabase
         .from("appointments")
-        .select("*, appointment_services(*)")
+        .select("*, appointment_services(*), professionals(name)")
         .order("date")
         .order("start_time");
 
@@ -154,11 +155,11 @@ export const useClients = (options: {
   filterDateFrom?: string;
   filterDateTo?: string;
 } = {}) => {
-  const { 
-    search, 
-    page = 1, 
-    pageSize = 50, 
-    sortBy, 
+  const {
+    search,
+    page = 1,
+    pageSize = 50,
+    sortBy,
     is_active = true,
     filterIncomplete,
     filterCity,
@@ -309,17 +310,29 @@ export type DBNotification = {
   created_at: string;
 };
 
-export const useNotifications = () => {
+export const useNotifications = (professionalName?: string | null) => {
   return useQuery({
-    queryKey: ["notifications"],
+    queryKey: ["notifications", professionalName ?? "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("notifications" as any)
         .select("*")
         .order("created_at", { ascending: false });
 
+      const { data, error } = await query;
+
       if (error) throw error;
-      return (data as unknown as DBNotification[]) ?? [];
+
+      let result = (data as unknown as DBNotification[]) ?? [];
+
+      // Se profissional não-gestora, filtra apenas as próprias notificações
+      if (professionalName) {
+        result = result.filter(
+          (n) => (n.metadata?.professional_name ?? "") === professionalName
+        );
+      }
+
+      return result;
     },
   });
 };

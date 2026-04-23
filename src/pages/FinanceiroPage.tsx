@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useFinanceReport } from "@/hooks/useFinanceReport";
 import { useYearlyComparison } from "@/hooks/useYearlyComparison";
 import { useProfessionals } from "@/hooks/useClinicData";
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { format, subMonths, addMonths, subDays, startOfQuarter, startOfMonth, startOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, DollarSign, TrendingUp, TrendingDown, CalendarCheck, Loader2, FileDown, CalendarIcon } from "lucide-react";
@@ -44,6 +47,7 @@ const DeltaBadge = ({ value, label }: { value: number | null | undefined; label?
 };
 
 const FinanceiroPage = () => {
+  const { user } = useAuth();
   const [month, setMonth] = useState(new Date());
   const [selectedProfessional, setSelectedProfessional] = useState<string>("all");
   const [mode, setMode] = useState<"month" | "custom">("month");
@@ -51,6 +55,35 @@ const FinanceiroPage = () => {
   const [customTo, setCustomTo] = useState<Date | undefined>(undefined);
 
   const { data: professionals = [] } = useProfessionals();
+
+  // Verifica se é gestor
+  const { data: isGestor } = useQuery({
+    queryKey: ["my-role-gestor", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return false;
+      const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "gestor" });
+      return !!data;
+    },
+    enabled: !!user?.id,
+  });
+
+  // Busca o registro profissional do usuário logado
+  const { data: currentProfessional } = useQuery({
+    queryKey: ["my-professional", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase.from("professionals").select("id, name").eq("user_id", user.id).single();
+      return data ?? null;
+    },
+    enabled: !!user?.id,
+  });
+
+  // Quando não é gestor, força o filtro para o próprio profissional
+  useEffect(() => {
+    if (isGestor === false && currentProfessional?.id) {
+      setSelectedProfessional(currentProfessional.id);
+    }
+  }, [isGestor, currentProfessional?.id]);
 
   const customRange = mode === "custom" && customFrom && customTo ? { from: customFrom, to: customTo } : null;
   const { data, isLoading } = useFinanceReport(
@@ -97,7 +130,9 @@ const FinanceiroPage = () => {
           Finanças
         </h1>
         <p className="text-muted-foreground font-medium max-w-md pt-1">
-          Análise profunda de receita, ticket médio e performance por profissional.
+          {isGestor
+            ? "Análise profunda de receita, ticket médio e performance por profissional."
+            : `Seus dados de receita, atendimentos e top serviços — ${currentProfessional?.name ?? ""}.`}
         </p>
       </div>
 
@@ -131,17 +166,20 @@ const FinanceiroPage = () => {
           </div>
 
           <div className="flex items-center gap-3">
-             <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
-              <SelectTrigger className="h-11 grow sm:w-[200px] bg-white/5 border-white/10 rounded-xl font-bold text-[10px] uppercase tracking-widest">
-                <SelectValue placeholder="Profissional" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover z-50 rounded-xl border-white/10">
-                <SelectItem value="all" className="text-[10px] font-bold uppercase tracking-widest">Todos Profissionais</SelectItem>
-                {professionals.map(p => (
-                  <SelectItem key={p.id} value={p.id} className="text-[10px] font-bold uppercase tracking-widest">{p.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Seletor de profissional: só visível para gestores */}
+            {isGestor && (
+              <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
+                <SelectTrigger className="h-11 grow sm:w-[200px] bg-white/5 border-white/10 rounded-xl font-bold text-[10px] uppercase tracking-widest">
+                  <SelectValue placeholder="Profissional" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-50 rounded-xl border-white/10">
+                  <SelectItem value="all" className="text-[10px] font-bold uppercase tracking-widest">Todos Profissionais</SelectItem>
+                  {professionals.map(p => (
+                    <SelectItem key={p.id} value={p.id} className="text-[10px] font-bold uppercase tracking-widest">{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
 
             {data && (
               <DropdownMenu>

@@ -1,4 +1,7 @@
 import { useNotifications } from "@/hooks/useClinicData";
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
@@ -78,7 +81,32 @@ const QUICK_TIPS = [
 ];
 
 const NotificationsPage = () => {
-    const { data: notifications, isLoading, error } = useNotifications();
+    const { user } = useAuth();
+
+    // Verifica se é gestora e busca o nome do profissional logado
+    const { data: isGestor } = useQuery({
+        queryKey: ["my-role-gestor", user?.id],
+        queryFn: async () => {
+            if (!user?.id) return false;
+            const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "gestor" });
+            return !!data;
+        },
+        enabled: !!user?.id,
+    });
+
+    const { data: currentProfessional } = useQuery({
+        queryKey: ["my-professional", user?.id],
+        queryFn: async () => {
+            if (!user?.id) return null;
+            const { data } = await supabase.from("professionals").select("id, name").eq("user_id", user.id).single();
+            return data ?? null;
+        },
+        enabled: !!user?.id,
+    });
+
+    // Gestoras veem tudo; profissionais só veem as próprias
+    const filterName = isGestor === false ? (currentProfessional?.name ?? null) : null;
+    const { data: notifications, isLoading, error } = useNotifications(filterName);
 
     if (error) {
         return (

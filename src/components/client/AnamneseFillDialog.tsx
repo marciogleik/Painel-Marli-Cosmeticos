@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,26 +15,27 @@ import type { AnamnesisTemplate, TemplateField } from "@/components/settings/Ana
 import type { PatientRecord } from "./AnamneseTab";
 import { TableEditor } from "./TableEditor";
 import { TechnicalObservationsGrid } from "./TechnicalObservationsGrid";
+import { parseLegacyTechnicalObservation } from "@/utils/legacyProcedureParser";
 
 // PatientRecord is now imported from AnamneseTab
 
 const isTableField = (label: string, fieldType?: string, currentValue?: any) => {
   const l = (label || "").toLowerCase();
   
-  // Condição Especial para "Laser" que salva num formato legado com muitos espaços
-  if (l.includes('laser')) return true;
+  // If it's multiple choice or short text, it's NOT a table, even if it has keywords
+  if (fieldType === "multiple_choice" || fieldType === "short_text") return false;
 
-  if (typeof currentValue === 'string' && currentValue && !currentValue.includes('{') && (currentValue.includes('Sessão') || currentValue.includes('Data') || currentValue.includes('Parâmetros'))) {
+  // Condição Especial para "Laser" que salva num formato legado com muitos espaços
+  if (l === 'laser' || l === 'sessão' || l === 'procedimento') return true;
+
+  if (typeof currentValue === 'string' && currentValue && !currentValue.includes('{')) {
+    const isLegacyTable = (currentValue.includes('Sessão') || currentValue.includes('Data') || currentValue.includes('Parâmetros'));
     const spacesCount = (currentValue.match(/\s{3,}/g) || []).length;
-    if (spacesCount > 2) return true; // Detect mock tables
+    if (isLegacyTable && spacesCount > 2) return true; // Detect mock tables
   }
 
-  if (l.includes('observação') || l.includes('observações') || 
-      l.includes('evolução') || l.includes('técnica') || l.includes('descrição') || l.includes('histórico') ||
-      l.includes('procedimento')) return true;
-
-  // Check if label is just "Data" but it's at the end of the form or has legacy table content
-  if (l === 'data' && typeof currentValue === 'string' && currentValue?.toLowerCase().includes('procedimento realizado')) return true;
+  if (l.includes('observações técnicas') || l.includes('evolução') || l.includes('técnica') || 
+      l.includes('histórico') || l.includes('procedimento realizado')) return true;
 
   return false;
 };
@@ -54,16 +56,36 @@ const AnamneseFillDialog = ({
   onSaveAndSign,
 }: AnamneseFillDialogProps) => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [answers, setAnswers] = useState<Record<string, string>>({});
 
   const isEditing = !!existingRecord;
 
-  // Derive fields from template or existing record
-  const fields: TemplateField[] = (
-    isEditing
-      ? (((existingRecord.content as any)?.templateFields as TemplateField[]) || (template?.fields ?? []))
-      : (template?.fields ?? [])
-  ).filter((f) => f.isActive);
+  // Derive fields from template or existing record with Sync Logic
+  const fields: TemplateField[] = (() => {
+    if (!isEditing) return (template?.fields ?? []).filter(f => f.isActive);
+    
+    const savedFields = ((existingRecord.content as any)?.templateFields as TemplateField[]) || [];
+    const currentTemplateFields = template?.fields ?? [];
+    
+    if (currentTemplateFields.length === 0) return savedFields.filter(f => f.isActive);
+    
+    // Map current template fields for lookup
+    const templateIds = new Set(currentTemplateFields.map(f => f.id));
+    const savedMap = new Map(savedFields.map(f => [f.id, f]));
+    
+    // 1. Start with current template fields (authoritative structure)
+    const syncedFields = currentTemplateFields.map(tField => {
+      const saved = savedMap.get(tField.id);
+      // We keep the template's version of the field but it will use the answer from state
+      return tField;
+    });
+    
+    // 2. Add orphaned fields (existed in record but removed from template) to preserve history
+    const orphanedFields = savedFields.filter(f => !templateIds.has(f.id));
+    
+    return [...syncedFields, ...orphanedFields].filter(f => f.isActive);
+  })().filter((f) => f.isActive);
 
   const title = isEditing
     ? existingRecord.title ?? "Ficha"
@@ -99,6 +121,20 @@ const AnamneseFillDialog = ({
     return replaced;
   }, [client]);
 
+  const { data: myProfessional } = useQuery({
+    queryKey: ["my-professional-id", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from("professionals")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+      return data;
+    },
+    enabled: !!user,
+  });
+
   const [hasInitializedModels, setHasInitializedModels] = useState(false);
 
   const parseLegacyAnswers = useCallback((text: string, templateFields: TemplateField[]) => {
@@ -108,10 +144,10 @@ const AnamneseFillDialog = ({
     // Split by newline and try to find labels
     const lines = text.split("\n");
     templateFields.forEach(field => {
-      // Find a line that starts with the field label (or something similar)
       const cleanLabel = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "").trim();
       const targetLabel = cleanLabel(field.label);
       
+      // Try exact or contains match on the line label
       const line = lines.find(l => {
         const lineParts = l.split(":");
         if (lineParts.length < 2) return false;
@@ -121,14 +157,9 @@ const AnamneseFillDialog = ({
 
       if (line) {
         const parts = line.split(":");
-        if (parts.length >= 2) {
-          let value = parts.slice(1).join(":").trim();
-          // Clean up legacy double colons or leading colons from values
-          while (value.startsWith(":")) {
-            value = value.substring(1).trim();
-          }
-          legacyAnswers[field.id] = value;
-        }
+        let value = parts.slice(1).join(":").trim();
+        while (value.startsWith(":")) value = value.substring(1).trim();
+        legacyAnswers[field.id] = value;
       }
     });
 
@@ -152,24 +183,83 @@ const AnamneseFillDialog = ({
         
         // If answers are empty but we have an array (legacy format), try to parse
         if (Object.keys(initialAnswers).length === 0 && Array.isArray(content)) {
-          const legacyObj = content.find((item: any) => item.label === "Observação" || item.label === "Descrição");
-          if (legacyObj && legacyObj.value) {
-            initialAnswers = parseLegacyAnswers(legacyObj.value, fields);
+          const legacyContent = content as { label: string; value: string }[];
+          const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "").trim();
+          const mappedIds = new Set<string>();
+          
+          // 1. Map items to fields by label (fuzzy match)
+          legacyContent.forEach(item => {
+            const itemL = clean(item.label || "");
+            if (!itemL) return;
+
+            const field = fields.find(f => {
+              const fL = clean(f.label);
+              return fL === itemL || fL.includes(itemL) || itemL.includes(fL);
+            });
+
+            if (field) {
+              initialAnswers[field.id] = item.value;
+              mappedIds.add(field.id);
+            }
+          });
+
+          // 2. If technical or description fields exist, they might contain multiple Q&A pairs
+          legacyContent.forEach(item => {
+            const isTechnical = ["observação", "descrição", "laser", "técnica", "anotações"].some(k => item.label?.toLowerCase().includes(k));
+            if (isTechnical && item.value) {
+              const parsed = parseLegacyAnswers(item.value, fields);
+              Object.keys(parsed).forEach(fid => {
+                if (!initialAnswers[fid]) {
+                  initialAnswers[fid] = parsed[fid];
+                  mappedIds.add(fid);
+                }
+              });
+            }
+          });
+
+          // 3. Data Loss Prevention: If we have legacy data that wasn't mapped, 
+          // and we have a technical/table field, dump everything unmapped into its notes.
+          const tableField = fields.find(f => isTableField(f.label, f.type));
+          if (tableField) {
+            let unmappedNote = "";
+            legacyContent.forEach(item => {
+               // If this item's label wasn't reasonably mapped to any field, add to notes
+               const field = fields.find(f => clean(f.label) === clean(item.label || ""));
+               if (!field && item.value && item.value.length > 0) {
+                 unmappedNote += (unmappedNote ? "\n\n" : "") + `${item.label}: ${item.value}`;
+               }
+            });
+
+            if (unmappedNote) {
+              const currentVal = initialAnswers[tableField.id] || "";
+              if (currentVal.includes('{"isStructured":true')) {
+                try {
+                  const parsed = JSON.parse(currentVal);
+                  parsed.notes = (parsed.notes ? parsed.notes + "\n\n" : "") + "DADOS RECUPERADOS:\n" + unmappedNote;
+                  initialAnswers[tableField.id] = JSON.stringify(parsed);
+                } catch(e) {}
+              } else {
+                initialAnswers[tableField.id] = (currentVal ? currentVal + "\n\n" : "") + "DADOS RECUPERADOS:\n" + unmappedNote;
+              }
+            }
           }
         }
         
-        // Cleanup: If we have table-like data dumped into a non-table field (like "Data"), 
-        // move it to the actual table field and clear the source.
+        // Final Cleanup: move table-like data to technical field
         const cleanedAnswers = { ...initialAnswers };
-        const tableFieldId = fields.find(f => isTableField(f.label, f.type, initialAnswers[f.id]))?.id;
+        const mainTableField = fields.find(f => isTableField(f.label, f.type));
         
-        if (tableFieldId) {
+        if (mainTableField) {
           Object.keys(cleanedAnswers).forEach(fid => {
             const val = cleanedAnswers[fid];
-            if (fid !== tableFieldId && val?.toLowerCase().includes("procedimento realizado")) {
-              // This is likely the "Data" field that was hijacked by legacy import
-              cleanedAnswers[tableFieldId] = val;
-              cleanedAnswers[fid] = "";
+            if (fid !== mainTableField.id && typeof val === 'string' && val.length > 20) {
+              const parsed = parseLegacyTechnicalObservation(val);
+              if (parsed.isTable || val.toLowerCase().includes("procedimento realizado")) {
+                if (!cleanedAnswers[mainTableField.id] || cleanedAnswers[mainTableField.id].length < 10) {
+                  cleanedAnswers[mainTableField.id] = val;
+                  cleanedAnswers[fid] = "";
+                }
+              }
             }
           });
         }
@@ -212,6 +302,7 @@ const AnamneseFillDialog = ({
           record_type: "anamnese",
           title,
           content: JSON.parse(JSON.stringify(content)),
+          professional_id: myProfessional?.id || null,
         }]).select("id").single();
         if (error) throw error;
         return data?.id;

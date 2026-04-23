@@ -33,6 +33,18 @@ const UserAvatarMenu = () => {
     enabled: !!user,
   });
 
+  const { data: clinicSettings } = useQuery({
+    queryKey: ["clinic-settings"],
+    queryFn: async () => {
+      const { data } = await (supabase
+        .from("clinic_settings" as any)
+        .select("name")
+        .eq("id", "00000000-0000-0000-0000-000000000000")
+        .single() as any);
+      return data || { name: "Marli Cosméticos" };
+    },
+  });
+
   return (
     <button
       onClick={() => {
@@ -62,7 +74,7 @@ const UserAvatarMenu = () => {
       </div>
       <div className="min-w-0 text-left">
         <p className="text-xs font-bold text-sidebar-accent-foreground truncate">{displayName}</p>
-        <p className="text-[9px] text-sidebar-foreground uppercase tracking-[0.15em]">Marli Cosméticos</p>
+        <p className="text-[9px] text-sidebar-foreground uppercase tracking-[0.15em]">{clinicSettings?.name || "Marli Cosméticos"}</p>
       </div>
     </button>
   );

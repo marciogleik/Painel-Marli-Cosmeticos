@@ -46,16 +46,7 @@ export function GlobalSearch() {
   });
 
   React.useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      // Check for Shift + K (case-insensitive 'k' just in case CapsLock is on)
-      if (e.key === "K" && e.shiftKey) {
-        e.preventDefault();
-        setOpen((open) => !open);
-      }
-    };
-
-    document.addEventListener("keydown", down);
-    return () => document.removeEventListener("keydown", down);
+    // Keyboard shortcuts removed per user request to avoid accidental opening on mobile
   }, []);
 
   const runCommand = React.useCallback((command: () => void) => {

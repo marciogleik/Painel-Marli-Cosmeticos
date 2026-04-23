@@ -1,9 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Search, History, Calendar, User, UserCog, Clock, Loader2, Filter, ArrowRight, ShieldCheck, Scissors } from "lucide-react";
+import { Search, History, Calendar, User, UserCog, Clock, Loader2, Filter, ArrowRight, ShieldCheck, Scissors, X as XIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { statusConfig, useProfessionals, useServices } from "@/hooks/useClinicData";
@@ -12,8 +12,11 @@ import AppointmentDetailDialog from "@/components/AppointmentDetailDialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import AppointmentAuditDialog from "@/components/AppointmentAuditDialog";
+import { useAuth } from "@/hooks/useAuth";
 
 const HistoricPage = () => {
+    const { user } = useAuth();
     const [search, setSearch] = useState("");
     const [selectedStatus, setSelectedStatus] = useState<string>("all");
     const [selectedProfessional, setSelectedProfessional] = useState<string>("all");
@@ -23,9 +26,40 @@ const HistoricPage = () => {
     const [auditAction, setAuditAction] = useState<string>("all");
     const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
     const [detailOpen, setDetailOpen] = useState(false);
+    const [auditHistoryOpen, setAuditHistoryOpen] = useState(false);
+    const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
 
     const { data: professionals = [] } = useProfessionals(true);
     const { data: servicesList = [] } = useServices(true);
+
+    // Verifica se é gestora
+    const { data: isGestor } = useQuery({
+        queryKey: ["my-role-gestor", user?.id],
+        queryFn: async () => {
+            if (!user?.id) return false;
+            const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "gestor" });
+            return !!data;
+        },
+        enabled: !!user?.id,
+    });
+
+    // Busca o registro profissional da usuária logada
+    const { data: currentProfessional } = useQuery({
+        queryKey: ["my-professional", user?.id],
+        queryFn: async () => {
+            if (!user?.id) return null;
+            const { data } = await supabase.from("professionals").select("id").eq("user_id", user.id).single();
+            return data ?? null;
+        },
+        enabled: !!user?.id,
+    });
+
+    // Não-gestoras só veem seus próprios agendamentos
+    useEffect(() => {
+        if (isGestor === false && currentProfessional?.id) {
+            setSelectedProfessional(currentProfessional.id);
+        }
+    }, [isGestor, currentProfessional?.id]);
 
     const { data: appointments = [], isLoading } = useQuery({
         queryKey: ["global_history", selectedProfessional, selectedService, dateFrom, dateTo],
@@ -57,17 +91,45 @@ const HistoricPage = () => {
     });
 
     const { data: logs = [], isLoading: isLoadingLogs } = useQuery({
-        queryKey: ["activity_logs"],
+        queryKey: ["activity_logs", dateFrom, dateTo],
         queryFn: async () => {
-            const { data, error } = await supabase
+            let query = supabase
                 .from("activity_logs" as any)
                 .select("*")
-                .order("created_at", { ascending: false })
-                .limit(200);
+                .order("created_at", { ascending: false });
+
+            if (dateFrom) query = query.gte("created_at", `${dateFrom}T00:00:00`);
+            if (dateTo) query = query.lte("created_at", `${dateTo}T23:59:59`);
+
+            const { data, error } = await query.limit(500);
             if (error) return []; // Table might not exist yet
             return data ?? [];
         },
     });
+
+    const clearFilters = () => {
+        setSearch("");
+        setSelectedStatus("all");
+        setSelectedProfessional("all");
+        setSelectedService("all");
+        setDateFrom("");
+        setDateTo("");
+        setAuditAction("all");
+    };
+
+    // Não-gestoras não podem limpar o filtro de profissional para "all"
+    const handleClearFilters = () => {
+        setSearch("");
+        setSelectedStatus("all");
+        setSelectedService("all");
+        setDateFrom("");
+        setDateTo("");
+        setAuditAction("all");
+        // Mantém o filtro da própria profissional se não for gestora
+        if (isGestor !== false) {
+            setSelectedProfessional("all");
+        }
+    };
 
     const filtered = useMemo(() => {
         return appointments.filter((apt) => {
@@ -86,6 +148,7 @@ const HistoricPage = () => {
         return logs.filter((log: any) => {
             const matchesSearch = !search || 
                 (log.user_name ?? "").toLowerCase().includes(search.toLowerCase()) ||
+                (log.new_data?.client_name ?? "").toLowerCase().includes(search.toLowerCase()) ||
                 (JSON.stringify(log.new_data ?? {})).toLowerCase().includes(search.toLowerCase()) ||
                 (JSON.stringify(log.old_data ?? {})).toLowerCase().includes(search.toLowerCase());
             
@@ -127,36 +190,39 @@ const HistoricPage = () => {
                 <Calendar className="w-3.5 h-3.5" />
                 Agendamentos
               </TabsTrigger>
-              <TabsTrigger 
-                value="logs" 
-                className="rounded-xl px-6 py-2 text-xs font-black uppercase tracking-widest transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-lg data-[state=active]:ring-1 data-[state=active]:ring-white/10 gap-2"
-              >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                Auditoria
-              </TabsTrigger>
+              {/* Aba Auditoria: somente para gestoras */}
+              {isGestor && (
+                <TabsTrigger 
+                  value="logs" 
+                  className="rounded-xl px-6 py-2 text-xs font-black uppercase tracking-widest transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-lg data-[state=active]:ring-1 data-[state=active]:ring-white/10 gap-2"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  Auditoria
+                </TabsTrigger>
+              )}
             </TabsList>
           </div>
         </div>
 
         <TabsContent value="appointments" className="flex-1 data-[state=active]:flex data-[state=active]:flex-col overflow-hidden m-0 data-[state=inactive]:hidden">
-          <div className="px-4 sm:px-8 py-6 shrink-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-background/40 backdrop-blur-md border-y border-white/10 shadow-lg">
-            <div className="relative group">
+          <div className="px-4 sm:px-8 py-6 shrink-0 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 bg-background/40 backdrop-blur-md border-y border-white/10 shadow-lg">
+            <div className="relative group lg:col-span-3">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60 group-focus-within:text-primary transition-colors pointer-events-none" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar por cliente ou notas..."
+                placeholder="Buscar cliente..."
                 className="pl-10 h-11 rounded-xl bg-white/5 border-white/10 focus:border-primary/40 focus:ring-primary/20 transition-all font-bold text-[10px] uppercase tracking-widest"
               />
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 lg:col-span-3">
               <div className="relative flex-1">
                 <Input
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
-                  className="bg-white/5 rounded-xl h-11 border-white/10 focus:border-primary/40 text-[10px] font-black uppercase tracking-widest"
+                  className="bg-white/5 rounded-xl h-11 border-white/10 focus:border-primary/40 text-[10px] font-black uppercase tracking-widest px-2"
                 />
               </div>
               <div className="relative flex-1">
@@ -164,41 +230,44 @@ const HistoricPage = () => {
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
-                  className="bg-white/5 rounded-xl h-11 border-white/10 focus:border-primary/40 text-[10px] font-black uppercase tracking-widest"
+                  className="bg-white/5 rounded-xl h-11 border-white/10 focus:border-primary/40 text-[10px] font-black uppercase tracking-widest px-2"
                 />
               </div>
             </div>
 
-            <div className="relative group">
-              <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
-                <SelectTrigger className="h-11 rounded-xl bg-white/5 border-white/10 focus:ring-primary/20 font-bold text-[10px] uppercase tracking-widest">
-                  <div className="flex items-center gap-2">
-                    <UserCog className="w-3.5 h-3.5 text-muted-foreground/60" />
-                    <SelectValue placeholder="Profissional" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent className="rounded-xl border-white/10 bg-popover z-50">
-                  <SelectItem value="all" className="font-bold text-[10px] uppercase tracking-widest">Todas as Profissionais</SelectItem>
-                  {professionals.map(p => (
-                    <SelectItem key={p.id} value={p.id} className="font-bold text-[10px] uppercase tracking-widest">
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[8px] font-black text-primary">
-                          {p.avatar_initials || p.name.slice(0, 2).toUpperCase()}
+            {/* Filtro de profissional: só visível para gestoras */}
+            {isGestor && (
+              <div className="relative group lg:col-span-2">
+                <Select value={selectedProfessional} onValueChange={setSelectedProfessional}>
+                  <SelectTrigger className="h-11 rounded-xl bg-white/5 border-white/10 focus:ring-primary/20 font-bold text-[10px] uppercase tracking-widest">
+                    <div className="flex items-center gap-2">
+                      <UserCog className="w-3.5 h-3.5 text-muted-foreground/60" />
+                      <SelectValue placeholder="Profissional" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-white/10 bg-popover z-50">
+                    <SelectItem value="all" className="font-bold text-[10px] uppercase tracking-widest">Todas as Profissionais</SelectItem>
+                    {professionals.map(p => (
+                      <SelectItem key={p.id} value={p.id} className="font-bold text-[10px] uppercase tracking-widest">
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[8px] font-black text-primary">
+                            {p.avatar_initials || p.name.slice(0, 2).toUpperCase()}
+                          </div>
+                          {p.name}
                         </div>
-                        {p.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
-            <div className="relative">
+            <div className="relative lg:col-span-3">
               <Select value={selectedService} onValueChange={setSelectedService}>
                 <SelectTrigger className="h-11 rounded-xl bg-white/5 border-white/10 focus:ring-primary/20 font-bold text-[10px] uppercase tracking-widest">
                   <div className="flex items-center gap-2">
                     <Clock className="w-3.5 h-3.5 text-muted-foreground/60" />
-                    <SelectValue placeholder="Tipo de Serviço" />
+                    <SelectValue placeholder="Serviço" />
                   </div>
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-white/10 bg-popover z-50">
@@ -210,6 +279,18 @@ const HistoricPage = () => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="flex items-center justify-end lg:col-span-1">
+              <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={handleClearFilters}
+                  className="h-11 w-11 rounded-xl bg-primary/10 hover:bg-destructive/20 text-primary hover:text-destructive border border-primary/20 shrink-0 shadow-lg shadow-primary/5"
+                  title="Limpar Filtros"
+              >
+                  <XIcon className="w-4 h-4" />
+              </Button>
             </div>
           </div>
 
@@ -338,8 +419,8 @@ const HistoricPage = () => {
         </TabsContent>
         <TabsContent value="logs" className="flex-1 data-[state=active]:flex data-[state=active]:flex-col overflow-hidden m-0 data-[state=inactive]:hidden">
           {/* Audit Filters */}
-          <div className="px-4 sm:px-8 py-5 shrink-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 bg-muted/5 border-b border-border/40">
-            <div className="relative group">
+          <div className="px-4 sm:px-8 py-5 shrink-0 flex flex-col lg:flex-row gap-4 bg-muted/5 border-b border-border/40">
+            <div className="relative group flex-1">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors pointer-events-none" />
               <Input
                 placeholder="Buscar por cliente ou usuário..."
@@ -367,9 +448,9 @@ const HistoricPage = () => {
               </div>
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 shrink-0">
               <Select value={auditAction} onValueChange={setAuditAction}>
-                <SelectTrigger className="h-11 rounded-xl bg-background border-border/40 focus:ring-primary/20 font-medium text-xs flex-1">
+                <SelectTrigger className="h-11 rounded-xl bg-background border-border/40 focus:ring-primary/20 font-medium text-xs w-[180px]">
                   <div className="flex items-center gap-2">
                     <Filter className="w-3.5 h-3.5 text-muted-foreground" />
                     <SelectValue placeholder="Tipo de Ação" />
@@ -382,6 +463,16 @@ const HistoricPage = () => {
                   <SelectItem value="DELETE" className="rounded-lg focus:bg-primary/10">Exclusões</SelectItem>
                 </SelectContent>
               </Select>
+
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={clearFilters}
+                className="h-11 w-11 rounded-xl bg-background hover:bg-destructive/10 text-muted-foreground hover:text-destructive border border-dashed border-border/40 shrink-0"
+                title="Limpar Filtros"
+              >
+                <XIcon className="w-4 h-4" />
+              </Button>
             </div>
           </div>
 
@@ -426,7 +517,14 @@ const HistoricPage = () => {
                   const isDelete = log.action === 'DELETE';
                   
                   return (
-                    <div key={log.id} className="relative pl-14 group">
+                    <div 
+                      key={log.id} 
+                      className="relative pl-14 group cursor-pointer"
+                      onClick={() => {
+                        setSelectedRecordId(log.entity_id);
+                        setAuditHistoryOpen(true);
+                      }}
+                    >
                       <div className={cn(
                         "absolute left-[20px] top-6 w-4 h-4 rounded-full border-4 border-background shadow-xl z-20 group-hover:scale-125 transition-transform duration-300",
                         isInsert ? "bg-emerald-500" : isUpdate ? "bg-blue-500" : "bg-rose-500"
@@ -549,6 +647,12 @@ const HistoricPage = () => {
         open={detailOpen}
         onOpenChange={setDetailOpen}
         appointment={selectedAppointment}
+      />
+
+      <AppointmentAuditDialog
+        open={auditHistoryOpen}
+        onOpenChange={setAuditHistoryOpen}
+        recordId={selectedRecordId}
       />
     </div>
   );

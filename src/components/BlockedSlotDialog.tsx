@@ -42,8 +42,9 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { format, addDays, addWeeks, addMonths, isBefore, isEqual, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Loader2, Ban, Repeat, Trash2, Edit2, Clock, Calendar as CalIcon } from "lucide-react";
+import { CalendarIcon, Loader2, Ban, Repeat, Trash2, Edit2, Clock, Calendar as CalIcon, History } from "lucide-react";
 import { toast } from "sonner";
+import AppointmentAuditDialog from "./AppointmentAuditDialog";
 
 // Helper to extract series_id from notes
 const getSeriesId = (notes: string | null) => {
@@ -117,6 +118,8 @@ const BlockedSlotDialog = ({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [confirmDeleteSeries, setConfirmDeleteSeries] = useState<boolean>(false);
   const [editingSeriesId, setEditingSeriesId] = useState<string | null>(null);
+  const [auditOpen, setAuditOpen] = useState(false);
+  const [selectedAuditId, setSelectedAuditId] = useState<string | null>(null);
 
   // Fetch existing blocks for this professional
   const { data: existingBlocks = [], isLoading: isLoadingBlocks } = useQuery({
@@ -654,6 +657,18 @@ const BlockedSlotDialog = ({
                               variant="ghost" 
                               size="icon" 
                               className="w-7 h-7 hover:bg-muted"
+                              onClick={() => {
+                                setSelectedAuditId(block.id);
+                                setAuditOpen(true);
+                              }}
+                              title="Ver Auditoria"
+                            >
+                              <History className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="w-7 h-7 hover:bg-muted"
                               onClick={() => handleEdit(block)}
                               title={block.isSeries ? "Editar Série" : "Editar"}
                             >
@@ -712,6 +727,11 @@ const BlockedSlotDialog = ({
           </AlertDialogContent>
         </AlertDialog>
       </DialogContent>
+      <AppointmentAuditDialog 
+        recordId={selectedAuditId || ""}
+        open={auditOpen}
+        onOpenChange={setAuditOpen}
+      />
     </Dialog>
   );
 };
