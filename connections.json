@@ -1,0 +1,692 @@
+{
+  "Wait": {
+    "main": [
+      [
+        {
+          "node": "Get",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "messages": {
+    "main": [
+      [
+        {
+          "node": "Agente SDR Whastapp",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "getClient": {
+    "main": [
+      [
+        {
+          "node": "If1",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "If1": {
+    "main": [
+      [
+        {
+          "node": "verificarStatusIA",
+          "type": "main",
+          "index": 0
+        }
+      ],
+      [
+        {
+          "node": "GeraUUID",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "CreateUser": {
+    "main": [
+      [
+        {
+          "node": "verificarStatusIA",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "GeraUUID": {
+    "main": [
+      [
+        {
+          "node": "CreateUser",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "Calculadora": {
+    "ai_tool": [
+      [
+        {
+          "node": "Agente SDR Whastapp",
+          "type": "ai_tool",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "Postgres Chat Memory": {
+    "ai_memory": [
+      [
+        {
+          "node": "Agente SDR Whastapp",
+          "type": "ai_memory",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "fromMe": {
+    "main": [
+      [
+        {
+          "node": "NOP1",
+          "type": "main",
+          "index": 0
+        }
+      ],
+      [
+        {
+          "node": "TratativaTipoMessage",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "When clicking ‘Test workflow’": {
+    "main": [
+      [
+        {
+          "node": "Supabase",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "Switch": {
+    "main": [
+      [
+        {
+          "node": "No Operation, do nothing",
+          "type": "main",
+          "index": 0
+        }
+      ],
+      [
+        {
+          "node": "Delete",
+          "type": "main",
+          "index": 0
+        }
+      ],
+      [
+        {
+          "node": "Wait",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "Webhook": {
+    "main": [
+      [
+        {
+          "node": "FiltrarUpsert",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "DadosIniciais": {
+    "main": [
+      [
+        {
+          "node": "getClient",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "agrupaTexto": {
+    "main": [
+      [
+        {
+          "node": "Get",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "agrupaAudio": {
+    "main": [
+      [
+        {
+          "node": "Get",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "Get": {
+    "main": [
+      [
+        {
+          "node": "Switch",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "Delete": {
+    "main": [
+      [
+        {
+          "node": "BuscaContextoIA",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "TratativaTipoMessage": {
+    "main": [
+      [
+        {
+          "node": "descreveImagem",
+          "type": "main",
+          "index": 0
+        }
+      ],
+      [
+        {
+          "node": "agrupaTexto",
+          "type": "main",
+          "index": 0
+        }
+      ],
+      [
+        {
+          "node": "agrupaTexto",
+          "type": "main",
+          "index": 0
+        }
+      ],
+      [
+        {
+          "node": "audioParaBase64",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "Split Out": {
+    "main": [
+      [
+        {
+          "node": "Loop Over Items2",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "Wait1": {
+    "main": [
+      [
+        {
+          "node": "Switch1",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "Switch1": {
+    "main": [
+      [
+        {
+          "node": "Responde texto1",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "Loop Over Items2": {
+    "main": [
+      [
+        {
+          "node": "Replace Me2",
+          "type": "main",
+          "index": 0
+        }
+      ],
+      [
+        {
+          "node": "Wait1",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "Edit Fields6": {
+    "main": [
+      [
+        {
+          "node": "Split Out",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "Convert to File1": {
+    "main": [
+      [
+        {
+          "node": "OpenAI1",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "OpenAI1": {
+    "main": [
+      [
+        {
+          "node": "Edit Fields",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "Edit Fields": {
+    "main": [
+      [
+        {
+          "node": "agrupaImagem",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "Responde texto1": {
+    "main": [
+      [
+        {
+          "node": "Loop Over Items2",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "descreveImagem": {
+    "main": [
+      [
+        {
+          "node": "Convert to File1",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "verificarStatusIA": {
+    "main": [
+      [
+        {
+          "node": "NoOpStatus",
+          "type": "main",
+          "index": 0
+        }
+      ],
+      [
+        {
+          "node": "fromMe",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "Schedule Trigger": {
+    "main": [
+      [
+        {
+          "node": "GetAtendimentoHumano",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "GetAtendimentoHumano": {
+    "main": [
+      [
+        {
+          "node": "AtualizaParaIA",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "OpenAI Chat Model": {
+    "ai_languageModel": [
+      [
+        {
+          "node": "Agente SDR Whastapp",
+          "type": "ai_languageModel",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "Agente SDR Whastapp": {
+    "main": [
+      [
+        {
+          "node": "Edit Fields6",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "Think": {
+    "ai_tool": [
+      [
+        {
+          "node": "Agente SDR Whastapp",
+          "type": "ai_tool",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "Google Drive Trigger": {
+    "main": [
+      [
+        {
+          "node": "file_id",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "Google Drive": {
+    "main": [
+      [
+        {
+          "node": "Extract from File",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "Extract from File": {
+    "main": [
+      [
+        {
+          "node": "Supabase Vector Store1",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "Embeddings OpenAI1": {
+    "ai_embedding": [
+      [
+        {
+          "node": "Supabase Vector Store1",
+          "type": "ai_embedding",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "Default Data Loader": {
+    "ai_document": [
+      [
+        {
+          "node": "Supabase Vector Store1",
+          "type": "ai_document",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "Recursive Character Text Splitter": {
+    "ai_textSplitter": [
+      [
+        {
+          "node": "Default Data Loader",
+          "type": "ai_textSplitter",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "file_id": {
+    "main": [
+      [
+        {
+          "node": "deletar_id_anterior",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "deletar_id_anterior": {
+    "main": [
+      [
+        {
+          "node": "Limit",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "Limit": {
+    "main": [
+      [
+        {
+          "node": "Google Drive",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "faq_harmony": {
+    "ai_tool": [
+      [
+        {
+          "node": "Agente SDR Whastapp",
+          "type": "ai_tool",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "create_appointment": {
+    "ai_tool": [
+      [
+        {
+          "node": "Agente SDR Whastapp",
+          "type": "ai_tool",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "cancel_appointment": {
+    "ai_tool": [
+      [
+        {
+          "node": "Agente SDR Whastapp",
+          "type": "ai_tool",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "update_appointment": {
+    "ai_tool": [
+      [
+        {
+          "node": "Agente SDR Whastapp",
+          "type": "ai_tool",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "BuscaContextoIA": {
+    "main": [
+      [
+        {
+          "node": "LookupCliente",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "agrupaImagem": {
+    "main": [
+      [
+        {
+          "node": "Get",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "LookupCliente": {
+    "main": [
+      [
+        {
+          "node": "messages",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "Schedule - Marcar Faltas": {
+    "main": [
+      [
+        {
+          "node": "MarcarFaltas",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "FiltrarUpsert": {
+    "main": [
+      [
+        {
+          "node": "DadosIniciais",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "audioParaBase64": {
+    "main": [
+      [
+        {
+          "node": "ConvertAudioFile",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "ConvertAudioFile": {
+    "main": [
+      [
+        {
+          "node": "TranscricaoWhisper",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "TranscricaoWhisper": {
+    "main": [
+      [
+        {
+          "node": "agrupaAudio",
+          "type": "main",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "find_available_slots": {
+    "ai_tool": [
+      [
+        {
+          "node": "Agente SDR Whastapp",
+          "type": "ai_tool",
+          "index": 0
+        }
+      ]
+    ]
+  },
+  "get_client_appointments": {
+    "ai_tool": [
+      [
+        {
+          "node": "Agente SDR Whastapp",
+          "type": "ai_tool",
+          "index": 0
+        }
+      ]
+    ]
+  }
+}

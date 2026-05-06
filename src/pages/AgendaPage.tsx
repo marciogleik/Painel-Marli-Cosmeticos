@@ -57,6 +57,13 @@ interface DragState {
   initialTop: number;
   currentTop: number;
   columnEl: HTMLDivElement | null;
+  currentProfessionalId?: string;
+  currentDate?: string;
+}
+
+interface DragTarget {
+  professionalId?: string;
+  date?: string;
 }
 
 interface PendingReschedule {
@@ -147,6 +154,8 @@ const AgendaPage = () => {
   const [pendingReschedule, setPendingReschedule] = useState<PendingReschedule | null>(null);
   const [isRescheduling, setIsRescheduling] = useState(false);
   const [currentTime, setCurrentTime] = useState(getNow());
+  const [dragTarget, setDragTarget] = useState<DragTarget | null>(null);
+  const [dragMousePos, setDragMousePos] = useState({ x: 0, y: 0 });
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
@@ -184,6 +193,7 @@ const AgendaPage = () => {
     };
   }, [queryClient]);
 
+
   // Current time updater
   useEffect(() => {
     const timer = setInterval(() => {
@@ -213,6 +223,16 @@ const AgendaPage = () => {
 
   const { data: professionals = [] } = useProfessionals({ onlyVisibleInAgenda: true });
   const { data: appointments = [] } = useAppointments(dateFrom, dateTo);
+
+  // Sync selected appointment if data updates while open
+  useEffect(() => {
+    if (detailOpen && selectedAppointment) {
+      const updated = appointments.find(a => a.id === selectedAppointment.id);
+      if (updated && JSON.stringify(updated) !== JSON.stringify(selectedAppointment)) {
+        setSelectedAppointment(updated);
+      }
+    }
+  }, [appointments, detailOpen, selectedAppointment]);
 
   // Fetch birthdays for the month
   const { data: monthBirthdays = [] } = useQuery({
@@ -340,7 +360,7 @@ const AgendaPage = () => {
     return null;
   };
 
-  // Ref to prevent detail dialog from opening after drag
+  // Convert pixel position to time
   const justDraggedRef = useRef(false);
 
   // Convert pixel position to time
@@ -362,8 +382,10 @@ const AgendaPage = () => {
   // Drag handlers
   const handleDragStart = useCallback((e: React.MouseEvent, appt: DBAppointment, columnEl: HTMLDivElement | null) => {
     if (appt.status === "cancelado" || appt.status === "falta") return;
-    e.preventDefault();
-    e.stopPropagation();
+    
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const offsetX = e.clientX - rect.left;
+    const offsetY = e.clientY - rect.top;
 
     const { top } = getPosition(appt);
     dragRef.current = {
@@ -372,16 +394,43 @@ const AgendaPage = () => {
       initialTop: top,
       currentTop: top,
       columnEl,
+      currentProfessionalId: appt.professional_id,
+      currentDate: appt.date,
     };
+    
     setDraggingApptId(appt.id);
     setDragPreviewTop(top);
+    setDragMousePos({ x: e.clientX - offsetX, y: e.clientY - offsetY });
+    setDragTarget({ professionalId: appt.professional_id, date: appt.date });
 
     const handleMouseMove = (ev: MouseEvent) => {
       if (!dragRef.current) return;
-      const delta = ev.clientY - dragRef.current.startY;
-      const newTop = Math.max(0, dragRef.current.initialTop + delta); // Min top is 0
+      
+      const deltaY = ev.clientY - dragRef.current.startY;
+      const newTop = Math.max(0, dragRef.current.initialTop + deltaY);
       dragRef.current.currentTop = newTop;
+      
       setDragPreviewTop(newTop);
+      setDragMousePos({ x: ev.clientX - offsetX, y: ev.clientY - offsetY });
+
+      // Detect column under mouse
+      const elements = document.elementsFromPoint(ev.clientX, ev.clientY);
+      let targetProfId: string | undefined;
+      let targetDate: string | undefined;
+
+      for (const el of elements) {
+        if (el instanceof HTMLElement) {
+          if (el.dataset.professionalId) targetProfId = el.dataset.professionalId;
+          if (el.dataset.date) targetDate = el.dataset.date;
+          if (targetProfId || targetDate) break;
+        }
+      }
+
+      if (targetProfId !== dragRef.current.currentProfessionalId || targetDate !== dragRef.current.currentDate) {
+        dragRef.current.currentProfessionalId = targetProfId || dragRef.current.currentProfessionalId;
+        dragRef.current.currentDate = targetDate || dragRef.current.currentDate;
+        setDragTarget({ professionalId: targetProfId, date: targetDate });
+      }
     };
 
     const handleMouseUp = () => {
@@ -390,11 +439,19 @@ const AgendaPage = () => {
 
       if (!dragRef.current) return;
       const drag = dragRef.current;
+      const currentTarget = { 
+        professionalId: drag.currentProfessionalId, 
+        date: drag.currentDate 
+      };
 
-      if (Math.abs(drag.currentTop - drag.initialTop) < 8) {
-        // Too small movement, treat as click
+      const hasMovedVertical = Math.abs(drag.currentTop - drag.initialTop) >= 8;
+      const hasMovedHorizontal = currentTarget.professionalId !== drag.appointment.professional_id || 
+                                currentTarget.date !== drag.appointment.date;
+
+      if (!hasMovedVertical && !hasMovedHorizontal) {
         dragRef.current = null;
         setDraggingApptId(null);
+        setDragTarget(null);
         return;
       }
 
@@ -419,27 +476,24 @@ const AgendaPage = () => {
       const newStartTime = formatTime(newStartH, newStartM);
       const newEndTime = formatTime(newEndH, newEndM);
 
-      // Check if time actually changed
-      if (newStartTime === drag.appointment.start_time) {
-        dragRef.current = null;
-        setDraggingApptId(null);
-        return;
-      }
-
       setPendingReschedule({
-        appointment: drag.appointment,
+        appointment: {
+          ...drag.appointment,
+          professional_id: currentTarget.professionalId || drag.appointment.professional_id,
+          date: currentTarget.date || drag.appointment.date,
+        },
         newStartTime,
         newEndTime,
       });
 
       dragRef.current = null;
-      // Note: we don't clear draggingApptId here to avoid the card jumping back 
-      // while the user is looking at the confirmation dialog.
+      setDraggingApptId(null);
+      setDragTarget(null);
     };
 
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", handleMouseUp);
-  }, []);
+  }, [getPosition, pixelToTime, formatTime]);
 
   const handleConfirmReschedule = async () => {
     if (!pendingReschedule) return;
@@ -462,7 +516,12 @@ const AgendaPage = () => {
 
     const { error } = await supabase
       .from("appointments")
-      .update({ start_time: newStartTime, end_time: newEndTime })
+      .update({ 
+        start_time: newStartTime.endsWith(":00") ? newStartTime : newStartTime + ":00", 
+        end_time: newEndTime.endsWith(":00") ? newEndTime : newEndTime + ":00",
+        professional_id: appointment.professional_id,
+        date: appointment.date
+      })
       .eq("id", appointment.id);
 
     if (error) {
@@ -557,7 +616,7 @@ const AgendaPage = () => {
               appt.status === "bloqueado" && "absence-block"
             )}
             style={{
-              top: `${displayTop}px`,
+              top: `${top}px`,
               height: `${height}px`,
               width: `calc((100% - 8px) / ${overlapCount} - 4px)`, // 4px total gap per slot
               left: `calc(4px + (${overlapIndex} * (100% - 8px) / ${overlapCount}) + 2px)`, // 2px start gap
@@ -565,11 +624,9 @@ const AgendaPage = () => {
               color: appt.status === "bloqueado"
                 ? "#000000"
                 : (["atrasado", "espera"].includes(appt.status) ? "#1f2937" : "white"),
-              zIndex: isDragging ? 1000 : 10,
-              opacity: isDragging ? 0.9 : (isCancelled ? 0.5 : (isFalta ? 0.7 : 1)),
-              transform: isDragging ? 'scale(1.02)' : 'scale(1)',
-              boxShadow: isDragging ? '0 25px 50px -12px rgb(0 0 0 / 0.5)' : undefined,
-              border: isDragging ? '2px solid #ffffff' : undefined,
+              zIndex: 10,
+              opacity: isDragging ? 0.3 : (isCancelled ? 0.5 : (isFalta ? 0.7 : 1)),
+              transform: 'scale(1)',
             }}
             onMouseDown={(e) => {
               if (isDraggable) handleDragStart(e, appt, columnEl);
@@ -1002,6 +1059,8 @@ const AgendaPage = () => {
                           blockedBlocks={getBlockedForColumn(dayStr)}
                           renderBlock={(posAppt, el) => renderAppointmentBlock(posAppt, selectedFilter === "all", el)}
                           renderBlockedBlock={renderBlockedBlock}
+                          isDragOver={dragTarget?.date === dayStr && !dragTarget.professionalId}
+                          dragPreviewTop={dragPreviewTop}
                           onDoubleClick={() => {
                             setSelectedDay(day);
                             setViewMode("day");
@@ -1074,6 +1133,8 @@ const AgendaPage = () => {
                           blockedBlocks={getBlockedForColumn(dayStr, prof.id)}
                           renderBlock={(posAppt, el) => renderAppointmentBlock(posAppt, false, el)}
                           renderBlockedBlock={renderBlockedBlock}
+                          isDragOver={dragTarget?.professionalId === prof.id}
+                          dragPreviewTop={dragPreviewTop}
                           onSlotClick={(time) => {
                             setApptDefaults({ profId: prof.id, date: selectedDay, time });
                             setDialogOpen(true);
@@ -1175,13 +1236,42 @@ const AgendaPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Floating Drag Preview */}
+      {draggingApptId && (
+        (() => {
+          const appt = appointments.find(a => a.id === draggingApptId);
+          if (!appt) return null;
+          const { height } = getPosition(appt);
+          const serviceName = getServiceNames(appt);
+
+          return (
+            <div
+              className="fixed z-[1000] pointer-events-none modern-agenda-card shadow-2xl border-2 border-white/50"
+              style={{
+                top: 0,
+                left: 0,
+                width: '200px',
+                height: `${height}px`,
+                backgroundColor: getStatusBg(appt.status),
+                color: (["atrasado", "espera"].includes(appt.status) ? "#1f2937" : "white"),
+                transform: `translate3d(${dragMousePos.x}px, ${dragMousePos.y}px, 0) scale(1.05)`,
+                opacity: 0.9,
+              }}
+            >
+              <div className="horario">{(appt.start_time || "00:00").slice(0, 5)}</div>
+              <div className="cliente font-bold truncate">{appt.client_name}</div>
+              <div className="servico text-[10px] truncate opacity-90">{serviceName || "Sem serviço"}</div>
+            </div>
+          );
+        })()
+      )}
     </div>
   );
 };
 
 // Sub-components to hold column refs
 function DayColumn({
-  dayStr, dayAbbr, dayNum, isToday: today, hours, appts, blockedBlocks, renderBlock, renderBlockedBlock, onDoubleClick,
+  dayStr, dayAbbr, dayNum, isToday: today, hours, appts, blockedBlocks, renderBlock, renderBlockedBlock, onDoubleClick, isDragOver, dragPreviewTop,
 }: {
   dayStr: string; dayAbbr: string; dayNum: string; isToday: boolean;
   hours: string[]; appts: PositionedAppointment<DBAppointment>[];
@@ -1189,13 +1279,27 @@ function DayColumn({
   renderBlock: (posAppt: PositionedAppointment<DBAppointment>, el: HTMLDivElement | null) => React.ReactNode;
   renderBlockedBlock: (block: any) => React.ReactNode;
   onDoubleClick: () => void;
+  isDragOver: boolean;
+  dragPreviewTop: number;
 }) {
   const colRef = useRef<HTMLDivElement>(null);
   return (
     <div
       className="flex-1 min-w-0 border-r border-slate-300 last:border-r-0 cursor-pointer"
       onDoubleClick={onDoubleClick}
+      data-date={dayStr}
     >
+      {/* Drop Target Indicator */}
+      {isDragOver && (
+        <div 
+          className="absolute left-1 right-1 bg-primary/10 border-2 border-dashed border-primary/30 rounded-lg z-0 pointer-events-none"
+          style={{
+            top: `${dragPreviewTop}px`,
+            height: '42px', // Default min height
+          }}
+        />
+      )}
+
       <div className="h-12 flex flex-col items-center justify-center border-b border-slate-300 bg-background sticky top-0 z-40">
         <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{dayAbbr}</span>
         <span className={cn("text-sm font-bold", today ? "text-primary" : "text-foreground")}>{dayNum}</span>
@@ -1216,17 +1320,33 @@ function DayColumn({
 }
 
 function ProfColumn({
-  profId, profName, hours, appts, blockedBlocks, renderBlock, renderBlockedBlock, onSlotClick,
+  profId, profName, hours, appts, blockedBlocks, renderBlock, renderBlockedBlock, onSlotClick, isDragOver, dragPreviewTop,
 }: {
   profId: string; profName: string; hours: string[]; appts: PositionedAppointment<DBAppointment>[];
   blockedBlocks: any[];
   renderBlock: (posAppt: PositionedAppointment<DBAppointment>, el: HTMLDivElement | null) => React.ReactNode;
   renderBlockedBlock: (block: any) => React.ReactNode;
   onSlotClick: (time: string) => void;
+  isDragOver: boolean;
+  dragPreviewTop: number;
 }) {
   const colRef = useRef<HTMLDivElement>(null);
   return (
-    <div className="flex-1 min-w-0 border-r border-slate-300 last:border-r-0">
+    <div 
+      className="flex-1 min-w-0 border-r border-slate-300 last:border-r-0"
+      data-professional-id={profId}
+    >
+      {/* Drop Target Indicator */}
+      {isDragOver && (
+        <div 
+          className="absolute left-1 right-1 bg-primary/10 border-2 border-dashed border-primary/30 rounded-lg z-0 pointer-events-none"
+          style={{
+            top: `${dragPreviewTop}px`,
+            height: '42px', // Default min height
+          }}
+        />
+      )}
+
       <div className="h-10 sm:h-12 flex items-center justify-center border-b border-slate-300 bg-background sticky top-0 z-40 px-0.5 sm:px-2 text-center overflow-hidden">
         <span className="text-[7px] sm:text-[10px] font-black text-foreground/80 truncate text-center leading-none uppercase tracking-tighter sm:tracking-[0.15em]">
           {(profName || "Prof").split(" ")[0]}

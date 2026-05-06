@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronDown as ChevronDownIcon, ChevronUp as ChevronUpIcon } from "lucide-react";
@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, ChevronDown, Pencil, Trash2, FileText, Loader2, Image, Lock } from "lucide-react";
+import { Plus, ChevronDown, Pencil, Trash2, FileText, Loader2, Image, Lock, X } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
@@ -308,7 +308,7 @@ const RecordThumbnail = ({ filePath, onClick }: { filePath: string, onClick: () 
   );
 };
 
-const RecordImages = ({ attachments, currentUserId, userRole }: { attachments: any[], currentUserId?: string, userRole?: string }) => {
+const RecordImages = ({ attachments, currentUserId, userRole, onDelete }: { attachments: any[], currentUserId?: string, userRole?: string, onDelete?: (id: string, path: string) => void }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const visibleAttachments = attachments.filter(att => {
@@ -347,6 +347,17 @@ const RecordImages = ({ attachments, currentUserId, userRole }: { attachments: a
                 <span className="text-[9px] truncate w-full text-center">{att.file_path.split('/').pop()}</span>
               </div>
             )}
+            
+            {onDelete && (
+              <button
+                onClick={() => onDelete(att.id, att.file_path)}
+                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md z-10"
+                title="Remover anexo"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+
             {att.privacy_type === 'only_me' && (
               <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5" title="Apenas eu">
                 <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2V7a5 5 0 00-5-5zM7 7a3 3 0 016 0v2H7V7z"></path></svg>
@@ -388,8 +399,118 @@ const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
   const [expandedRecords, setExpandedRecords] = useState<Set<string>>(new Set());
   const [signingRecordId, setSigningRecordId] = useState<string | null>(null);
   const [isSigningOpen, setIsSigningOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingRecordId, setUploadingRecordId] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const COLLAPSED_LIMIT = 5;
+
+  const { data: myProfessional } = useQuery({
+    queryKey: ["my-professional-id", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from("professionals")
+        .select("id, name")
+        .eq("user_id", user.id)
+        .single();
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const triggerUpload = (recordId: string) => {
+    setUploadingRecordId(recordId);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!uploadingRecordId) return;
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const fileExt = file.name.split('.').pop() || "unknown";
+      const fileName = `${clientId}_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `uploads/${fileName}`;
+
+      try {
+        const { error: uploadError } = await supabase.storage
+          .from("client-attachments")
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        let fileType = "document";
+        if (file.type.startsWith("image/")) fileType = "image";
+        else if (file.type === "application/pdf") fileType = "pdf";
+
+        const { error: dbError } = await supabase
+          .from("client_attachments")
+          .insert({
+            client_id: clientId,
+            client_name: clientName || null,
+            file_path: filePath,
+            file_type: fileType,
+            privacy_type: "public",
+            professional_id: myProfessional?.id || null,
+            professional_name: myProfessional?.name || null,
+            ficha_type: "Upload Manual",
+            patient_record_id: uploadingRecordId,
+            notes: file.name
+          } as any);
+
+        if (dbError) throw dbError;
+        successCount++;
+      } catch (err: any) {
+        console.error("Erro no upload", err);
+        errorCount++;
+      }
+    }
+
+    setIsUploading(false);
+    setUploadingRecordId(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    
+    if (successCount > 0) {
+      toast({ title: `${successCount} arquivo(s) anexado(s) à ficha com sucesso!` });
+      queryClient.invalidateQueries({ queryKey: ["patient_records", clientId] });
+    }
+    if (errorCount > 0) {
+      toast({ title: `Erro ao enviar ${errorCount} arquivo(s)`, variant: "destructive" });
+    }
+  };
+
+  const deleteAttachmentMutation = useMutation({
+    mutationFn: async ({ id, path }: { id: string, path: string }) => {
+      const { error: dbError } = await supabase
+        .from("client_attachments")
+        .delete()
+        .eq("id", id);
+      if (dbError) throw dbError;
+
+      const storagePath = path.startsWith("uploads/") ? path : `uploads/${path}`;
+      await supabase.storage.from("client-attachments").remove([storagePath]);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["patient_records", clientId] });
+      toast({ title: "Anexo removido!" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao remover", description: err.message, variant: "destructive" });
+    }
+  });
+
+  const handleDeleteAttachment = (id: string, path: string) => {
+    if (window.confirm("Tem certeza que deseja excluir este anexo?")) {
+      deleteAttachmentMutation.mutate({ id, path });
+    }
+  };
 
   const { data: client } = useQuery({
     queryKey: ["client_phone", clientId],
@@ -499,6 +620,15 @@ const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
 
   return (
     <div className="space-y-4">
+      <input
+        type="file"
+        ref={fileInputRef}
+        className="hidden"
+        multiple
+        accept="image/*,application/pdf"
+        onChange={handleFileUpload}
+      />
+      
       {/* Actions */}
       <div className="flex items-center gap-3 flex-wrap">
         <DropdownMenu>
@@ -578,6 +708,7 @@ const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
                           clientPhone={client?.phone || ""}
                           documentTitle={record.title || "Ficha"}
                           onSignatureSuccess={() => queryClient.invalidateQueries({ queryKey: ["patient_records", clientId] })}
+                          onUploadAttachment={() => triggerUpload(record.id)}
                         />
                         <Button
                           variant="outline"
@@ -621,6 +752,7 @@ const AnamneseTab = ({ clientId, clientName }: AnamneseTabProps) => {
                       attachments={(record as any).client_attachments || []} 
                       currentUserId={user?.id}
                       userRole={(user as any)?.app_metadata?.role}
+                      onDelete={handleDeleteAttachment}
                     />
 
                     {/* Signature Preview */}

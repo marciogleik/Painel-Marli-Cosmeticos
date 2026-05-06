@@ -347,86 +347,86 @@ const BlockedSlotDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-sm">
         <DialogHeader>
-          <div className="flex items-center gap-3 mb-1">
-            <div className="p-2.5 bg-destructive/10 rounded-xl">
-              <Ban className="w-5 h-5 text-destructive" />
+          <div className="flex items-center gap-2 mb-0.5">
+            <div className="p-2 bg-destructive/10 rounded-lg">
+              <Ban className="w-4 h-4 text-destructive" />
             </div>
             <div>
-              <DialogTitle className="text-xl font-display font-black tracking-tighter uppercase">
+              <DialogTitle className="text-lg font-display font-black tracking-tight uppercase">
                 {internalBlockId ? "Editar Bloqueio" : "Bloquear Horário"}
               </DialogTitle>
-              <DialogDescription className="text-[10px] font-bold uppercase tracking-widest opacity-70">
-                Gestão de Ausências e Intervalos
+              <DialogDescription className="text-[9px] font-bold uppercase tracking-wider opacity-60">
+                Gestão de Ausências
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
-        <div className="space-y-4 pt-2">
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider opacity-70">
-              <Clock className="w-3.5 h-3.5" /> Profissional *
+        <div className="space-y-2.5 pt-1">
+          <div className="space-y-1">
+            <Label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider opacity-70">
+              <Clock className="w-3 h-3" /> Profissional *
             </Label>
             <Select value={professionalId} onValueChange={setProfessionalId}>
-              <SelectTrigger className="h-11 rounded-xl border-border/60 focus:ring-primary/20">
-                <SelectValue placeholder="Selecione a profissional" />
+              <SelectTrigger className="h-9 rounded-lg border-border/60">
+                <SelectValue placeholder="Selecione" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all" className="font-bold text-primary">
+                <SelectItem value="all" className="font-bold text-primary text-xs">
                   ✨ Todos os Profissionais
                 </SelectItem>
                 {professionals.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  <SelectItem key={p.id} value={p.id} className="text-xs">{p.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider opacity-70">
-              <CalIcon className="w-3.5 h-3.5" /> Data *
+          <div className="space-y-1">
+            <Label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider opacity-70">
+              <CalIcon className="w-3 h-3" /> Data *
             </Label>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className={cn("w-full h-11 justify-start text-left font-normal rounded-xl border-border/60 hover:bg-muted/50", !date && "text-muted-foreground")}>
-                  <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
-                  {date ? format(date, "PPP", { locale: ptBR }) : "Selecione a data"}
+                <Button variant="outline" className={cn("w-full h-9 justify-start text-left font-normal text-xs rounded-lg border-border/60", !date && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-1.5 h-3.5 w-3.5 opacity-50" />
+                  {date ? format(date, "dd 'de' MMMM", { locale: ptBR }) : "Selecione a data"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar mode="single" selected={date} onSelect={setDate} initialFocus className="p-3 pointer-events-auto" />
+                <Calendar mode="single" selected={date} onSelect={setDate} initialFocus className="p-2 pointer-events-auto" />
               </PopoverContent>
             </Popover>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider opacity-70">
-                <Clock className="w-3.5 h-3.5" /> Início *
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider opacity-70">
+                <Clock className="w-3 h-3" /> Início *
               </Label>
               <Select value={startTime} onValueChange={handleStartTimeChange}>
-                <SelectTrigger className="h-11 rounded-xl border-border/60"><SelectValue placeholder="Início" /></SelectTrigger>
+                <SelectTrigger className="h-9 rounded-lg border-border/60 text-xs"><SelectValue placeholder="Início" /></SelectTrigger>
                 <SelectContent>
                   <ScrollArea className="h-[200px]">
                     {timeSlots.map((t) => (
-                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                      <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>
                     ))}
                   </ScrollArea>
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider opacity-70">
-                <Clock className="w-3.5 h-3.5" /> Fim *
+            <div className="space-y-1">
+              <Label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider opacity-70">
+                <Clock className="w-3 h-3" /> Fim *
               </Label>
               <Select value={endTime} onValueChange={setEndTime}>
-                <SelectTrigger className="h-11 rounded-xl border-border/60"><SelectValue placeholder="Fim" /></SelectTrigger>
+                <SelectTrigger className="h-9 rounded-lg border-border/60 text-xs"><SelectValue placeholder="Fim" /></SelectTrigger>
                 <SelectContent>
                   <ScrollArea className="h-[200px]">
                     {timeSlots.filter((t) => t > startTime).map((t) => (
-                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                      <SelectItem key={t} value={t} className="text-xs">{t}</SelectItem>
                     ))}
                   </ScrollArea>
                 </SelectContent>
@@ -436,9 +436,9 @@ const BlockedSlotDialog = ({
 
           {!internalBlockId && (
             <>
-              <div className="space-y-2">
-                <Label className="flex items-center gap-1.5">
-                  <Repeat className="w-3.5 h-3.5" /> Recorrência
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider opacity-70">
+                  <Repeat className="w-3 h-3" /> Recorrência
                 </Label>
                 <RadioGroup
                   value={recurrence}
@@ -451,12 +451,12 @@ const BlockedSlotDialog = ({
                   className="flex gap-4"
                 >
                   <div className="flex items-center gap-1.5">
-                    <RadioGroupItem value="pontual" id="rec-pontual" />
-                    <Label htmlFor="rec-pontual" className="font-normal cursor-pointer">Pontual</Label>
+                    <RadioGroupItem value="pontual" id="rec-pontual" className="h-3.5 w-3.5" />
+                    <Label htmlFor="rec-pontual" className="text-xs font-normal cursor-pointer">Pontual</Label>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <RadioGroupItem value="semanal" id="rec-semanal" />
-                    <Label htmlFor="rec-semanal" className="font-normal cursor-pointer">Recorrente</Label>
+                    <RadioGroupItem value="semanal" id="rec-semanal" className="h-3.5 w-3.5" />
+                    <Label htmlFor="rec-semanal" className="text-xs font-normal cursor-pointer">Recorrente</Label>
                   </div>
                 </RadioGroup>
               </div>
@@ -516,15 +516,15 @@ const BlockedSlotDialog = ({
             </>
           )}
 
-          <div className="space-y-2">
-            <Label className="text-xs font-bold uppercase tracking-wider opacity-70">Motivo (opcional)</Label>
-            <div className="flex flex-wrap gap-1.5 mb-2">
+          <div className="space-y-1.5">
+            <Label className="text-[10px] font-bold uppercase tracking-wider opacity-70">Motivo (opcional)</Label>
+            <div className="flex flex-wrap gap-1 mb-1.5">
               {quickReasons.map(r => (
                 <Badge
                   key={r}
                   variant="outline"
                   className={cn(
-                    "cursor-pointer hover:bg-primary/10 hover:border-primary/50 transition-all text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-lg",
+                    "cursor-pointer hover:bg-primary/10 transition-all text-[8px] font-bold uppercase tracking-wider px-1.5 py-0 rounded-md",
                     reason === r && "bg-primary/20 border-primary/50 text-primary"
                   )}
                   onClick={() => setReason(r)}
@@ -534,10 +534,10 @@ const BlockedSlotDialog = ({
               ))}
             </div>
             <Input
-              placeholder="Ex: Almoço, reunião, folga..."
+              placeholder="Ex: Almoço, folga..."
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className="h-11 rounded-xl border-border/60 focus:ring-primary/20 placeholder:text-muted-foreground/30"
+              className="h-9 text-xs rounded-lg border-border/60"
               maxLength={100}
             />
           </div>
@@ -546,12 +546,12 @@ const BlockedSlotDialog = ({
             onClick={() => mutation.mutate()}
             disabled={!canSubmit || mutation.isPending}
             className={cn(
-                "w-full h-12 text-xs font-black uppercase tracking-widest rounded-xl transition-all active:scale-[0.98]",
-                internalBlockId ? "bg-primary shadow-lg shadow-primary/20" : "bg-destructive hover:bg-destructive/90 shadow-lg shadow-destructive/20"
+                "w-full h-10 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all active:scale-[0.98]",
+                internalBlockId ? "bg-primary shadow-md shadow-primary/10" : "bg-destructive hover:bg-destructive/90 shadow-md shadow-destructive/10"
             )}
           >
-            {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Ban className="w-4 h-4 mr-2" />}
-            {internalBlockId ? "Salvar Alterações" : "Confirmar Bloqueio"}
+            {mutation.isPending ? <Loader2 className="w-3 h-3 animate-spin mr-1.5" /> : <Ban className="w-3.5 h-3.5 mr-1.5" />}
+            {internalBlockId ? "Salvar" : "Confirmar"}
           </Button>
 
           {professionalId === "all" && (
@@ -620,72 +620,62 @@ const BlockedSlotDialog = ({
                       <div 
                         key={block.id}
                         className={cn(
-                          "group p-3 rounded-lg border bg-card transition-all hover:border-primary/50",
-                          internalBlockId === block.id && "ring-2 ring-primary border-transparent"
+                          "group p-2 rounded-lg border bg-card transition-all hover:border-primary/50",
+                          internalBlockId === block.id && "ring-1 ring-primary border-transparent"
                         )}
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="space-y-1 flex-1">
-                            <div className="flex items-center gap-2">
+                        <div className="flex items-start justify-between gap-1.5">
+                          <div className="space-y-0.5 flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
                               {block.isSeries ? (
-                                <Badge variant="secondary" className="text-[9px] py-0 px-1 font-black uppercase tracking-tighter bg-primary/10 text-primary">
-                                  <Repeat className="w-2.5 h-2.5 mr-1" />
+                                <Badge variant="secondary" className="text-[8px] py-0 px-1 font-black uppercase tracking-tighter bg-primary/10 text-primary">
+                                  <Repeat className="w-2 h-2 mr-1" />
                                   Série
                                 </Badge>
                               ) : (
-                                <Badge variant="outline" className="text-[10px] py-0 px-1 font-normal bg-muted">
-                                  <CalIcon className="w-2.5 h-2.5 mr-1" />
-                                  {format(parseISO(block.date), "dd/MM/yy")}
+                                <Badge variant="outline" className="text-[9px] py-0 px-1 font-normal bg-muted">
+                                  {format(parseISO(block.date), "dd/MM")}
                                 </Badge>
                               )}
-                              <Badge variant="outline" className="text-[10px] py-0 px-1 font-normal bg-muted">
-                                <Clock className="w-2.5 h-2.5 mr-1" />
+                              <Badge variant="outline" className="text-[9px] py-0 px-1 font-normal bg-muted">
                                 {block.start_time.slice(0, 5)} - {block.end_time.slice(0, 5)}
                               </Badge>
                             </div>
-                            <p className="text-xs font-medium leading-none mt-1">
-                              {stripSeriesId(block.notes) || "Sem observações"}
+                            <p className="text-[10px] font-medium leading-tight truncate mt-0.5">
+                              {stripSeriesId(block.notes) || "Sem motivo"}
                             </p>
-                            {block.isSeries && (
-                              <p className="text-[9px] text-muted-foreground mt-1 italic">
-                                * Bloqueio recorrente (várias datas)
-                              </p>
-                            )}
                           </div>
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-0.5">
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              className="w-7 h-7 hover:bg-muted"
+                              className="w-6 h-6 hover:bg-muted"
                               onClick={() => {
                                 setSelectedAuditId(block.id);
                                 setAuditOpen(true);
                               }}
-                              title="Ver Auditoria"
                             >
-                              <History className="w-3.5 h-3.5" />
+                              <History className="w-3 h-3" />
                             </Button>
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              className="w-7 h-7 hover:bg-muted"
+                              className="w-6 h-6 hover:bg-muted"
                               onClick={() => handleEdit(block)}
-                              title={block.isSeries ? "Editar Série" : "Editar"}
                             >
-                              <Edit2 className="w-3.5 h-3.5" />
+                              <Edit2 className="w-3 h-3" />
                             </Button>
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              className="w-7 h-7 hover:bg-destructive/10 text-destructive"
+                              className="w-6 h-6 hover:bg-destructive/10 text-destructive"
                               onClick={() => {
                                 const sid = getSeriesId(block.notes);
                                 setConfirmDeleteId(block.id);
                                 setConfirmDeleteSeries(!!sid);
                               }}
-                              title={block.isSeries ? "Excluir Série" : "Excluir"}
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-3 h-3" />
                             </Button>
                           </div>
                         </div>

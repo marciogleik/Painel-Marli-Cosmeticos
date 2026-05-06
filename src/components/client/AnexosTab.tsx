@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { FileText, Image, File, ChevronDown, ChevronUp, Download, Lock, Globe, Users, ShieldAlert } from "lucide-react";
+import { FileText, Image, File, ChevronDown, ChevronUp, Download, Lock, Globe, Users, ShieldAlert, Upload, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   DropdownMenu,
@@ -22,6 +22,7 @@ import {
 
 interface AnexosTabProps {
   clientId: string;
+  clientName?: string;
 }
 
 const useClientAttachments = (clientId: string) =>
@@ -45,12 +46,28 @@ const fileIcon = (type: string | null) => {
   return <File className="w-4 h-4 text-muted-foreground" />;
 };
 
-const AnexosTab = ({ clientId }: AnexosTabProps) => {
+const AnexosTab = ({ clientId, clientName }: AnexosTabProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: attachments, isLoading } = useClientAttachments(clientId);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: myProfessional } = useQuery({
+    queryKey: ["my-professional-id", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from("professionals")
+        .select("id, name")
+        .eq("user_id", user.id)
+        .single();
+      return data;
+    },
+    enabled: !!user,
+  });
 
   const updatePrivacy = async (id: string, privacy: string) => {
     const { error } = await supabase
@@ -82,6 +99,66 @@ const AnexosTab = ({ clientId }: AnexosTabProps) => {
     if (att.privacy_type === 'only_me' && att.professional_id === currentUserId) return true;
     return false;
   }) || [];
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploading(true);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const fileExt = file.name.split('.').pop() || "unknown";
+      const fileName = `${clientId}_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `uploads/${fileName}`;
+
+      try {
+        const { error: uploadError } = await supabase.storage
+          .from("client-attachments")
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        let fileType = "document";
+        if (file.type.startsWith("image/")) fileType = "image";
+        else if (file.type === "application/pdf") fileType = "pdf";
+
+        const { error: dbError } = await supabase
+          .from("client_attachments")
+          .insert({
+            client_id: clientId,
+            client_name: clientName || null,
+            file_path: filePath,
+            file_type: fileType,
+            privacy_type: "public",
+            professional_id: myProfessional?.id || null,
+            professional_name: myProfessional?.name || null,
+            ficha_type: "Upload Manual",
+            notes: file.name
+          } as any);
+
+        if (dbError) throw dbError;
+        successCount++;
+      } catch (err: any) {
+        console.error("Erro no upload", err);
+        errorCount++;
+      }
+    }
+
+    setUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    
+    if (successCount > 0) {
+      toast({ title: `${successCount} arquivo(s) enviado(s) com sucesso!` });
+      queryClient.invalidateQueries({ queryKey: ["client_attachments", clientId] });
+      queryClient.invalidateQueries({ queryKey: ["patient_records", clientId] });
+    }
+    if (errorCount > 0) {
+      toast({ title: `Erro ao enviar ${errorCount} arquivo(s)`, variant: "destructive" });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -115,6 +192,26 @@ const AnexosTab = ({ clientId }: AnexosTabProps) => {
         <p className="text-sm text-muted-foreground">
           {visibleAttachments.length} anexo{visibleAttachments.length !== 1 ? "s" : ""} encontrado{visibleAttachments.length !== 1 ? "s" : ""}
         </p>
+        <div>
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            multiple
+            accept="image/*,application/pdf"
+            onChange={handleFileUpload}
+          />
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="gap-2"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+          >
+            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+            {uploading ? "Enviando..." : "Adicionar Anexo"}
+          </Button>
+        </div>
       </div>
 
       {sortedGroups.map(([group, items]) => (

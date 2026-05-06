@@ -101,6 +101,18 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
     }
   }, [availableServices]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Sync state when appointment prop changes (e.g. from realtime update)
+  useEffect(() => {
+    setProfessionalId(appointment.professional_id);
+    setDate(parseISO(appointment.date));
+    setStartTime(appointment.start_time?.slice(0, 5) || "");
+    setSelectedClientId(appointment.client_id);
+    setClientName(appointment.client_name || "");
+    setClientPhone(appointment.client_phone || "");
+    setNotes(appointment.notes || "");
+    setStatus(appointment.status || "agendado");
+  }, [appointment]);
+
   const filteredClients = clientSearch.length >= 2
     ? clients.filter(c =>
       c.full_name.toLowerCase().includes(clientSearch.toLowerCase()) ||
@@ -283,15 +295,15 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
   const canSubmit = professionalId && selectedServices.length > 0 && date && startTime && clientName.trim();
 
   return (
-    <div className="space-y-4 pt-1" translate="no">
+    <div className="space-y-2 pt-1" translate="no">
       {/* Professional */}
-      <div className="space-y-1.5">
-        <Label className="text-xs">Profissional *</Label>
+      <div className="space-y-1">
+        <Label className="text-[10px] font-bold uppercase tracking-wider opacity-70">Profissional *</Label>
         <Select value={professionalId} onValueChange={v => { setProfessionalId(v); setSelectedServices([]); }}>
-          <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
           <SelectContent>
             {professionals.map(p => (
-              <SelectItem key={p.id} value={p.id}>{p.name} — {p.role_description}</SelectItem>
+              <SelectItem key={p.id} value={p.id} className="text-xs">{p.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -299,37 +311,37 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
 
       {/* Services */}
       {professionalId && (
-        <div className="space-y-1.5">
-          <Label className="text-xs">
-            Serviços * {selectedServices.length > 0 && <span className="text-muted-foreground font-normal">({totalDuration} min)</span>}
+        <div className="space-y-1">
+          <Label className="text-[10px] font-bold uppercase tracking-wider opacity-70 flex justify-between">
+            Serviços * {selectedServices.length > 0 && <span className="text-primary font-bold">({totalDuration} min)</span>}
           </Label>
           {availableServices.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum serviço vinculado.</p>
+            <p className="text-xs text-muted-foreground italic">Nenhum serviço vinculado.</p>
           ) : (
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <div className="relative">
-                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground opacity-50" />
                 <Input
                   placeholder="Pesquisar..."
                   value={serviceSearch}
                   onChange={(e) => setServiceSearch(e.target.value)}
-                  className="pl-7 h-7 text-[10px]"
+                  className="pl-7 h-7 text-[10px] rounded-md"
                 />
               </div>
-              <div className="grid gap-1.5 max-h-36 overflow-y-auto border border-border rounded-lg p-2" translate="no">
+              <div className="grid gap-1 max-h-32 overflow-y-auto border border-border/60 rounded-lg p-1.5 bg-muted/20" translate="no">
                 {availableServices
                   .filter(s => s.name.toLowerCase().includes(serviceSearch.toLowerCase()))
                   .map(s => {
                     const checked = selectedServices.some(ss => ss.id === s.id);
                     return (
-                      <label key={s.id} className="flex items-center gap-2.5 cursor-pointer hover:bg-muted/50 rounded-md px-2 py-1 -mx-1">
-                        <Checkbox checked={checked} onCheckedChange={() => toggleService(s)} />
+                      <label key={s.id} className="flex items-center gap-2 cursor-pointer hover:bg-background rounded-md px-1.5 py-0.5 transition-colors">
+                        <Checkbox checked={checked} onCheckedChange={() => toggleService(s)} className="h-3.5 w-3.5" />
                         <div className="flex-1 min-w-0">
-                          <span className="text-sm">{s.name}</span>
-                          <span className="text-xs text-muted-foreground ml-1.5">{s.duration_minutes} min</span>
+                          <span className="text-xs font-medium">{s.name}</span>
+                          <span className="text-[10px] text-muted-foreground ml-1.5">{s.duration_minutes}m</span>
                         </div>
                         {s.base_price != null && (
-                          <span className="text-xs text-muted-foreground shrink-0">R$ {s.base_price.toFixed(2).replace(".", ",")}</span>
+                          <span className="text-[10px] font-bold text-primary shrink-0">R$ {s.base_price.toFixed(0)}</span>
                         )}
                       </label>
                     );
@@ -341,14 +353,14 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
       )}
 
       {/* Date & Time row */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5" translate="no">
-          <Label className="text-xs">Data *</Label>
+      <div className="grid grid-cols-3 gap-2">
+        <div className="space-y-1" translate="no">
+          <Label className="text-[10px] font-bold uppercase tracking-wider opacity-70">Data *</Label>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}>
-                <CalendarIcon className="mr-1.5 h-3.5 w-3.5" />
-                {date ? format(date, "dd/MM/yyyy") : "Data"}
+              <Button variant="outline" size="sm" className={cn("w-full h-8 justify-start text-left font-normal text-xs px-2", !date && "text-muted-foreground")}>
+                <CalendarIcon className="mr-1 h-3 w-3 opacity-50" />
+                {date ? format(date, "dd/MM/yy") : "Data"}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -357,24 +369,24 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
                 selected={date}
                 onSelect={setDate}
                 initialFocus
-                className={cn("p-3 pointer-events-auto")}
+                className={cn("p-2 pointer-events-auto")}
               />
             </PopoverContent>
           </Popover>
         </div>
-        <div className="space-y-1.5" translate="no">
-          <Label className="text-xs">Início *</Label>
+        <div className="space-y-1" translate="no">
+          <Label className="text-[10px] font-bold uppercase tracking-wider opacity-70">Início *</Label>
           <Select value={startTime} onValueChange={v => { setStartTime(v); setManualEndTime(null); }}>
-            <SelectTrigger className="h-9"><SelectValue placeholder="Início" /></SelectTrigger>
+            <SelectTrigger className="h-8 text-xs px-2"><SelectValue placeholder="Início" /></SelectTrigger>
             <SelectContent>
               {timeSlots.map(t => {
                 const conflict = totalDuration > 0 ? getConflict(t, totalDuration) : null;
                 return (
-                  <SelectItem key={t} value={t}>
-                    <span className="flex items-center gap-2">
+                  <SelectItem key={t} value={t} className="text-xs">
+                    <span className="flex items-center gap-1.5">
                       {t}
                       {conflict && (
-                        <span className="text-[10px] text-amber-500 font-normal">⚠ {conflict}</span>
+                        <span className="text-[9px] text-amber-500 font-normal">⚠</span>
                       )}
                     </span>
                   </SelectItem>
@@ -383,16 +395,16 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1.5" translate="no">
-          <Label className="text-xs">Término *</Label>
+        <div className="space-y-1" translate="no">
+          <Label className="text-[10px] font-bold uppercase tracking-wider opacity-70">Término *</Label>
           <Select value={endTime} onValueChange={setManualEndTime}>
-            <SelectTrigger className="h-9"><SelectValue placeholder="Término" /></SelectTrigger>
+            <SelectTrigger className="h-8 text-xs px-2"><SelectValue placeholder="Fim" /></SelectTrigger>
             <SelectContent>
               {timeSlots.map(t => {
                 const isBeforeStart = startTime && t <= startTime;
                 return (
-                  <SelectItem key={t} value={t} disabled={!!isBeforeStart}>
-                    {t} {t === suggestedEndTime && "(Sugerido)"}
+                  <SelectItem key={t} value={t} disabled={!!isBeforeStart} className="text-xs">
+                    {t} {t === suggestedEndTime && "⭐"}
                   </SelectItem>
                 );
               })}
@@ -402,11 +414,11 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
       </div>
 
       {/* Client */}
-      <div className="space-y-1.5">
-        <Label className="text-xs">Cliente *</Label>
-        <div className="flex gap-2">
+      <div className="space-y-1">
+        <Label className="text-[10px] font-bold uppercase tracking-wider opacity-70">Cliente *</Label>
+        <div className="flex gap-1.5">
           <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground opacity-50" />
             <Input
               placeholder="Buscar cliente..."
               value={selectedClientId ? clientName : clientSearch}
@@ -418,18 +430,18 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
                 }
                 setClientSearch(e.target.value);
               }}
-              className="pl-8 h-9"
+              className="pl-8 h-8 text-xs rounded-md"
             />
           </div>
           {selectedClientId && (
             <Button
               variant="secondary"
               size="icon"
-              className="shrink-0 h-9 w-9"
+              className="shrink-0 h-8 w-8 rounded-md"
               onClick={() => window.open(`/clientes/${selectedClientId}`, '_blank')}
-              title="Ver perfil completo"
+              title="Ver perfil"
             >
-              <User className="w-4 h-4" />
+              <User className="w-3.5 h-3.5" />
             </Button>
           )}
         </div>
@@ -534,21 +546,21 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
 
 
       {/* Status */}
-      <div className="space-y-1.5">
-        <Label className="text-xs">Status</Label>
+      <div className="space-y-1">
+        <Label className="text-[10px] font-bold uppercase tracking-wider opacity-70">Status</Label>
         <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="h-9">
-            <SelectValue placeholder="Selecione o status" />
+          <SelectTrigger className="h-8 text-xs">
+            <SelectValue placeholder="Selecione" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="agendado">Agendado</SelectItem>
-            <SelectItem value="atendendo">Atendendo</SelectItem>
-            <SelectItem value="atendido">Atendido</SelectItem>
-            <SelectItem value="atrasado">Atrasado</SelectItem>
-            <SelectItem value="cancelado">Cancelado</SelectItem>
-            <SelectItem value="confirmado">Confirmado</SelectItem>
-            <SelectItem value="espera">Espera</SelectItem>
-            <SelectItem value="faltou">Faltou</SelectItem>
+            <SelectItem value="agendado" className="text-xs">Agendado</SelectItem>
+            <SelectItem value="atendendo" className="text-xs">Atendendo</SelectItem>
+            <SelectItem value="atendido" className="text-xs">Atendido</SelectItem>
+            <SelectItem value="atrasado" className="text-xs">Atrasado</SelectItem>
+            <SelectItem value="cancelado" className="text-xs">Cancelado</SelectItem>
+            <SelectItem value="confirmado" className="text-xs">Confirmado</SelectItem>
+            <SelectItem value="espera" className="text-xs">Espera</SelectItem>
+            <SelectItem value="falta" className="text-xs">Faltou</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -556,14 +568,14 @@ const AppointmentEditForm = ({ appointment, initialServices, onSaved, onCancel }
       {/* Actions */}
       <div className="flex gap-2 pt-1">
         <Button
-          className="flex-1"
+          className="flex-1 h-9 text-xs font-bold uppercase tracking-wider"
           onClick={() => mutation.mutate()}
           disabled={!canSubmit || mutation.isPending}
         >
-          {mutation.isPending && <Loader2 className="w-4 h-4 animate-spin mr-1.5" />}
-          Salvar Alterações
+          {mutation.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />}
+          Salvar
         </Button>
-        <Button variant="outline" onClick={onCancel}>Cancelar</Button>
+        <Button variant="outline" size="sm" className="h-9 text-xs" onClick={onCancel}>Cancelar</Button>
       </div>
 
       {/* Conflict confirmation dialog */}

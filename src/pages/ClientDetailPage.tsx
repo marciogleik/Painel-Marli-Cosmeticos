@@ -383,7 +383,7 @@ const ClientDetailPage = () => {
           </TabsContent>
 
           <TabsContent value="anexos">
-            <AnexosTab clientId={client.id} />
+            <AnexosTab clientId={client.id} clientName={client.full_name} />
           </TabsContent>
         </Tabs>
       </div>

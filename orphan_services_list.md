@@ -1,0 +1,119 @@
+# Lista de Serviços Órfãos (No Banco, mas não no CSV)
+
+Estes serviços existem no banco de dados mas não foram encontrados no arquivo CSV de preços enviado.
+
+- ATA CROSS
+- Alongamento de Unha Fibra
+- Aplicação de Botox
+- Avaliação
+- BB Glow
+- Banco de Colágeno
+- Banho de Gel
+- Bioestimulador com Elleva
+- Bioestimulador com Harmonyca
+- Bioestimulador com Radiesse
+- Bioestimulador com Sculptra
+- Bioestimulador de Gluteo
+- Bioimpedância
+- Carboxiterapia
+- Carboxterapia
+- Consulta Avaliação
+- Consulta de Enfermagem
+- Curso
+- Depilaçao de Costas
+- Depilação Axila
+- Depilação Buço
+- Depilação Completa
+- Depilação Costas
+- Depilação Definitiva
+- Depilação Facial
+- Depilação Luz Pulsada
+- Depilação Meia Perna
+- Depilação Nariz
+- Depilação Orelha
+- Depilação Perna
+- Depilação Virilha
+- Dermaplaning
+- Designer com Henna
+- Designer de Sobrancelhas
+- Despigmentação
+- Drenagem Linfática
+- Esmaltação em Gel
+- Esmaltação em Gel Pé
+- HIPERIN QUIMICO
+- Harmonização Facial
+- Hiperin Químico
+- Injetáveis
+- Jato de Plasma
+- Lash Lifting
+- Lavieen
+- Limpeza de Pele
+- Lipo de Papada
+- Manutenção Anual de Sobrancelhas
+- Manutenção Banho de Gel
+- Manutenção Labial
+- Manutenção Labial (menos de 1 ano)
+- Manutenção Labios menos de um ano
+- Manutenção Olho
+- Manutenção Olho (menos de 1 ano)
+- Manutenção de Fibra
+- Manutenção de Sobrancelhas (menos de 1 ano)
+- Manutenção de Sobrancelhas Menos de um ano
+- Manutenção olho
+- Massagem
+- Microagulhamento
+- Micropigmentação Contorno de Olhos
+- Micropigmentação Labial
+- Micropigmentação de Sobrancelhas
+- PEIM
+- Peeling Quimico
+- Peeling Químico
+- Peeling para Acne Cisteamine
+- Peeling para Melasma
+- Peeling para Rejuvenescimento
+- Peeling para melasma
+- Preenchedor de Glúteo
+- Preenchimento Bigodinho Chines
+- Preenchimento Bigodinho Chinês
+- Preenchimento Labial
+- Preenchimento Linha Marionete
+- Preenchimento Malar
+- Preenchimento de Mandibula
+- Preenchimento de Mandíbula
+- Preenchimento de Mento
+- Preenchimento de Olheiras
+- Preenchimento de Temporas
+- Preenchimento de Têmporas
+- Preenchimento de Zigomatico
+- Preenchimento de Zigomático
+- Prime Brow (crescimento do pelo)
+- Prime Bumbum
+- Prime Up (Brow Lamination)
+- Pós Operatorio
+- Pós Operatório
+- Remoção de Unha
+- Retorno Labial
+- Retorno Limpeza de Pele
+- Retorno Sobrancelhas
+- Retorno de Olhos
+- Retorno de Procedimento
+- Retorno limpeza de pele
+- Revitalização Facial
+- Rinomodelação
+- Skinbooster
+- Soroterapia
+- Spa dos Pés
+- Terapia Capilar
+- Tintura de Sobrancelhas
+- Tintura de sobrancelhas
+- Tratamento Celulite
+- Tratamento Corporal
+- Tratamento Estrias
+- Tratamento Laser
+- Tratamento Luz Pulsada
+- Ultraformer
+- Unha Mão
+- Unha Pé
+- Unha Pé e Mão
+- Ventosaterapia
+- manutenção olho menos de um ano

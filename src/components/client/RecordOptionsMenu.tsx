@@ -10,7 +10,8 @@ import {
   FileDown, 
   Loader2,
   X,
-  Check
+  Check,
+  Upload
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -37,6 +38,7 @@ interface RecordOptionsMenuProps {
   onSignatureSuccess?: () => void;
   onPrint?: (withHeader: boolean) => void;
   onShare?: (withHeader: boolean) => void;
+  onUploadAttachment?: () => void;
 }
 
 export const RecordOptionsMenu = ({
@@ -47,7 +49,8 @@ export const RecordOptionsMenu = ({
   trigger,
   onSignatureSuccess,
   onPrint,
-  onShare
+  onShare,
+  onUploadAttachment
 }: RecordOptionsMenuProps) => {
   const [isSigningOpen, setIsSigningOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -161,6 +164,14 @@ export const RecordOptionsMenu = ({
           <DropdownMenuItem onClick={() => handleAction('pdf', false)} className="gap-3 py-2 cursor-pointer">
             <FileDown className="w-4 h-4 text-blue-500" /> PDF sem cabeçalho
           </DropdownMenuItem>
+          
+          <DropdownMenuSeparator />
+
+          {onUploadAttachment && (
+            <DropdownMenuItem onClick={onUploadAttachment} className="gap-3 py-2 cursor-pointer">
+              <Upload className="w-4 h-4 text-orange-500" /> Adicionar Anexo
+            </DropdownMenuItem>
+          )}
           
           <DropdownMenuSeparator />
           
