@@ -21,7 +21,7 @@ import { parseLegacyTechnicalObservation } from "@/utils/legacyProcedureParser";
 
 const isTableField = (label: string, fieldType?: string, currentValue?: any) => {
   const l = (label || "").toLowerCase();
-  
+
   // If it's multiple choice or short text, it's NOT a table, even if it has keywords
   if (fieldType === "multiple_choice" || fieldType === "short_text") return false;
 
@@ -34,8 +34,8 @@ const isTableField = (label: string, fieldType?: string, currentValue?: any) => 
     if (isLegacyTable && spacesCount > 2) return true; // Detect mock tables
   }
 
-  if (l.includes('observações técnicas') || l.includes('evolução') || l.includes('técnica') || 
-      l.includes('histórico') || l.includes('procedimento realizado')) return true;
+  if (l.includes('observações técnicas') || l.includes('evolução') || l.includes('técnica') ||
+    l.includes('histórico') || l.includes('procedimento realizado')) return true;
 
   return false;
 };
@@ -64,26 +64,26 @@ const AnamneseFillDialog = ({
   // Derive fields from template or existing record with Sync Logic
   const fields: TemplateField[] = (() => {
     if (!isEditing) return (template?.fields ?? []).filter(f => f.isActive);
-    
+
     const savedFields = ((existingRecord.content as any)?.templateFields as TemplateField[]) || [];
     const currentTemplateFields = template?.fields ?? [];
-    
+
     if (currentTemplateFields.length === 0) return savedFields.filter(f => f.isActive);
-    
+
     // Map current template fields for lookup
     const templateIds = new Set(currentTemplateFields.map(f => f.id));
     const savedMap = new Map(savedFields.map(f => [f.id, f]));
-    
+
     // 1. Start with current template fields (authoritative structure)
     const syncedFields = currentTemplateFields.map(tField => {
       const saved = savedMap.get(tField.id);
       // We keep the template's version of the field but it will use the answer from state
       return tField;
     });
-    
+
     // 2. Add orphaned fields (existed in record but removed from template) to preserve history
     const orphanedFields = savedFields.filter(f => !templateIds.has(f.id));
-    
+
     return [...syncedFields, ...orphanedFields].filter(f => f.isActive);
   })().filter((f) => f.isActive);
 
@@ -146,7 +146,7 @@ const AnamneseFillDialog = ({
     templateFields.forEach(field => {
       const cleanLabel = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "").trim();
       const targetLabel = cleanLabel(field.label);
-      
+
       // Try exact or contains match on the line label
       const line = lines.find(l => {
         const lineParts = l.split(":");
@@ -180,13 +180,13 @@ const AnamneseFillDialog = ({
       if (!hasInitializedModels) {
         const content = existingRecord.content as any;
         let initialAnswers = (content.answers as Record<string, string>) ?? {};
-        
+
         // If answers are empty but we have an array (legacy format), try to parse
         if (Object.keys(initialAnswers).length === 0 && Array.isArray(content)) {
           const legacyContent = content as { label: string; value: string }[];
           const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "").trim();
           const mappedIds = new Set<string>();
-          
+
           // 1. Map items to fields by label (fuzzy match)
           legacyContent.forEach(item => {
             const itemL = clean(item.label || "");
@@ -223,11 +223,11 @@ const AnamneseFillDialog = ({
           if (tableField) {
             let unmappedNote = "";
             legacyContent.forEach(item => {
-               // If this item's label wasn't reasonably mapped to any field, add to notes
-               const field = fields.find(f => clean(f.label) === clean(item.label || ""));
-               if (!field && item.value && item.value.length > 0) {
-                 unmappedNote += (unmappedNote ? "\n\n" : "") + `${item.label}: ${item.value}`;
-               }
+              // If this item's label wasn't reasonably mapped to any field, add to notes
+              const field = fields.find(f => clean(f.label) === clean(item.label || ""));
+              if (!field && item.value && item.value.length > 0) {
+                unmappedNote += (unmappedNote ? "\n\n" : "") + `${item.label}: ${item.value}`;
+              }
             });
 
             if (unmappedNote) {
@@ -237,18 +237,18 @@ const AnamneseFillDialog = ({
                   const parsed = JSON.parse(currentVal);
                   parsed.notes = (parsed.notes ? parsed.notes + "\n\n" : "") + "DADOS RECUPERADOS:\n" + unmappedNote;
                   initialAnswers[tableField.id] = JSON.stringify(parsed);
-                } catch(e) {}
+                } catch (e) { }
               } else {
                 initialAnswers[tableField.id] = (currentVal ? currentVal + "\n\n" : "") + "DADOS RECUPERADOS:\n" + unmappedNote;
               }
             }
           }
         }
-        
+
         // Final Cleanup: move table-like data to technical field
         const cleanedAnswers = { ...initialAnswers };
         const mainTableField = fields.find(f => isTableField(f.label, f.type));
-        
+
         if (mainTableField) {
           Object.keys(cleanedAnswers).forEach(fid => {
             const val = cleanedAnswers[fid];
@@ -263,7 +263,7 @@ const AnamneseFillDialog = ({
             }
           });
         }
-        
+
         setAnswers(cleanedAnswers);
         setHasInitializedModels(true);
       }
@@ -311,7 +311,7 @@ const AnamneseFillDialog = ({
     onSuccess: (newRecordId) => {
       queryClient.invalidateQueries({ queryKey: ["patient_records", clientId] });
       toast({ title: isEditing ? "Ficha atualizada!" : "Ficha preenchida!" });
-      
+
       const shouldSign = (saveMutation.variables as any)?.shouldSign;
       if (shouldSign && newRecordId) {
         if (onSaveAndSign) {
@@ -367,10 +367,10 @@ const AnamneseFillDialog = ({
           <div className="flex items-center justify-between border-b border-slate-200 pb-2">
             <Label className="text-base font-semibold text-[#5c7cbe]">{field.label}</Label>
           </div>
-          <TechnicalObservationsGrid 
+          <TechnicalObservationsGrid
             label={field.label}
-            value={value} 
-            onChange={(v) => updateAnswer(field.id, v)} 
+            value={value}
+            onChange={(v) => updateAnswer(field.id, v)}
           />
         </div>
       );
@@ -391,7 +391,7 @@ const AnamneseFillDialog = ({
                     className={`flex items-center gap-2 cursor-pointer text-sm font-medium transition-colors ${isSelected ? 'text-blue-600' : 'text-slate-600'}`}
                   >
                     <div className={`w-4 h-4 border-2 rounded flex items-center justify-center transition-colors ${isSelected ? 'bg-blue-600 border-blue-600' : 'border-slate-300 bg-white'}`}>
-                       {isSelected && <Check className="w-3 h-3 text-white stroke-[4]" />}
+                      {isSelected && <Check className="w-3 h-3 text-white stroke-[4]" />}
                     </div>
                     {opt}
                   </div>
@@ -421,47 +421,47 @@ const AnamneseFillDialog = ({
               <Label className="text-base font-semibold text-[#5c7cbe]">{field.label}</Label>
             </div>
             <div className="rounded-lg border border-slate-200 overflow-hidden bg-white shadow-sm">
-               {/* Professional Toolbar matching the UI image */}
-               <div className="bg-[#f8f9fa] border-b p-1.5 flex flex-wrap gap-1 items-center">
-                  <div className="flex gap-0.5 border-r border-slate-300 pr-1.5 mr-1">
-                    {['B', 'I', 'U'].map(b => (
-                      <button key={b} className="w-8 h-8 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-200 rounded transition-colors text-xs">{b}</button>
-                    ))}
-                    <button className="w-8 h-8 flex items-center justify-center hover:bg-slate-200 rounded transition-colors">
-                      <div className="w-3 h-3 bg-slate-700 rounded-sm" />
-                    </button>
-                  </div>
-                  <div className="flex gap-0.5 border-r border-slate-300 pr-1.5 mr-1">
-                    {['S', 'X²', 'X₂'].map(b => (
-                      <button key={b} className="w-8 h-8 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-200 rounded transition-colors text-[10px]">{b}</button>
-                    ))}
-                  </div>
-                  <div className="flex gap-0.5 border-r border-slate-300 pr-1.5 mr-1 line-clamp-1">
-                    <button className="h-8 px-2 flex items-center justify-center font-medium text-slate-700 hover:bg-slate-200 rounded transition-colors text-[10px] gap-1">13 <ChevronDown className="w-3 h-3" /></button>
-                    <button className="h-8 px-2 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-200 rounded transition-colors text-[10px] gap-1"><span className="border-b-2 border-yellow-400">A</span> <ChevronDown className="w-3 h-3" /></button>
-                  </div>
-                  <div className="flex gap-0.5 mr-1">
-                    <button className="w-8 h-8 flex items-center justify-center hover:bg-slate-200 rounded transition-colors">
-                      <FileText className="w-4 h-4 text-slate-600" />
-                    </button>
-                    <button className="w-8 h-8 flex items-center justify-center hover:bg-slate-200 rounded transition-colors rotate-90">
-                      <ChevronDown className="w-4 h-4 text-slate-600" />
-                    </button>
-                    <button className="w-8 h-8 flex items-center justify-center hover:bg-slate-200 rounded transition-colors ml-1 border-l pl-2">
-                      <Table className="w-4 h-4 text-slate-600" />
-                    </button>
-                  </div>
-               </div>
-               <Textarea
-                 value={value}
-                 onChange={(e) => updateAnswer(field.id, e.target.value)}
-                 placeholder="Digite aqui..."
-                 className="min-h-[250px] text-sm whitespace-pre border-none focus-visible:ring-0 bg-white rounded-none font-mono p-4 leading-relaxed"
-                 style={{ tabSize: 20 }}
-               />
-               <div className="bg-[#f8f9fa] border-t h-2 flex items-center justify-center">
-                 <div className="w-12 h-1 bg-slate-200 rounded-full" />
-               </div>
+              {/* Professional Toolbar matching the UI image */}
+              <div className="bg-[#f8f9fa] border-b p-1.5 flex flex-wrap gap-1 items-center">
+                <div className="flex gap-0.5 border-r border-slate-300 pr-1.5 mr-1">
+                  {['B', 'I', 'U'].map(b => (
+                    <button key={b} className="w-8 h-8 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-200 rounded transition-colors text-xs">{b}</button>
+                  ))}
+                  <button className="w-8 h-8 flex items-center justify-center hover:bg-slate-200 rounded transition-colors">
+                    <div className="w-3 h-3 bg-slate-700 rounded-sm" />
+                  </button>
+                </div>
+                <div className="flex gap-0.5 border-r border-slate-300 pr-1.5 mr-1">
+                  {['S', 'X²', 'X₂'].map(b => (
+                    <button key={b} className="w-8 h-8 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-200 rounded transition-colors text-[10px]">{b}</button>
+                  ))}
+                </div>
+                <div className="flex gap-0.5 border-r border-slate-300 pr-1.5 mr-1 line-clamp-1">
+                  <button className="h-8 px-2 flex items-center justify-center font-medium text-slate-700 hover:bg-slate-200 rounded transition-colors text-[10px] gap-1">13 <ChevronDown className="w-3 h-3" /></button>
+                  <button className="h-8 px-2 flex items-center justify-center font-bold text-slate-700 hover:bg-slate-200 rounded transition-colors text-[10px] gap-1"><span className="border-b-2 border-yellow-400">A</span> <ChevronDown className="w-3 h-3" /></button>
+                </div>
+                <div className="flex gap-0.5 mr-1">
+                  <button className="w-8 h-8 flex items-center justify-center hover:bg-slate-200 rounded transition-colors">
+                    <FileText className="w-4 h-4 text-slate-600" />
+                  </button>
+                  <button className="w-8 h-8 flex items-center justify-center hover:bg-slate-200 rounded transition-colors rotate-90">
+                    <ChevronDown className="w-4 h-4 text-slate-600" />
+                  </button>
+                  <button className="w-8 h-8 flex items-center justify-center hover:bg-slate-200 rounded transition-colors ml-1 border-l pl-2">
+                    <Table className="w-4 h-4 text-slate-600" />
+                  </button>
+                </div>
+              </div>
+              <Textarea
+                value={value}
+                onChange={(e) => updateAnswer(field.id, e.target.value)}
+                placeholder="Digite aqui..."
+                className="min-h-[250px] text-sm whitespace-pre border-none focus-visible:ring-0 bg-white rounded-none font-mono p-4 leading-relaxed"
+                style={{ tabSize: 20 }}
+              />
+              <div className="bg-[#f8f9fa] border-t h-2 flex items-center justify-center">
+                <div className="w-12 h-1 bg-slate-200 rounded-full" />
+              </div>
             </div>
           </div>
         );
@@ -501,9 +501,9 @@ const AnamneseFillDialog = ({
         {/* Custom Blue Header */}
         <div className="bg-[#5c7cbe] text-white px-4 py-3 flex items-center justify-between shrink-0">
           <h2 className="text-lg font-medium">{title}</h2>
-          <Button 
-            variant="destructive" 
-            size="sm" 
+          <Button
+            variant="destructive"
+            size="sm"
             onClick={onClose}
             className="bg-[#eb5757] hover:bg-[#d44343] text-white border-none h-8 gap-1 upper px-4"
           >
@@ -513,15 +513,15 @@ const AnamneseFillDialog = ({
 
         <div className="flex-1 overflow-y-auto bg-white p-6 pt-8">
           <div className="max-w-4xl mx-auto space-y-8">
-            
+
             {/* Top Metadata Fields */}
             <div className="flex flex-wrap gap-8 items-end mb-10 border-b pb-8">
               <div className="space-y-2">
                 <Label className="text-slate-500 font-normal">Data Cadastro</Label>
-                <Input 
-                  type="text" 
-                  value={new Date(existingRecord?.created_at || new Date()).toLocaleDateString("pt-BR")} 
-                  readOnly 
+                <Input
+                  type="text"
+                  value={new Date(existingRecord?.created_at || new Date()).toLocaleDateString("pt-BR")}
+                  readOnly
                   className="max-w-[150px] bg-white border-slate-200"
                 />
               </div>
@@ -577,8 +577,8 @@ const AnamneseFillDialog = ({
             )}
             SALVAR E ASSINAR
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={onClose}
             className="w-full sm:w-auto h-12 bg-[#e0e4ed] hover:bg-[#d1d7e2] text-slate-700 border-none px-10 font-bold uppercase tracking-wider gap-2"
           >
