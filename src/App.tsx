@@ -26,9 +26,6 @@ import LoginPage from "./pages/LoginPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import FaqPage from "./pages/FaqPage";
 import CadastroConvitePage from "./pages/CadastroConvitePage";
-import ImportPage from "./pages/ImportPage";
-import ImportFichasPage from "./pages/ImportFichasPage";
-import ImportClientesPage from "./pages/ImportClientesPage";
 import ImportAnexosPage from "./pages/ImportAnexosPage";
 import ExportDataPage from "./pages/ExportDataPage";
 import PublicSignaturePage from "./pages/PublicSignaturePage";
@@ -48,9 +45,6 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/cadastro" element={<CadastroConvitePage />} />
             <Route path="/assinar/:recordId" element={<PublicSignaturePage />} />
-            <Route path="/import" element={<ProtectedRoute><ImportPage /></ProtectedRoute>} />
-            <Route path="/import-fichas" element={<ProtectedRoute><ImportFichasPage /></ProtectedRoute>} />
-            <Route path="/import-clientes" element={<ProtectedRoute><ImportClientesPage /></ProtectedRoute>} />
             <Route path="/import-anexos" element={<ProtectedRoute><ImportAnexosPage /></ProtectedRoute>} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
